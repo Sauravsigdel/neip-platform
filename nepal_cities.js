@@ -1,0 +1,32 @@
+const NEPAL_CITIES = [
+  { city: "Kathmandu", district: "Kathmandu", lat: 27.7172, lon: 85.3240, elevation_factor: 4, historical_disaster_index: 8 },
+  { city: "Lalitpur", district: "Lalitpur", lat: 27.6644, lon: 85.3188, elevation_factor: 4, historical_disaster_index: 7 },
+  { city: "Bhaktapur", district: "Bhaktapur", lat: 27.6722, lon: 85.4298, elevation_factor: 4, historical_disaster_index: 7 },
+  { city: "Pokhara", district: "Kaski", lat: 28.2096, lon: 83.9856, elevation_factor: 5, historical_disaster_index: 6 },
+  { city: "Baglung", district: "Baglung", lat: 28.2704, lon: 83.5886, elevation_factor: 6, historical_disaster_index: 5 },
+  { city: "Waling", district: "Syangja", lat: 28.0886, lon: 83.7819, elevation_factor: 5, historical_disaster_index: 5 },
+  { city: "Damauli", district: "Tanahun", lat: 27.9791, lon: 84.1759, elevation_factor: 5, historical_disaster_index: 5 },
+  { city: "Hetauda", district: "Makwanpur", lat: 27.4289, lon: 85.0319, elevation_factor: 4, historical_disaster_index: 5 },
+  { city: "Tansen", district: "Palpa", lat: 27.8673, lon: 83.5458, elevation_factor: 5, historical_disaster_index: 4 },
+  { city: "Biratnagar", district: "Morang", lat: 26.4525, lon: 87.2718, elevation_factor: 1, historical_disaster_index: 5 },
+  { city: "Itahari", district: "Sunsari", lat: 26.6650, lon: 87.2747, elevation_factor: 1, historical_disaster_index: 4 },
+  { city: "Dharan", district: "Sunsari", lat: 26.8147, lon: 87.2833, elevation_factor: 2, historical_disaster_index: 5 },
+  { city: "Birtamod", district: "Jhapa", lat: 26.6431, lon: 87.9979, elevation_factor: 1, historical_disaster_index: 4 },
+  { city: "Rajbiraj", district: "Saptari", lat: 26.5401, lon: 86.7379, elevation_factor: 1, historical_disaster_index: 5 },
+  { city: "Lahan", district: "Siraha", lat: 26.7198, lon: 86.4828, elevation_factor: 1, historical_disaster_index: 5 },
+  { city: "Birgunj", district: "Parsa", lat: 27.0103, lon: 84.8777, elevation_factor: 1, historical_disaster_index: 3 },
+  { city: "Janakpur", district: "Dhanusha", lat: 26.7288, lon: 85.9254, elevation_factor: 1, historical_disaster_index: 5 },
+  { city: "Bharatpur", district: "Chitwan", lat: 27.6833, lon: 84.4333, elevation_factor: 1, historical_disaster_index: 4 },
+  { city: "Gaur", district: "Rautahat", lat: 26.7633, lon: 85.2814, elevation_factor: 1, historical_disaster_index: 6 },
+  { city: "Butwal", district: "Rupandehi", lat: 27.7006, lon: 83.4532, elevation_factor: 2, historical_disaster_index: 4 },
+  { city: "Bhairahawa", district: "Rupandehi", lat: 27.5079, lon: 83.4573, elevation_factor: 1, historical_disaster_index: 3 },
+  { city: "Tulsipur", district: "Dang", lat: 28.1289, lon: 82.2980, elevation_factor: 2, historical_disaster_index: 4 },
+  { city: "Nepalgunj", district: "Banke", lat: 28.0500, lon: 81.6167, elevation_factor: 1, historical_disaster_index: 4 },
+  { city: "Gulariya", district: "Bardiya", lat: 28.2000, lon: 81.3333, elevation_factor: 1, historical_disaster_index: 6 },
+  { city: "Dhangadhi", district: "Kailali", lat: 28.6939, lon: 80.5963, elevation_factor: 1, historical_disaster_index: 5 },
+  { city: "Mahendranagar", district: "Kanchanpur", lat: 28.9741, lon: 80.1809, elevation_factor: 1, historical_disaster_index: 4 },
+  { city: "Dailekh", district: "Dailekh", lat: 28.8449, lon: 81.7118, elevation_factor: 6, historical_disaster_index: 6 },
+  { city: "Silgadhi", district: "Doti", lat: 29.2667, lon: 80.9333, elevation_factor: 6, historical_disaster_index: 5 }
+];
+
+module.exports = NEPAL_CITIES;
