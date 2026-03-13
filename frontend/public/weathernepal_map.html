@@ -1,0 +1,2626 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WeatherNepal — Live Weather Intelligence</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=DM+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+        font-family: "DM Sans", system-ui, sans-serif;
+        overflow: hidden;
+        background: #080d1a;
+      }
+      :root {
+        --bg: #080d1a;
+        --card: #0f1629;
+        --card2: #162038;
+        --border: rgba(255, 255, 255, 0.07);
+        --text: #f1f5f9;
+        --sub: #64748b;
+        --accent: #3b82f6;
+        --accent2: #06b6d4;
+      }
+
+      /* HEADER */
+      #hdr {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 54px;
+        z-index: 2000;
+        background: rgba(8, 13, 26, 0.96);
+        border-bottom: 1px solid var(--border);
+        backdrop-filter: blur(20px);
+        display: flex;
+        align-items: center;
+        padding: 0 18px;
+        gap: 14px;
+      }
+      .logo-wrap {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+      .logo-icon {
+        width: 30px;
+        height: 30px;
+        background: linear-gradient(135deg, #2563eb, #0891b2);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 15px;
+        box-shadow: 0 0 12px rgba(37, 99, 235, 0.4);
+      }
+      .logo-name {
+        font-size: 16px;
+        font-weight: 800;
+        color: #fff;
+        letter-spacing: -0.3px;
+      }
+      .logo-name span {
+        color: #38bdf8;
+      }
+      .logo-tag {
+        font-size: 9px;
+        color: var(--sub);
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        margin-top: 1px;
+      }
+      .hdr-sep {
+        width: 1px;
+        height: 28px;
+        background: var(--border);
+      }
+      .hdr-stat-group {
+        display: flex;
+        gap: 18px;
+      }
+      .hdr-stat {
+        text-align: center;
+      }
+      .hsv {
+        font-size: 14px;
+        font-weight: 800;
+        color: #fff;
+      }
+      .hsl {
+        font-size: 8px;
+        color: var(--sub);
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+      }
+      .hdr-flex {
+        flex: 1;
+      }
+      .live-pill {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 11px;
+        border-radius: 20px;
+        background: rgba(34, 197, 94, 0.1);
+        border: 1px solid rgba(34, 197, 94, 0.25);
+      }
+      .live-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #22c55e;
+        animation: pulse 2s infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5);
+        }
+        50% {
+          box-shadow: 0 0 0 4px transparent;
+        }
+      }
+      .live-lbl {
+        font-size: 10px;
+        font-weight: 700;
+        color: #22c55e;
+        letter-spacing: 0.8px;
+      }
+      #hdrClock {
+        font-size: 10px;
+        color: var(--sub);
+        font-family: "DM Mono", monospace;
+        margin-left: 12px;
+      }
+
+      /* MAP */
+      #map {
+        position: fixed;
+        top: 54px;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1;
+      }
+
+      /* SEARCH */
+      #srchWrap {
+        position: fixed;
+        top: 64px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1500;
+        width: min(460px, 88vw);
+      }
+      #srchBox {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 9px 14px;
+        border-radius: 12px;
+        background: rgba(15, 22, 41, 0.97);
+        border: 1px solid var(--border);
+        backdrop-filter: blur(20px);
+        box-shadow: 0 6px 28px rgba(0, 0, 0, 0.45);
+      }
+      #srchInput {
+        flex: 1;
+        background: transparent;
+        border: none;
+        outline: none;
+        font-size: 13px;
+        color: #fff;
+        font-family: "DM Sans", sans-serif;
+      }
+      #srchInput::placeholder {
+        color: var(--sub);
+      }
+      #srchClr {
+        background: none;
+        border: none;
+        color: var(--sub);
+        cursor: pointer;
+        font-size: 17px;
+        line-height: 1;
+        display: none;
+      }
+      #srchDrop {
+        margin-top: 5px;
+        border-radius: 11px;
+        overflow: hidden;
+        background: rgba(15, 22, 41, 0.98);
+        border: 1px solid var(--border);
+        box-shadow: 0 10px 36px rgba(0, 0, 0, 0.5);
+        display: none;
+      }
+      .si {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 14px;
+        cursor: pointer;
+        border-bottom: 1px solid var(--border);
+        transition: background 0.12s;
+      }
+      .si:last-child {
+        border-bottom: none;
+      }
+      .si:hover {
+        background: rgba(255, 255, 255, 0.04);
+      }
+      .si-badge {
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        font-weight: 800;
+        color: #fff;
+        flex-shrink: 0;
+      }
+      .si-name {
+        font-size: 13px;
+        font-weight: 700;
+        color: #fff;
+      }
+      .si-meta {
+        font-size: 10px;
+        color: var(--sub);
+      }
+      .si-tmp {
+        font-size: 17px;
+        font-weight: 800;
+        color: #fff;
+        margin-left: auto;
+      }
+
+      /* LAYER PANEL */
+      #lyPnl {
+        position: fixed;
+        top: 64px;
+        right: 14px;
+        z-index: 1500;
+        width: 192px;
+        background: rgba(15, 22, 41, 0.97);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        backdrop-filter: blur(20px);
+        box-shadow: 0 6px 28px rgba(0, 0, 0, 0.45);
+        overflow: hidden;
+      }
+      .lp-hdr {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .lp-title {
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--sub);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+      .lp-list {
+        padding: 6px;
+      }
+      .lp-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 7px;
+        border-radius: 7px;
+        cursor: pointer;
+        transition: background 0.12s;
+        margin-bottom: 1px;
+      }
+      .lp-item:hover {
+        background: rgba(255, 255, 255, 0.04);
+      }
+      .lp-item.active {
+        background: rgba(59, 130, 246, 0.12);
+      }
+      .lp-ico {
+        font-size: 14px;
+        width: 18px;
+        text-align: center;
+      }
+      .lp-name {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text);
+        flex: 1;
+      }
+      .lp-tog {
+        width: 28px;
+        height: 16px;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        position: relative;
+        background: rgba(255, 255, 255, 0.1);
+        flex-shrink: 0;
+        transition: background 0.2s;
+      }
+      .lp-tog.on {
+        background: var(--accent);
+      }
+      .lp-tog::after {
+        content: "";
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #fff;
+        transition: transform 0.2s;
+      }
+      .lp-tog.on::after {
+        transform: translateX(12px);
+      }
+      .lp-div {
+        height: 1px;
+        background: var(--border);
+        margin: 4px 0;
+      }
+      .lp-sec {
+        font-size: 8px;
+        color: var(--sub);
+        padding: 2px 7px 0;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+      }
+
+      /* STATS BAR */
+      #statsBar {
+        position: fixed;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1500;
+        display: flex;
+        gap: 0;
+        align-items: stretch;
+        background: rgba(15, 22, 41, 0.97);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        backdrop-filter: blur(20px);
+        box-shadow: 0 6px 28px rgba(0, 0, 0, 0.4);
+        white-space: nowrap;
+        overflow: hidden;
+      }
+      .sb-item {
+        padding: 7px 16px;
+        text-align: center;
+      }
+      .sb-item + .sb-item {
+        border-left: 1px solid var(--border);
+      }
+      .sb-val {
+        font-size: 14px;
+        font-weight: 800;
+        color: #fff;
+      }
+      .sb-lbl {
+        font-size: 8px;
+        color: var(--sub);
+        text-transform: uppercase;
+        letter-spacing: 0.7px;
+        margin-top: 1px;
+      }
+
+      /* LEGEND */
+      #legend {
+        position: fixed;
+        bottom: 72px;
+        left: 14px;
+        z-index: 1500;
+        background: rgba(15, 22, 41, 0.97);
+        border: 1px solid var(--border);
+        border-radius: 11px;
+        padding: 10px 13px;
+        backdrop-filter: blur(20px);
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
+        min-width: 130px;
+      }
+      #lgTitle {
+        font-size: 8px;
+        font-weight: 700;
+        color: var(--sub);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 7px;
+      }
+      .lg-row {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 3px;
+      }
+      .lg-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .lg-lbl {
+        font-size: 9px;
+        color: #94a3b8;
+        font-weight: 500;
+      }
+
+      /* DETAIL PANEL */
+      #dpPnl {
+        position: fixed;
+        top: 54px;
+        right: -370px;
+        bottom: 0;
+        width: 355px;
+        z-index: 1600;
+        background: rgba(8, 13, 26, 0.99);
+        border-left: 1px solid var(--border);
+        backdrop-filter: blur(20px);
+        transition: right 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: var(--border) transparent;
+      }
+      #dpPnl.open {
+        right: 0;
+      }
+      .dp-x {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.07);
+        border: 1px solid var(--border);
+        color: #fff;
+        font-size: 13px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        z-index: 5;
+      }
+      .dp-x:hover {
+        background: rgba(239, 68, 68, 0.5);
+        border-color: #ef4444;
+      }
+
+      /* Hero */
+      .dp-hero {
+        padding: 22px 18px 18px;
+        position: relative;
+        overflow: hidden;
+        min-height: 150px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+      }
+      .dp-hbg {
+        position: absolute;
+        inset: 0;
+      }
+      .dp-hcontent {
+        position: relative;
+        z-index: 1;
+      }
+      .dp-zone {
+        font-size: 9px;
+        font-weight: 700;
+        color: rgba(255, 255, 255, 0.65);
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        margin-bottom: 3px;
+      }
+      .dp-city {
+        font-size: 20px;
+        font-weight: 800;
+        color: #fff;
+      }
+      .dp-dist {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.6);
+        margin-top: 1px;
+      }
+      .dp-aqirow {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 10px;
+      }
+      .dp-aqinum {
+        font-size: 44px;
+        font-weight: 900;
+        line-height: 1;
+        color: #fff;
+      }
+      .dp-aqilbl {
+        font-size: 11px;
+        font-weight: 700;
+        padding: 2px 9px;
+        border-radius: 20px;
+        margin-bottom: 3px;
+        display: inline-block;
+      }
+      .dp-aqiadv {
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.65);
+        max-width: 170px;
+        line-height: 1.4;
+      }
+
+      /* Sections */
+      .dp-sec {
+        padding: 14px 16px;
+      }
+      .dp-seclbl {
+        font-size: 8px;
+        font-weight: 700;
+        color: var(--sub);
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        margin-bottom: 9px;
+      }
+      .dp-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 7px;
+      }
+      .dp-cell {
+        background: var(--card2);
+        border-radius: 9px;
+        padding: 9px 8px;
+        text-align: center;
+        border: 1px solid var(--border);
+      }
+      .dp-cico {
+        font-size: 16px;
+        margin-bottom: 3px;
+      }
+      .dp-cval {
+        font-size: 13px;
+        font-weight: 800;
+        color: #fff;
+      }
+      .dp-clbl {
+        font-size: 7px;
+        color: var(--sub);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-top: 2px;
+      }
+
+      /* Forecast */
+      .fc-row {
+        display: flex;
+        align-items: center;
+        padding: 6px 0;
+        border-bottom: 1px solid var(--border);
+      }
+      .fc-row:last-child {
+        border-bottom: none;
+      }
+      .fc-day {
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--sub);
+        width: 28px;
+      }
+      .fc-ico {
+        font-size: 16px;
+        margin: 0 8px;
+      }
+      .fc-lo {
+        font-size: 10px;
+        color: var(--sub);
+        width: 24px;
+      }
+      .fc-bw {
+        flex: 1;
+        height: 3px;
+        background: rgba(255, 255, 255, 0.07);
+        border-radius: 2px;
+        margin: 0 6px;
+      }
+      .fc-bf {
+        height: 100%;
+        border-radius: 2px;
+      }
+      .fc-hi {
+        font-size: 10px;
+        font-weight: 700;
+        color: #fff;
+        width: 44px;
+        text-align: right;
+      }
+      .fc-adot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        margin-left: 6px;
+        flex-shrink: 0;
+      }
+
+      /* Chart */
+      .cw {
+        height: 90px;
+        position: relative;
+      }
+
+      /* AI Box */
+      .ai-wrap {
+        margin: 0 16px 14px;
+        padding: 12px;
+        border-radius: 11px;
+        background: linear-gradient(
+          135deg,
+          rgba(37, 99, 235, 0.1),
+          rgba(8, 145, 178, 0.1)
+        );
+        border: 1px solid rgba(59, 130, 246, 0.25);
+      }
+      .ai-hdr {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 7px;
+      }
+      .ai-badge {
+        font-size: 8px;
+        font-weight: 700;
+        padding: 2px 7px;
+        border-radius: 20px;
+        background: rgba(59, 130, 246, 0.2);
+        color: #60a5fa;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+      }
+      .ai-body {
+        font-size: 11px;
+        color: #94a3b8;
+        line-height: 1.6;
+      }
+      .ai-spin {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        color: var(--sub);
+      }
+      .spinner {
+        width: 11px;
+        height: 11px;
+        border: 2px solid var(--border);
+        border-top-color: #3b82f6;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Alert btn */
+      .alrt-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        margin: 0 16px 18px;
+        padding: 11px;
+        border-radius: 11px;
+        background: linear-gradient(135deg, #1d4ed8, #0284c7);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        border: none;
+        font-family: "DM Sans", sans-serif;
+        width: calc(100% - 32px);
+        transition: opacity 0.2s;
+      }
+      .alrt-btn:hover {
+        opacity: 0.88;
+      }
+
+      /* ALERT MODAL */
+      #alrtModal {
+        position: fixed;
+        inset: 0;
+        z-index: 3000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 14px;
+      }
+      #alrtModal.show {
+        display: flex;
+      }
+      #alrtBg {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.72);
+        backdrop-filter: blur(8px);
+      }
+      #alrtBox {
+        position: relative;
+        z-index: 1;
+        width: min(440px, 100%);
+        background: #0f1629;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        box-shadow: 0 28px 70px rgba(0, 0, 0, 0.55);
+        overflow: hidden;
+      }
+      .am-hdr {
+        padding: 18px 22px;
+        background: linear-gradient(135deg, #1e3a8a, #1d4ed8);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .am-title {
+        font-size: 16px;
+        font-weight: 800;
+        color: #fff;
+      }
+      .am-sub {
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.65);
+        margin-top: 2px;
+      }
+      .am-x {
+        background: rgba(255, 255, 255, 0.15);
+        border: none;
+        color: #fff;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .am-body {
+        padding: 18px 22px;
+      }
+      .fg {
+        margin-bottom: 12px;
+      }
+      .fl {
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--sub);
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        margin-bottom: 5px;
+        display: block;
+      }
+      .fi {
+        width: 100%;
+        padding: 9px 12px;
+        border-radius: 9px;
+        background: var(--card2);
+        border: 1px solid var(--border);
+        color: #fff;
+        font-size: 12px;
+        font-family: "DM Sans", sans-serif;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+      .fi:focus {
+        border-color: var(--accent);
+      }
+      .fi::placeholder {
+        color: var(--sub);
+      }
+      .cb-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 7px;
+      }
+      .cb-item {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 7px 9px;
+        border-radius: 7px;
+        background: var(--card2);
+        border: 1px solid var(--border);
+        cursor: pointer;
+        transition: border-color 0.15s;
+      }
+      .cb-item:hover {
+        border-color: var(--accent);
+      }
+      .cb-item input {
+        accent-color: var(--accent);
+        width: 13px;
+        height: 13px;
+      }
+      .cb-lbl {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text);
+      }
+      .f-submit {
+        width: 100%;
+        padding: 11px;
+        border-radius: 10px;
+        margin-top: 4px;
+        background: linear-gradient(135deg, #2563eb, #0284c7);
+        color: #fff;
+        font-size: 13px;
+        font-weight: 700;
+        border: none;
+        cursor: pointer;
+        font-family: "DM Sans", sans-serif;
+        transition: opacity 0.2s;
+      }
+      .f-submit:hover {
+        opacity: 0.88;
+      }
+      .f-ok {
+        text-align: center;
+        padding: 24px 22px;
+        display: none;
+      }
+      .f-ok-ico {
+        font-size: 44px;
+        margin-bottom: 10px;
+      }
+      .f-ok-title {
+        font-size: 16px;
+        font-weight: 800;
+        color: #fff;
+        margin-bottom: 5px;
+      }
+      .f-ok-txt {
+        font-size: 12px;
+        color: var(--sub);
+        line-height: 1.5;
+      }
+
+      /* Leaflet overrides */
+      .wn-pin {
+        background: none !important;
+        border: none !important;
+        cursor: pointer;
+      }
+      .leaflet-popup-content-wrapper {
+        background: #0f1629 !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 11px !important;
+        color: #fff !important;
+        box-shadow: 0 16px 50px rgba(0, 0, 0, 0.55) !important;
+        padding: 0 !important;
+      }
+      .leaflet-popup-content {
+        margin: 0 !important;
+        width: auto !important;
+      }
+      .leaflet-popup-tip {
+        background: #0f1629 !important;
+      }
+      .leaflet-popup-close-button {
+        color: rgba(255, 255, 255, 0.4) !important;
+        top: 7px !important;
+        right: 7px !important;
+      }
+      .leaflet-control-zoom a {
+        background: #0f1629 !important;
+        color: #fff !important;
+        border-color: rgba(255, 255, 255, 0.1) !important;
+      }
+      .leaflet-control-zoom a:hover {
+        background: #162038 !important;
+      }
+      .leaflet-control-attribution {
+        background: rgba(8, 13, 26, 0.8) !important;
+        color: rgba(255, 255, 255, 0.25) !important;
+        font-size: 8px !important;
+      }
+      ::-webkit-scrollbar {
+        width: 3px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- HEADER -->
+    <div id="hdr">
+      <div class="logo-wrap">
+        <div class="logo-icon">🌏</div>
+        <div>
+          <div class="logo-name">Weather<span>Nepal</span></div>
+          <div class="logo-tag">Live Intelligence</div>
+        </div>
+      </div>
+      <div class="hdr-sep"></div>
+      <div class="hdr-stat-group">
+        <div class="hdr-stat">
+          <div class="hsv" id="hDistricts">77</div>
+          <div class="hsl">Districts</div>
+        </div>
+        <div class="hdr-stat">
+          <div class="hsv" id="hAvgAqi" style="color: #f97316">—</div>
+          <div class="hsl">Avg AQI</div>
+        </div>
+        <div class="hdr-stat">
+          <div class="hsv" id="hAvgTemp" style="color: #38bdf8">—</div>
+          <div class="hsl">Avg Temp</div>
+        </div>
+        <div class="hdr-stat">
+          <div class="hsv" id="hRaining" style="color: #3b82f6">—</div>
+          <div class="hsl">Raining</div>
+        </div>
+      </div>
+      <div class="hdr-flex"></div>
+      <div class="live-pill">
+        <div class="live-dot"></div>
+        <span class="live-lbl">LIVE</span>
+      </div>
+      <div id="hdrClock"></div>
+    </div>
+
+    <!-- SEARCH -->
+    <div id="srchWrap">
+      <div id="srchBox">
+        <svg
+          width="15"
+          height="15"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="rgba(255,255,255,0.4)"
+          stroke-width="2.5"
+        >
+          <circle cx="11" cy="11" r="8" />
+          <path d="m21 21-4.35-4.35" />
+        </svg>
+        <input
+          id="srchInput"
+          placeholder="Search district or city…"
+          autocomplete="off"
+        />
+        <button id="srchClr">×</button>
+      </div>
+      <div id="srchDrop"></div>
+    </div>
+
+    <!-- LAYER PANEL -->
+    <div id="lyPnl">
+      <div class="lp-hdr">
+        <span class="lp-title">Map Layers</span>
+        <span style="font-size: 8px; color: var(--sub)">Toggle</span>
+      </div>
+      <div class="lp-list" id="lpList"></div>
+    </div>
+
+    <!-- MAP -->
+    <div id="map"></div>
+
+    <!-- LEGEND -->
+    <div id="legend">
+      <div id="lgTitle">AQI Scale</div>
+      <div id="lgContent">
+        <div class="lg-row">
+          <div class="lg-dot" style="background: #22c55e"></div>
+          <div class="lg-lbl">0–50 Good</div>
+        </div>
+        <div class="lg-row">
+          <div class="lg-dot" style="background: #eab308"></div>
+          <div class="lg-lbl">51–100 Moderate</div>
+        </div>
+        <div class="lg-row">
+          <div class="lg-dot" style="background: #f97316"></div>
+          <div class="lg-lbl">101–150 Sensitive</div>
+        </div>
+        <div class="lg-row">
+          <div class="lg-dot" style="background: #ef4444"></div>
+          <div class="lg-lbl">151–200 Unhealthy</div>
+        </div>
+        <div class="lg-row">
+          <div class="lg-dot" style="background: #a855f7"></div>
+          <div class="lg-lbl">201–300 V.Unhealthy</div>
+        </div>
+        <div class="lg-row">
+          <div class="lg-dot" style="background: #7f1d1d"></div>
+          <div class="lg-lbl">300+ Hazardous</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATS BAR -->
+    <div id="statsBar">
+      <div class="sb-item">
+        <div class="sb-val" id="sbGood" style="color: #22c55e">—</div>
+        <div class="sb-lbl">Good</div>
+      </div>
+      <div class="sb-item">
+        <div class="sb-val" id="sbMod" style="color: #eab308">—</div>
+        <div class="sb-lbl">Moderate</div>
+      </div>
+      <div class="sb-item">
+        <div class="sb-val" id="sbUnh" style="color: #ef4444">—</div>
+        <div class="sb-lbl">Unhealthy</div>
+      </div>
+      <div class="sb-item">
+        <div class="sb-val" id="sbHaz" style="color: #7f1d1d">—</div>
+        <div class="sb-lbl">Hazardous</div>
+      </div>
+      <div class="sb-item">
+        <div class="sb-val" id="sbSnow" style="color: #bae6fd">—</div>
+        <div class="sb-lbl">Snowing</div>
+      </div>
+      <div class="sb-item">
+        <div
+          class="sb-val"
+          id="sbUpd"
+          style="font-size: 10px; color: var(--sub)"
+        >
+          —
+        </div>
+        <div class="sb-lbl">Updated</div>
+      </div>
+    </div>
+
+    <!-- DETAIL PANEL -->
+    <div id="dpPnl">
+      <button class="dp-x" onclick="closeDetail()">✕</button>
+      <div class="dp-hero" id="dpHero">
+        <div class="dp-hbg" id="dpHBg"></div>
+        <div class="dp-hcontent">
+          <div class="dp-zone" id="dpZone"></div>
+          <div class="dp-city" id="dpCity"></div>
+          <div class="dp-dist" id="dpDist"></div>
+          <div class="dp-aqirow">
+            <div class="dp-aqinum" id="dpAqiN"></div>
+            <div>
+              <div class="dp-aqilbl" id="dpAqiL"></div>
+              <div class="dp-aqiadv" id="dpAqiA"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dp-sec">
+        <div class="dp-seclbl">Current Conditions</div>
+        <div class="dp-grid">
+          <div class="dp-cell">
+            <div class="dp-cico">🌡️</div>
+            <div class="dp-cval" id="dTemp">—</div>
+            <div class="dp-clbl">Temp</div>
+          </div>
+          <div class="dp-cell">
+            <div class="dp-cico">🌡️</div>
+            <div class="dp-cval" id="dFeel">—</div>
+            <div class="dp-clbl">Feels Like</div>
+          </div>
+          <div class="dp-cell">
+            <div class="dp-cico">💧</div>
+            <div class="dp-cval" id="dHum">—</div>
+            <div class="dp-clbl">Humidity</div>
+          </div>
+          <div class="dp-cell">
+            <div class="dp-cico">💨</div>
+            <div class="dp-cval" id="dWind">—</div>
+            <div class="dp-clbl">Wind</div>
+          </div>
+          <div class="dp-cell">
+            <div class="dp-cico">🧭</div>
+            <div class="dp-cval" id="dWDir">—</div>
+            <div class="dp-clbl">Direction</div>
+          </div>
+          <div class="dp-cell">
+            <div class="dp-cico">☁️</div>
+            <div class="dp-cval" id="dCloud">—</div>
+            <div class="dp-clbl">Cloud</div>
+          </div>
+          <div class="dp-cell">
+            <div class="dp-cico">🌧️</div>
+            <div class="dp-cval" id="dRain">—</div>
+            <div class="dp-clbl">Rainfall</div>
+          </div>
+          <div class="dp-cell">
+            <div class="dp-cico">❄️</div>
+            <div class="dp-cval" id="dSnow">—</div>
+            <div class="dp-clbl">Snowfall</div>
+          </div>
+          <div class="dp-cell">
+            <div class="dp-cico">👁️</div>
+            <div class="dp-cval" id="dVis">—</div>
+            <div class="dp-clbl">Visibility</div>
+          </div>
+          <div class="dp-cell">
+            <div class="dp-cico">🔽</div>
+            <div class="dp-cval" id="dPress">—</div>
+            <div class="dp-clbl">Pressure</div>
+          </div>
+          <div class="dp-cell">
+            <div class="dp-cico">☀️</div>
+            <div class="dp-cval" id="dUV">—</div>
+            <div class="dp-clbl">UV Index</div>
+          </div>
+          <div class="dp-cell">
+            <div class="dp-cico">🌅</div>
+            <div class="dp-cval" id="dCond">—</div>
+            <div class="dp-clbl">Condition</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dp-sec" style="padding-top: 0">
+        <div class="dp-seclbl">Air Quality</div>
+        <div class="dp-grid">
+          <div class="dp-cell">
+            <div class="dp-cico">🏭</div>
+            <div class="dp-cval" id="dPm25" style="color: #f97316">—</div>
+            <div class="dp-clbl">PM2.5</div>
+          </div>
+          <div class="dp-cell">
+            <div class="dp-cico">🌫️</div>
+            <div class="dp-cval" id="dPm10" style="color: #eab308">—</div>
+            <div class="dp-clbl">PM10</div>
+          </div>
+          <div class="dp-cell">
+            <div class="dp-cico">⚗️</div>
+            <div class="dp-cval" id="dNo2" style="color: #a855f7">—</div>
+            <div class="dp-clbl">NO₂</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dp-sec" style="padding-top: 0">
+        <div class="dp-seclbl">24-Hour Temperature</div>
+        <div class="cw"><canvas id="dp24c"></canvas></div>
+      </div>
+
+      <div class="dp-sec" style="padding-top: 0">
+        <div class="dp-seclbl">7-Day Forecast</div>
+        <div id="dpFc"></div>
+      </div>
+
+      <div class="dp-sec" style="padding-top: 0">
+        <div class="dp-seclbl">AI Advisory</div>
+      </div>
+      <div class="ai-wrap">
+        <div class="ai-hdr">
+          <span style="font-size: 14px">🤖</span>
+          <span class="ai-badge">Claude AI</span>
+        </div>
+        <div class="ai-body" id="aiBody">
+          <div class="ai-spin">
+            <div class="spinner"></div>
+            Generating advisory…
+          </div>
+        </div>
+      </div>
+
+      <button class="alrt-btn" onclick="openAlert()">
+        🔔 Set Weather Alert for This Location
+      </button>
+    </div>
+
+    <!-- ALERT MODAL -->
+    <div id="alrtModal">
+      <div id="alrtBg" onclick="closeAlert()"></div>
+      <div id="alrtBox">
+        <div class="am-hdr">
+          <div>
+            <div class="am-title">🔔 Weather Alert</div>
+            <div class="am-sub" id="amSub">Get notified about conditions</div>
+          </div>
+          <button class="am-x" onclick="closeAlert()">✕</button>
+        </div>
+        <div class="am-body" id="amForm">
+          <div class="fg">
+            <label class="fl">Your Name</label
+            ><input class="fi" id="aName" placeholder="Enter your name" />
+          </div>
+          <div class="fg">
+            <label class="fl">Email Address</label
+            ><input
+              class="fi"
+              id="aEmail"
+              type="email"
+              placeholder="you@email.com"
+            />
+          </div>
+          <div class="fg">
+            <label class="fl">Alert me when…</label>
+            <div class="cb-grid">
+              <label class="cb-item"
+                ><input type="checkbox" id="cAqi" checked /><span class="cb-lbl"
+                  >🏭 AQI Unhealthy</span
+                ></label
+              >
+              <label class="cb-item"
+                ><input type="checkbox" id="cRain" checked /><span
+                  class="cb-lbl"
+                  >🌧️ Heavy Rain</span
+                ></label
+              >
+              <label class="cb-item"
+                ><input type="checkbox" id="cWind" /><span class="cb-lbl"
+                  >💨 Strong Wind</span
+                ></label
+              >
+              <label class="cb-item"
+                ><input type="checkbox" id="cSnow" /><span class="cb-lbl"
+                  >❄️ Snowfall</span
+                ></label
+              >
+              <label class="cb-item"
+                ><input type="checkbox" id="cTemp" /><span class="cb-lbl"
+                  >🥶 Below 0°C</span
+                ></label
+              >
+              <label class="cb-item"
+                ><input type="checkbox" id="cDaily" checked /><span
+                  class="cb-lbl"
+                  >🌅 Daily Summary</span
+                ></label
+              >
+            </div>
+          </div>
+          <button class="f-submit" onclick="submitAlert()">
+            Activate Alerts →
+          </button>
+        </div>
+        <div class="f-ok" id="amOk">
+          <div class="f-ok-ico">✅</div>
+          <div class="f-ok-title">Alerts Activated!</div>
+          <div class="f-ok-txt" id="amOkTxt">
+            You will receive weather alerts for your location.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ══════════════════════════════════════════
+      // ⚙️ CONFIG — paste your API keys here
+      // ══════════════════════════════════════════
+      const CFG = {
+        OWM: "7ef9f5928ad13bd0affbc1a657ce3b5f ",
+        WINDY: "G0IXKsR8sageuB5hkB7v3ITa1TWkCaXd ",
+        API: "http://localhost:5000/api",
+      };
+
+      // ══════════════════════════════════════════
+      // AQI HELPERS
+      // ══════════════════════════════════════════
+      const LEVELS = [
+        {
+          max: 50,
+          c: "#22c55e",
+          bg: "rgba(34,197,94,0.15)",
+          lbl: "Good",
+          adv: "Air quality is satisfactory. Safe for all outdoor activities.",
+        },
+        {
+          max: 100,
+          c: "#eab308",
+          bg: "rgba(234,179,8,0.15)",
+          lbl: "Moderate",
+          adv: "Acceptable for most people. Unusually sensitive individuals should limit prolonged outdoor exertion.",
+        },
+        {
+          max: 150,
+          c: "#f97316",
+          bg: "rgba(249,115,22,0.15)",
+          lbl: "Unhealthy (Sens.)",
+          adv: "Sensitive groups may experience effects. Wear a mask if you have respiratory issues.",
+        },
+        {
+          max: 200,
+          c: "#ef4444",
+          bg: "rgba(239,68,68,0.15)",
+          lbl: "Unhealthy",
+          adv: "Everyone may experience health effects. Wear N95 mask outdoors. Limit time outside.",
+        },
+        {
+          max: 300,
+          c: "#a855f7",
+          bg: "rgba(168,85,247,0.15)",
+          lbl: "Very Unhealthy",
+          adv: "Health alert. Avoid all outdoor activity. Keep windows closed.",
+        },
+        {
+          max: 500,
+          c: "#7f1d1d",
+          bg: "rgba(127,29,29,0.15)",
+          lbl: "Hazardous",
+          adv: "Emergency conditions. Stay indoors. Seal windows and doors.",
+        },
+      ];
+      const HERO_GRADS = {
+        Good: "linear-gradient(135deg,#14532d,#15803d)",
+        Moderate: "linear-gradient(135deg,#713f12,#b45309)",
+        "Unhealthy (Sens.)": "linear-gradient(135deg,#7c2d12,#c2410c)",
+        Unhealthy: "linear-gradient(135deg,#7f1d1d,#b91c1c)",
+        "Very Unhealthy": "linear-gradient(135deg,#4a1d96,#7e22ce)",
+        Hazardous: "linear-gradient(135deg,#1c1917,#450a0a)",
+      };
+      function gl(a) {
+        return LEVELS.find((l) => a <= l.max) || LEVELS[5];
+      }
+      function p2a(v) {
+        const B = [
+          [0, 12, 0, 50],
+          [12.1, 35.4, 51, 100],
+          [35.5, 55.4, 101, 150],
+          [55.5, 150.4, 151, 200],
+          [150.5, 250.4, 201, 300],
+          [250.5, 350.4, 301, 400],
+        ];
+        const t = Math.floor(v * 10) / 10;
+        for (const [cl, ch, il, ih] of B)
+          if (t >= cl && t <= ch)
+            return Math.round(((ih - il) / (ch - cl)) * (t - cl) + il);
+        return 500;
+      }
+
+      // ══════════════════════════════════════════
+      // SIMULATION
+      // ══════════════════════════════════════════
+      function rng(seed) {
+        let s = (seed * 9301 + 49297) % 233280;
+        return s / 233280;
+      }
+      function simAQI(zone, i) {
+        const m = new Date().getMonth();
+        const w = m >= 10 || m <= 1 ? 1.42 : m >= 3 && m <= 5 ? 1.16 : 1.0;
+        const r = rng(i * 7919 + 42);
+        const base =
+          {
+            valley: 62 + r * 68,
+            terai: 28 + r * 52,
+            hill: 10 + r * 26,
+            rural: 7 + r * 18,
+            mountain: 4 + r * 13,
+          }[zone] || 18;
+        const pm = base * w;
+        return {
+          aqi: Math.round(p2a(pm)),
+          pm25: +pm.toFixed(1),
+          pm10: +(pm * (1.45 + r * 0.5)).toFixed(1),
+          no2: +(7 + r * 34).toFixed(1),
+        };
+      }
+      function simWX(zone, lat, i) {
+        const m = new Date().getMonth();
+        const isW = m >= 11 || m <= 1,
+          isS = m >= 5 && m <= 8,
+          isMon = m >= 6 && m <= 9;
+        const r = rng(i * 1664525 + 1),
+          r2 = rng(i * 22695477 + 2);
+        const base =
+          {
+            valley: 22,
+            terai: 27,
+            hill: 17,
+            rural: 14,
+            mountain: -2 + (lat - 27) * 1.4,
+          }[zone] || 19;
+        const temp = Math.round(
+          base + (isS ? 6 : isW ? -9 : 0) + (r - 0.5) * 6,
+        );
+        const snow =
+          zone === "mountain" && (isW || m === 9 || m === 10)
+            ? (r * 9).toFixed(1)
+            : "0";
+        const rain = isMon
+          ? (r * 13).toFixed(1)
+          : isS
+            ? (r * 4).toFixed(1)
+            : (r * 0.8).toFixed(1);
+        const WI = ["☀️", "⛅", "🌤️", "🌥️", "🌦️", "🌧️", "🌨️", "⛈️"];
+        const CN = [
+          "Clear",
+          "Partly Cloudy",
+          "Mostly Clear",
+          "Overcast",
+          "Light Rain",
+          "Heavy Rain",
+          "Snow",
+          "Thunderstorm",
+        ];
+        const wi = isMon
+          ? 4 + Math.floor(r2 * 3)
+          : isW && zone === "mountain"
+            ? 6
+            : Math.floor(r2 * 4);
+        return {
+          temp,
+          feelsLike: temp - Math.round(r * 4),
+          humidity: Math.round((isMon ? 76 : isW ? 34 : 54) + r * 21),
+          wind: Math.round(4 + r * 24),
+          windDir: ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][
+            Math.floor(r2 * 8)
+          ],
+          cloud: Math.round(r * 100),
+          rain,
+          snow,
+          visibility: Math.round(4 + r * 24),
+          pressure: Math.round(1013 - (zone === "mountain" ? 145 : 0) - r * 18),
+          uv: Math.round(1 + r * 10),
+          icon: WI[wi] || "⛅",
+          cond: CN[wi] || "Clear",
+        };
+      }
+      function gen24(temp, i) {
+        return Array.from({ length: 24 }, (_, h) => ({
+          h: `${h}:00`,
+          t:
+            temp +
+            Math.round(
+              Math.sin(((h - 6) * Math.PI) / 12) * 5 +
+                (rng(i + h * 17) - 0.5) * 3,
+            ),
+        }));
+      }
+      function gen7(aqi, temp, i) {
+        const DN = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        const IC = ["☀️", "⛅", "🌤️", "🌥️", "🌦️", "🌧️"];
+        return Array.from({ length: 7 }, (_, d) => {
+          const r = rng(i + d * 13);
+          const a = Math.max(5, Math.round(aqi + (r - 0.5) * 48));
+          const hi = temp + Math.round((r - 0.3) * 7);
+          return {
+            day: d === 0 ? "Today" : DN[(new Date().getDay() + d) % 7],
+            icon: IC[Math.floor(r * IC.length)],
+            hi,
+            lo: hi - Math.round(5 + r * 7),
+            aqi: a,
+          };
+        });
+      }
+
+      // ══════════════════════════════════════════
+      // 77 DISTRICT DATA
+      // ══════════════════════════════════════════
+      const RAW = [
+        {
+          city: "Taplejung",
+          d: "Taplejung",
+          lat: 27.35,
+          lon: 87.67,
+          zone: "mountain",
+        },
+        {
+          city: "Phidim",
+          d: "Panchthar",
+          lat: 27.15,
+          lon: 87.77,
+          zone: "hill",
+        },
+        { city: "Ilam", d: "Ilam", lat: 26.91, lon: 87.92, zone: "hill" },
+        {
+          city: "Bhadrapur",
+          d: "Jhapa",
+          lat: 26.53,
+          lon: 88.08,
+          zone: "terai",
+        },
+        {
+          city: "Dhankuta",
+          d: "Dhankuta",
+          lat: 26.98,
+          lon: 87.35,
+          zone: "hill",
+        },
+        {
+          city: "Biratnagar",
+          d: "Morang",
+          lat: 26.45,
+          lon: 87.27,
+          zone: "terai",
+        },
+        {
+          city: "Inaruwa",
+          d: "Sunsari",
+          lat: 26.57,
+          lon: 87.15,
+          zone: "terai",
+        },
+        { city: "Dharan", d: "Sunsari", lat: 26.82, lon: 87.28, zone: "hill" },
+        {
+          city: "Khandbari",
+          d: "Sankhuwasabha",
+          lat: 27.37,
+          lon: 87.2,
+          zone: "mountain",
+        },
+        { city: "Bhojpur", d: "Bhojpur", lat: 27.17, lon: 87.05, zone: "hill" },
+        { city: "Diktel", d: "Khotang", lat: 27.22, lon: 86.8, zone: "hill" },
+        {
+          city: "Salleri",
+          d: "Solukhumbu",
+          lat: 27.5,
+          lon: 86.58,
+          zone: "mountain",
+        },
+        {
+          city: "Namche Bazaar",
+          d: "Solukhumbu",
+          lat: 27.81,
+          lon: 86.71,
+          zone: "mountain",
+        },
+        {
+          city: "Okhaldhunga",
+          d: "Okhaldhunga",
+          lat: 27.31,
+          lon: 86.5,
+          zone: "hill",
+        },
+        {
+          city: "Gaighat",
+          d: "Udayapur",
+          lat: 26.87,
+          lon: 86.52,
+          zone: "terai",
+        },
+        {
+          city: "Rajbiraj",
+          d: "Saptari",
+          lat: 26.54,
+          lon: 86.73,
+          zone: "terai",
+        },
+        { city: "Lahan", d: "Siraha", lat: 26.72, lon: 86.48, zone: "terai" },
+        {
+          city: "Janakpur",
+          d: "Dhanusha",
+          lat: 26.73,
+          lon: 85.93,
+          zone: "terai",
+        },
+        {
+          city: "Jaleshwar",
+          d: "Mahottari",
+          lat: 26.65,
+          lon: 85.8,
+          zone: "terai",
+        },
+        {
+          city: "Malangwa",
+          d: "Sarlahi",
+          lat: 26.86,
+          lon: 85.57,
+          zone: "terai",
+        },
+        { city: "Kalaiya", d: "Bara", lat: 27.03, lon: 85.0, zone: "terai" },
+        { city: "Birgunj", d: "Parsa", lat: 27.01, lon: 84.88, zone: "terai" },
+        { city: "Gaur", d: "Rautahat", lat: 26.77, lon: 85.28, zone: "terai" },
+        {
+          city: "Kathmandu",
+          d: "Kathmandu",
+          lat: 27.72,
+          lon: 85.32,
+          zone: "valley",
+        },
+        {
+          city: "Lalitpur",
+          d: "Lalitpur",
+          lat: 27.66,
+          lon: 85.32,
+          zone: "valley",
+        },
+        {
+          city: "Bhaktapur",
+          d: "Bhaktapur",
+          lat: 27.67,
+          lon: 85.43,
+          zone: "valley",
+        },
+        {
+          city: "Dhulikhel",
+          d: "Kavrepalanchok",
+          lat: 27.62,
+          lon: 85.55,
+          zone: "hill",
+        },
+        {
+          city: "Sindhulimadi",
+          d: "Sindhuli",
+          lat: 27.28,
+          lon: 85.97,
+          zone: "hill",
+        },
+        {
+          city: "Bharatpur",
+          d: "Chitwan",
+          lat: 27.68,
+          lon: 84.43,
+          zone: "terai",
+        },
+        {
+          city: "Hetauda",
+          d: "Makwanpur",
+          lat: 27.42,
+          lon: 85.03,
+          zone: "hill",
+        },
+        {
+          city: "Chautara",
+          d: "Sindhupalchok",
+          lat: 27.89,
+          lon: 85.7,
+          zone: "hill",
+        },
+        {
+          city: "Charikot",
+          d: "Dolakha",
+          lat: 27.67,
+          lon: 86.05,
+          zone: "hill",
+        },
+        {
+          city: "Ramechhap",
+          d: "Ramechhap",
+          lat: 27.33,
+          lon: 86.09,
+          zone: "hill",
+        },
+        { city: "Bidur", d: "Nuwakot", lat: 27.9, lon: 85.17, zone: "hill" },
+        {
+          city: "Dhading Besi",
+          d: "Dhading",
+          lat: 27.87,
+          lon: 84.9,
+          zone: "hill",
+        },
+        {
+          city: "Rasuwa",
+          d: "Rasuwa",
+          lat: 28.1,
+          lon: 85.37,
+          zone: "mountain",
+        },
+        { city: "Pokhara", d: "Kaski", lat: 28.21, lon: 83.99, zone: "hill" },
+        { city: "Damauli", d: "Tanahun", lat: 27.97, lon: 84.3, zone: "hill" },
+        { city: "Waling", d: "Syangja", lat: 27.98, lon: 83.78, zone: "hill" },
+        { city: "Tansen", d: "Palpa", lat: 27.87, lon: 83.55, zone: "hill" },
+        { city: "Baglung", d: "Baglung", lat: 28.27, lon: 83.58, zone: "hill" },
+        { city: "Kusma", d: "Parbat", lat: 28.17, lon: 83.72, zone: "hill" },
+        { city: "Beni", d: "Myagdi", lat: 28.35, lon: 83.57, zone: "hill" },
+        {
+          city: "Jomsom",
+          d: "Mustang",
+          lat: 28.78,
+          lon: 83.73,
+          zone: "mountain",
+        },
+        {
+          city: "Chame",
+          d: "Manang",
+          lat: 28.55,
+          lon: 84.23,
+          zone: "mountain",
+        },
+        { city: "Gorkha", d: "Gorkha", lat: 28.0, lon: 84.63, zone: "hill" },
+        {
+          city: "Besisahar",
+          d: "Lamjung",
+          lat: 28.23,
+          lon: 84.42,
+          zone: "hill",
+        },
+        {
+          city: "Butwal",
+          d: "Rupandehi",
+          lat: 27.7,
+          lon: 83.45,
+          zone: "terai",
+        },
+        {
+          city: "Bhairahawa",
+          d: "Rupandehi",
+          lat: 27.51,
+          lon: 83.46,
+          zone: "terai",
+        },
+        { city: "Ghorahi", d: "Dang", lat: 28.03, lon: 82.48, zone: "hill" },
+        { city: "Tulsipur", d: "Dang", lat: 28.13, lon: 82.3, zone: "hill" },
+        {
+          city: "Taulihawa",
+          d: "Kapilvastu",
+          lat: 27.55,
+          lon: 83.05,
+          zone: "terai",
+        },
+        { city: "Tamghas", d: "Gulmi", lat: 28.08, lon: 83.28, zone: "hill" },
+        { city: "Musikot", d: "Rukum", lat: 28.63, lon: 82.52, zone: "hill" },
+        { city: "Salyan", d: "Salyan", lat: 28.37, lon: 82.17, zone: "hill" },
+        { city: "Pyuthan", d: "Pyuthan", lat: 28.1, lon: 82.85, zone: "hill" },
+        { city: "Rolpa", d: "Rolpa", lat: 28.32, lon: 82.63, zone: "hill" },
+        {
+          city: "Kawasoti",
+          d: "Nawalpur",
+          lat: 27.68,
+          lon: 84.12,
+          zone: "terai",
+        },
+        {
+          city: "Birendranagar",
+          d: "Surkhet",
+          lat: 28.6,
+          lon: 81.63,
+          zone: "hill",
+        },
+        { city: "Jumla", d: "Jumla", lat: 29.27, lon: 82.18, zone: "mountain" },
+        {
+          city: "Gamgadhi",
+          d: "Mugu",
+          lat: 29.53,
+          lon: 82.57,
+          zone: "mountain",
+        },
+        { city: "Dunai", d: "Dolpa", lat: 28.92, lon: 82.9, zone: "mountain" },
+        {
+          city: "Manma",
+          d: "Kalikot",
+          lat: 29.15,
+          lon: 81.72,
+          zone: "mountain",
+        },
+        { city: "Dailekh", d: "Dailekh", lat: 28.84, lon: 81.72, zone: "hill" },
+        {
+          city: "Jajarkot",
+          d: "Jajarkot",
+          lat: 28.7,
+          lon: 82.18,
+          zone: "hill",
+        },
+        {
+          city: "Dhangadhi",
+          d: "Kailali",
+          lat: 28.69,
+          lon: 80.59,
+          zone: "terai",
+        },
+        {
+          city: "Tikapur",
+          d: "Kailali",
+          lat: 28.52,
+          lon: 81.12,
+          zone: "terai",
+        },
+        {
+          city: "Mahendranagar",
+          d: "Kanchanpur",
+          lat: 28.97,
+          lon: 80.18,
+          zone: "terai",
+        },
+        {
+          city: "Nepalgunj",
+          d: "Banke",
+          lat: 28.05,
+          lon: 81.62,
+          zone: "terai",
+        },
+        {
+          city: "Gulariya",
+          d: "Bardiya",
+          lat: 28.03,
+          lon: 81.33,
+          zone: "terai",
+        },
+        {
+          city: "Martadi",
+          d: "Bajura",
+          lat: 29.53,
+          lon: 81.57,
+          zone: "mountain",
+        },
+        {
+          city: "Chainpur",
+          d: "Bajhang",
+          lat: 29.55,
+          lon: 81.18,
+          zone: "mountain",
+        },
+        {
+          city: "Darchula",
+          d: "Darchula",
+          lat: 29.85,
+          lon: 80.55,
+          zone: "mountain",
+        },
+        { city: "Dipayal", d: "Doti", lat: 29.27, lon: 80.95, zone: "hill" },
+        {
+          city: "Simikot",
+          d: "Humla",
+          lat: 29.97,
+          lon: 81.82,
+          zone: "mountain",
+        },
+        {
+          city: "Sanfebagar",
+          d: "Achham",
+          lat: 29.08,
+          lon: 81.16,
+          zone: "hill",
+        },
+        { city: "Baitadi", d: "Baitadi", lat: 29.55, lon: 80.42, zone: "hill" },
+        {
+          city: "Dadeldhura",
+          d: "Dadeldhura",
+          lat: 29.3,
+          lon: 80.58,
+          zone: "hill",
+        },
+      ];
+
+      const seen = new Set();
+      const CITIES = RAW.filter((c) => {
+        const k = c.city + c.d;
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      }).map((c, i) => {
+        const aq = simAQI(c.zone, i);
+        const wx = simWX(c.zone, c.lat, i);
+        return {
+          ...c,
+          ...aq,
+          wx,
+          h24: gen24(wx.temp, i),
+          fc7: gen7(aq.aqi, wx.temp, i),
+        };
+      });
+
+      // ══════════════════════════════════════════
+      // HEADER STATS
+      // ══════════════════════════════════════════
+      function updateStats() {
+        const aqis = CITIES.map((c) => c.aqi);
+        const avg = Math.round(aqis.reduce((a, b) => a + b, 0) / aqis.length);
+        const avgT = Math.round(
+          CITIES.reduce((a, c) => a + c.wx.temp, 0) / CITIES.length,
+        );
+        const raining = CITIES.filter(
+          (c) => parseFloat(c.wx.rain) > 0.5,
+        ).length;
+        const snowing = CITIES.filter((c) => parseFloat(c.wx.snow) > 0).length;
+        document.getElementById("hAvgAqi").textContent = avg;
+        document.getElementById("hAvgAqi").style.color = gl(avg).c;
+        document.getElementById("hAvgTemp").textContent = avgT + "°C";
+        document.getElementById("hRaining").textContent = raining;
+        document.getElementById("sbGood").textContent = aqis.filter(
+          (a) => a <= 50,
+        ).length;
+        document.getElementById("sbMod").textContent = aqis.filter(
+          (a) => a > 50 && a <= 100,
+        ).length;
+        document.getElementById("sbUnh").textContent = aqis.filter(
+          (a) => a > 150 && a <= 300,
+        ).length;
+        document.getElementById("sbHaz").textContent = aqis.filter(
+          (a) => a > 300,
+        ).length;
+        document.getElementById("sbSnow").textContent = snowing;
+        const now = new Date();
+        document.getElementById("sbUpd").textContent = now.toLocaleTimeString(
+          "en-US",
+          { hour: "2-digit", minute: "2-digit" },
+        );
+        document.getElementById("hdrClock").textContent =
+          now.toLocaleDateString("en-US", {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+          }) +
+          " " +
+          now.toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+      }
+      updateStats();
+      setInterval(() => {
+        const n = new Date();
+        document.getElementById("hdrClock").textContent =
+          n.toLocaleDateString("en-US", {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+          }) +
+          " " +
+          n.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+      }, 30000);
+
+      // ══════════════════════════════════════════
+      // MAP
+      // ══════════════════════════════════════════
+      const map = L.map("map", {
+        zoomControl: true,
+        minZoom: 6,
+        maxZoom: 16,
+        preferCanvas: true,
+      });
+      L.tileLayer(
+        "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+        { attribution: "© CARTO © OpenStreetMap", maxZoom: 19 },
+      ).addTo(map);
+      map.fitBounds([
+        [26.2, 80.0],
+        [30.4, 88.2],
+      ]);
+
+      // ══════════════════════════════════════════
+      // WEATHER LAYERS
+      // ══════════════════════════════════════════
+      const K = CFG.OWM;
+      function owm(l) {
+        return L.tileLayer(
+          `https://tile.openweathermap.org/map/${l}/{z}/{x}/{y}.png?appid=${K}`,
+          { opacity: 0.7, maxZoom: 19, attribution: "© OWM" },
+        );
+      }
+
+      // Local heatmap layers from city data
+      const mkHeat = (pts, grad, r = 48, b = 32) =>
+        L.heatLayer(pts, { radius: r, blur: b, maxZoom: 10, gradient: grad });
+
+      const aqiH = mkHeat(
+        CITIES.map((c) => [c.lat, c.lon, Math.min(c.aqi / 300, 1)]),
+        {
+          0: "#22c55e",
+          0.2: "#86efac",
+          0.4: "#eab308",
+          0.6: "#f97316",
+          0.8: "#ef4444",
+          1: "#7f1d1d",
+        },
+      );
+      const tmpH = mkHeat(
+        CITIES.map((c) => [
+          c.lat,
+          c.lon,
+          Math.max(0, Math.min(1, (c.wx.temp + 10) / 50)),
+        ]),
+        {
+          0: "#1e40af",
+          0.3: "#38bdf8",
+          0.5: "#22c55e",
+          0.75: "#f97316",
+          1: "#7f1d1d",
+        },
+      );
+      const wnH = mkHeat(
+        CITIES.map((c) => [c.lat, c.lon, Math.min(c.wx.wind / 50, 1)]),
+        { 0: "#bfdbfe", 0.5: "#3b82f6", 1: "#1e3a8a" },
+      );
+      const rnH = mkHeat(
+        CITIES.map((c) => [
+          c.lat,
+          c.lon,
+          Math.min(parseFloat(c.wx.rain) / 14, 1),
+        ]),
+        { 0: "#bfdbfe", 0.4: "#38bdf8", 0.7: "#0284c7", 1: "#1e3a8a" },
+      );
+      const snH = mkHeat(
+        CITIES.map((c) => [
+          c.lat,
+          c.lon,
+          Math.min(parseFloat(c.wx.snow) / 10, 1),
+        ]),
+        {
+          0: "rgba(255,255,255,0)",
+          0.4: "#bae6fd",
+          0.8: "#e0f2fe",
+          1: "#ffffff",
+        },
+      );
+      const hmH = mkHeat(
+        CITIES.map((c) => [c.lat, c.lon, c.wx.humidity / 100]),
+        { 0: "#fef9c3", 0.5: "#38bdf8", 1: "#1e3a8a" },
+      );
+      const uvH = mkHeat(
+        CITIES.map((c) => [c.lat, c.lon, c.wx.uv / 11]),
+        { 0: "#22c55e", 0.4: "#eab308", 0.7: "#f97316", 1: "#7f1d1d" },
+      );
+      const prH = mkHeat(
+        CITIES.map((c) => [
+          c.lat,
+          c.lon,
+          Math.min((c.wx.pressure - 900) / 200, 1),
+        ]),
+        { 0: "#1e3a8a", 0.5: "#38bdf8", 1: "#fef9c3" },
+      );
+
+      const LAYER_DEFS = [
+        {
+          id: "pins",
+          ico: "📍",
+          name: "City Pins",
+          lyr: null,
+          on: true,
+          type: "pins",
+        },
+        {
+          id: "aqiH",
+          ico: "🏭",
+          name: "AQI Heatmap",
+          lyr: aqiH,
+          on: false,
+          type: "local",
+        },
+        {
+          id: "tmpH",
+          ico: "🌡️",
+          name: "Temperature",
+          lyr: tmpH,
+          on: false,
+          type: "local",
+        },
+        {
+          id: "wnH",
+          ico: "💨",
+          name: "Wind Speed",
+          lyr: wnH,
+          on: false,
+          type: "local",
+        },
+        {
+          id: "rnH",
+          ico: "🌧️",
+          name: "Rainfall",
+          lyr: rnH,
+          on: false,
+          type: "local",
+        },
+        {
+          id: "snH",
+          ico: "❄️",
+          name: "Snowfall",
+          lyr: snH,
+          on: false,
+          type: "local",
+        },
+        {
+          id: "hmH",
+          ico: "💧",
+          name: "Humidity",
+          lyr: hmH,
+          on: false,
+          type: "local",
+        },
+        {
+          id: "uvH",
+          ico: "☀️",
+          name: "UV Index",
+          lyr: uvH,
+          on: false,
+          type: "local",
+        },
+        {
+          id: "prH",
+          ico: "🔽",
+          name: "Pressure",
+          lyr: prH,
+          on: false,
+          type: "local",
+        },
+        // OWM layers (need API key)
+        {
+          id: "owmCl",
+          ico: "☁️",
+          name: "Clouds (OWM)",
+          lyr: owm("clouds_new"),
+          on: false,
+          type: "owm",
+        },
+        {
+          id: "owmRn",
+          ico: "🌦️",
+          name: "Precip (OWM)",
+          lyr: owm("precipitation_new"),
+          on: false,
+          type: "owm",
+        },
+        {
+          id: "owmWn",
+          ico: "🌀",
+          name: "Wind (OWM)",
+          lyr: owm("wind_new"),
+          on: false,
+          type: "owm",
+        },
+        {
+          id: "owmTm",
+          ico: "🔥",
+          name: "Temp (OWM)",
+          lyr: owm("temp_new"),
+          on: false,
+          type: "owm",
+        },
+      ];
+
+      const LEGENDS = {
+        aqiH: {
+          t: "AQI Scale",
+          rows: [
+            ["#22c55e", "0–50 Good"],
+            ["#eab308", "51–100 Moderate"],
+            ["#f97316", "101–150 Sensitive"],
+            ["#ef4444", "151–200 Unhealthy"],
+            ["#a855f7", "201–300 V.Unhealthy"],
+            ["#7f1d1d", "300+ Hazardous"],
+          ],
+        },
+        tmpH: {
+          t: "Temperature",
+          rows: [
+            ["#1e40af", "Very Cold (<0°C)"],
+            ["#38bdf8", "Cold (0–10°C)"],
+            ["#22c55e", "Mild (10–20°C)"],
+            ["#f97316", "Warm (20–30°C)"],
+            ["#7f1d1d", "Hot (>30°C)"],
+          ],
+        },
+        wnH: {
+          t: "Wind Speed",
+          rows: [
+            ["#bfdbfe", "Calm <10 km/h"],
+            ["#3b82f6", "Moderate"],
+            ["#1e3a8a", "Strong >35 km/h"],
+          ],
+        },
+        rnH: {
+          t: "Rainfall",
+          rows: [
+            ["#bfdbfe", "Trace"],
+            ["#38bdf8", "Light (<3mm)"],
+            ["#0284c7", "Moderate"],
+            ["#1e3a8a", "Heavy (>10mm)"],
+          ],
+        },
+        snH: {
+          t: "Snowfall",
+          rows: [
+            ["rgba(255,255,255,0.2)", "Trace"],
+            ["#bae6fd", "Light (<3cm)"],
+            ["#ffffff", "Heavy (>7cm)"],
+          ],
+        },
+        hmH: {
+          t: "Humidity",
+          rows: [
+            ["#fef9c3", "Dry (<30%)"],
+            ["#38bdf8", "Comfortable"],
+            ["#1e3a8a", "Very Humid (>80%)"],
+          ],
+        },
+        uvH: {
+          t: "UV Index",
+          rows: [
+            ["#22c55e", "Low 1–2"],
+            ["#eab308", "Moderate 3–5"],
+            ["#f97316", "High 6–7"],
+            ["#7f1d1d", "Very High 8+"],
+          ],
+        },
+        prH: {
+          t: "Pressure",
+          rows: [
+            ["#1e3a8a", "Low (<990 hPa)"],
+            ["#38bdf8", "Normal"],
+            ["#fef9c3", "High (>1020 hPa)"],
+          ],
+        },
+      };
+      const AQI_LEGEND_HTML = LEVELS.map(
+        (l) =>
+          `<div class="lg-row"><div class="lg-dot" style="background:${l.c}"></div><div class="lg-lbl">${l.lbl.replace("Unhealthy (Sens.)", "Unhealthy*")}</div></div>`,
+      ).join("");
+
+      // Build layer list UI
+      const lpList = document.getElementById("lpList");
+      LAYER_DEFS.forEach((l, i) => {
+        if (i === 9) {
+          lpList.innerHTML +=
+            '<div class="lp-div"></div><div class="lp-sec">OpenWeatherMap</div>';
+        }
+        const d = document.createElement("div");
+        d.className = "lp-item" + (l.on ? " active" : "");
+        d.id = "li_" + l.id;
+        d.innerHTML = `<span class="lp-ico">${l.ico}</span><span class="lp-name">${l.name}</span><button class="lp-tog${l.on ? " on" : ""}" id="lt_${l.id}"></button>`;
+        d.onclick = () => toggleLayer(l.id);
+        lpList.appendChild(d);
+      });
+
+      function toggleLayer(id) {
+        const l = LAYER_DEFS.find((x) => x.id === id);
+        if (!l) return;
+        l.on = !l.on;
+        document.getElementById("lt_" + id).classList.toggle("on", l.on);
+        document.getElementById("li_" + id).classList.toggle("active", l.on);
+        if (l.id === "pins") {
+          allMarkers.forEach((m) => (l.on ? m.addTo(map) : map.removeLayer(m)));
+          return;
+        }
+        if (l.lyr) {
+          l.on ? l.lyr.addTo(map) : map.removeLayer(l.lyr);
+        }
+        // Update legend
+        if (l.on && LEGENDS[id]) {
+          const lg = LEGENDS[id];
+          document.getElementById("lgTitle").textContent = lg.t;
+          document.getElementById("lgContent").innerHTML = lg.rows
+            .map(
+              ([c, t]) =>
+                `<div class="lg-row"><div class="lg-dot" style="background:${c};border:1px solid rgba(255,255,255,0.15)"></div><div class="lg-lbl">${t}</div></div>`,
+            )
+            .join("");
+        } else if (!l.on) {
+          // Reset to AQI if no custom legend active
+          const anyOn = LAYER_DEFS.filter((x) => x.on && LEGENDS[x.id]);
+          if (!anyOn.length) {
+            document.getElementById("lgTitle").textContent = "AQI Scale";
+            document.getElementById("lgContent").innerHTML = AQI_LEGEND_HTML;
+          }
+        }
+      }
+
+      // ══════════════════════════════════════════
+      // PIN ICONS
+      // ══════════════════════════════════════════
+      function mkPin(aqi, sel = false) {
+        const lv = gl(aqi);
+        const s = sel ? 46 : 36;
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${Math.round(s * 1.32)}" viewBox="0 0 36 48">
+    <defs>
+      <filter id="f${aqi}${sel ? 1 : 0}"><feDropShadow dx="0" dy="2" stdDeviation="${sel ? 3 : 2}" flood-color="rgba(0,0,0,0.55)"/></filter>
+      <radialGradient id="g${aqi}${sel ? 1 : 0}" cx="38%" cy="30%">
+        <stop offset="0%" stop-color="${lv.c}" stop-opacity="1"/>
+        <stop offset="100%" stop-color="${lv.c}" stop-opacity="0.72"/>
+      </radialGradient>
+    </defs>
+    <path d="M18,2 C9,2 2,9 2,18 C2,30.5 18,46 18,46 C18,46 34,30.5 34,18 C34,9 27,2 18,2 Z"
+      fill="url(#g${aqi}${sel ? 1 : 0})" filter="url(#f${aqi}${sel ? 1 : 0})" stroke="white" stroke-width="${sel ? 2.5 : 1.8}"/>
+    <ellipse cx="14" cy="12" rx="4" ry="3" fill="white" opacity="0.2"/>
+    <text x="18" y="${aqi > 99 ? 23 : 24}" text-anchor="middle" font-size="${aqi > 99 ? 9 : 11}" font-weight="800"
+      font-family="DM Sans,sans-serif" fill="white">${aqi}</text>
+    ${sel ? `<circle cx="18" cy="18" r="16" fill="none" stroke="white" stroke-width="1.5" opacity="0.3"/>` : ""}
+  </svg>`;
+        return L.divIcon({
+          html: svg,
+          className: "wn-pin",
+          iconSize: [s, Math.round(s * 1.32)],
+          iconAnchor: [s / 2, Math.round(s * 1.32)],
+          popupAnchor: [0, -Math.round(s * 1.32)],
+        });
+      }
+
+      // ══════════════════════════════════════════
+      // MARKERS
+      // ══════════════════════════════════════════
+      let activeCity = null,
+        allMarkers = [],
+        dp24ch = null;
+
+      CITIES.forEach((c) => {
+        const m = L.marker([c.lat, c.lon], {
+          icon: mkPin(c.aqi),
+          title: c.city,
+          riseOnHover: true,
+        });
+        m.cityData = c;
+        m.on("click", (e) => {
+          L.DomEvent.stopPropagation(e);
+          openDetail(c);
+        });
+        m.addTo(map);
+        allMarkers.push(m);
+      });
+      map.on("click", () => closeDetail());
+
+      // ══════════════════════════════════════════
+      // DETAIL PANEL
+      // ══════════════════════════════════════════
+      function openDetail(c) {
+        activeCity = c;
+        const lv = gl(c.aqi);
+        document.getElementById("dpHBg").style.background =
+          HERO_GRADS[lv.lbl] || HERO_GRADS["Good"];
+        document.getElementById("dpZone").textContent =
+          c.zone.charAt(0).toUpperCase() + c.zone.slice(1) + " Zone";
+        document.getElementById("dpCity").textContent = c.city;
+        document.getElementById("dpDist").textContent =
+          c.d + " District · Nepal";
+        document.getElementById("dpAqiN").textContent = c.aqi;
+        document.getElementById("dpAqiL").textContent = lv.lbl;
+        document.getElementById("dpAqiL").style.cssText =
+          `background:${lv.bg};color:${lv.c}`;
+        document.getElementById("dpAqiA").textContent = lv.adv;
+
+        // Conditions
+        const W = c.wx;
+        document.getElementById("dTemp").textContent = W.temp + "°C";
+        document.getElementById("dFeel").textContent = W.feelsLike + "°C";
+        document.getElementById("dHum").textContent = W.humidity + "%";
+        document.getElementById("dWind").textContent = W.wind + " km/h";
+        document.getElementById("dWDir").textContent = W.windDir;
+        document.getElementById("dCloud").textContent = W.cloud + "%";
+        document.getElementById("dRain").textContent = W.rain + " mm";
+        document.getElementById("dSnow").textContent =
+          parseFloat(W.snow) > 0 ? W.snow + " cm" : "None";
+        document.getElementById("dVis").textContent = W.visibility + " km";
+        document.getElementById("dPress").textContent = W.pressure + " hPa";
+        document.getElementById("dUV").textContent = W.uv + "/11";
+        document.getElementById("dCond").textContent = W.icon;
+        document.getElementById("dPm25").textContent = c.pm25;
+        document.getElementById("dPm10").textContent = c.pm10;
+        document.getElementById("dNo2").textContent = c.no2;
+
+        // 24hr chart
+        if (dp24ch) dp24ch.destroy();
+        dp24ch = new Chart(document.getElementById("dp24c").getContext("2d"), {
+          type: "line",
+          data: {
+            labels: c.h24.map((h) => h.h),
+            datasets: [
+              {
+                data: c.h24.map((h) => h.t),
+                borderColor: "#38bdf8",
+                backgroundColor: "rgba(56,189,248,0.08)",
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                borderWidth: 2,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: {
+                ticks: {
+                  color: "rgba(255,255,255,0.25)",
+                  font: { size: 7 },
+                  maxTicksLimit: 8,
+                },
+                grid: { display: false },
+                border: { display: false },
+              },
+              y: {
+                ticks: {
+                  color: "rgba(255,255,255,0.25)",
+                  font: { size: 7 },
+                  callback: (v) => v + "°",
+                },
+                grid: { color: "rgba(255,255,255,0.05)" },
+                border: { display: false },
+              },
+            },
+          },
+        });
+
+        // 7-day forecast
+        const mx = Math.max(...c.fc7.map((f) => f.aqi));
+        document.getElementById("dpFc").innerHTML = c.fc7
+          .map((f) => {
+            const fl = gl(f.aqi);
+            const p = Math.round((f.aqi / mx) * 100);
+            return `<div class="fc-row"><div class="fc-day">${f.day.slice(0, 3)}</div><div class="fc-ico">${f.icon}</div><div class="fc-lo">${f.lo}°</div><div class="fc-bw"><div class="fc-bf" style="width:${p}%;background:${fl.c}"></div></div><div class="fc-hi">${f.hi}°</div><div class="fc-adot" style="background:${fl.c}" title="AQI ${f.aqi}"></div></div>`;
+          })
+          .join("");
+
+        // AI Advisory
+        genAdvisory(c);
+        document.getElementById("amSub").textContent =
+          `Alerts for ${c.city}, ${c.d}`;
+        document.getElementById("dpPnl").classList.add("open");
+        map.flyTo([c.lat, c.lon], 11, { animate: true, duration: 0.9 });
+      }
+
+      function closeDetail() {
+        document.getElementById("dpPnl").classList.remove("open");
+        activeCity = null;
+      }
+
+      // ══════════════════════════════════════════
+      // AI ADVISORY
+      // ══════════════════════════════════════════
+      async function genAdvisory(c) {
+        const el = document.getElementById("aiBody");
+        el.innerHTML =
+          '<div class="ai-spin"><div class="spinner"></div>Generating advisory…</div>';
+        const prompt = `You are WeatherNepal AI. Give a practical 3-4 sentence advisory for ${c.city}, ${c.d} District, Nepal.
+Data: AQI ${c.aqi} (${gl(c.aqi).lbl}), Temp ${c.wx.temp}°C (feels ${c.wx.feelsLike}°C), Humidity ${c.wx.humidity}%, Wind ${c.wx.wind}km/h ${c.wx.windDir}, Rainfall ${c.wx.rain}mm${parseFloat(c.wx.snow) > 0 ? `, Snowfall ${c.wx.snow}cm` : ""}, Visibility ${c.wx.visibility}km, UV ${c.wx.uv}, Pressure ${c.wx.pressure}hPa.
+Zone: ${c.zone}. Season: ${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][new Date().getMonth()]}.
+Give specific Nepal-context advice: health warnings, travel safety, what to carry, risks. Max 60 words.`;
+        try {
+          const res = await fetch(`${CFG.API}/advisory/quick`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              prompt,
+              city: c.city,
+              aqi: c.aqi,
+              weather: c.wx,
+            }),
+          });
+          if (res.ok) {
+            const d = await res.json();
+            el.textContent = d.advisory || d.message || localAdvisory(c);
+          } else el.textContent = localAdvisory(c);
+        } catch {
+          el.textContent = localAdvisory(c);
+        }
+      }
+
+      function localAdvisory(c) {
+        const t = [];
+        if (c.aqi > 200)
+          t.push(
+            "AQI is dangerously high — wear N95 mask and avoid outdoor activity.",
+          );
+        else if (c.aqi > 150)
+          t.push(
+            "Air quality is unhealthy — limit time outdoors and wear a mask.",
+          );
+        else if (c.aqi > 100)
+          t.push(
+            "Air quality is moderate — sensitive individuals should limit outdoor exertion.",
+          );
+        if (parseFloat(c.wx.snow) > 3)
+          t.push(
+            `Heavy snowfall of ${c.wx.snow}cm — road closures likely in mountain passes. Dress in layers.`,
+          );
+        if (parseFloat(c.wx.rain) > 8)
+          t.push(
+            "Heavy rainfall — risk of flash floods and landslides. Avoid river banks and steep slopes.",
+          );
+        if (c.wx.wind > 30)
+          t.push(
+            "Strong winds — secure loose objects and avoid exposed ridges and mountain trails.",
+          );
+        if (c.wx.temp < 2)
+          t.push(
+            "Near-freezing temperatures — layer up with thermal clothing and avoid prolonged exposure.",
+          );
+        if (c.wx.uv > 7)
+          t.push(
+            "High UV radiation — apply SPF50 sunscreen and wear protective clothing.",
+          );
+        if (!t.length)
+          t.push(
+            `Conditions in ${c.city} are generally favorable today. ${c.wx.cond} with ${c.wx.temp}°C. Enjoy the day!`,
+          );
+        return t.join(" ");
+      }
+
+      // ══════════════════════════════════════════
+      // SEARCH
+      // ══════════════════════════════════════════
+      const srchIn = document.getElementById("srchInput");
+      const srchDrop = document.getElementById("srchDrop");
+      const srchClr = document.getElementById("srchClr");
+
+      srchIn.addEventListener("input", () => {
+        const q = srchIn.value.trim().toLowerCase();
+        srchClr.style.display = q ? "block" : "none";
+        if (q.length < 2) {
+          srchDrop.style.display = "none";
+          return;
+        }
+        const hits = CITIES.filter(
+          (c) =>
+            c.city.toLowerCase().includes(q) || c.d.toLowerCase().includes(q),
+        ).slice(0, 7);
+        if (!hits.length) {
+          srchDrop.style.display = "none";
+          return;
+        }
+        srchDrop.innerHTML = hits
+          .map((c) => {
+            const lv = gl(c.aqi);
+            return `<div class="si" data-city="${c.city}"><div class="si-badge" style="background:${lv.c}">${c.aqi}</div><div><div class="si-name">${c.city}</div><div class="si-meta">${c.d} · ${c.zone} · ${c.wx.icon} ${c.wx.cond}</div></div><div class="si-tmp">${c.wx.temp}°</div></div>`;
+          })
+          .join("");
+        srchDrop.style.display = "block";
+        srchDrop.querySelectorAll(".si").forEach((el) => {
+          el.onclick = () => {
+            const city = CITIES.find((c) => c.city === el.dataset.city);
+            if (city) {
+              srchIn.value = city.city;
+              srchDrop.style.display = "none";
+              openDetail(city);
+            }
+          };
+        });
+      });
+      srchClr.onclick = () => {
+        srchIn.value = "";
+        srchDrop.style.display = "none";
+        srchClr.style.display = "none";
+      };
+      document.addEventListener("click", (e) => {
+        if (!e.target.closest("#srchWrap")) srchDrop.style.display = "none";
+      });
+
+      // ══════════════════════════════════════════
+      // ALERT MODAL
+      // ══════════════════════════════════════════
+      function openAlert() {
+        document.getElementById("alrtModal").classList.add("show");
+        document.getElementById("amForm").style.display = "block";
+        document.getElementById("amOk").style.display = "none";
+      }
+      function closeAlert() {
+        document.getElementById("alrtModal").classList.remove("show");
+      }
+
+      async function submitAlert() {
+        const name = document.getElementById("aName").value.trim();
+        const email = document.getElementById("aEmail").value.trim();
+        if (!name || !email) {
+          alert("Please fill in your name and email.");
+          return;
+        }
+        if (!/\S+@\S+\.\S+/.test(email)) {
+          alert("Please enter a valid email address.");
+          return;
+        }
+        const payload = {
+          name,
+          email,
+          location: activeCity?.city || "Nepal",
+          district: activeCity?.d,
+          lat: activeCity?.lat,
+          lon: activeCity?.lon,
+          alerts: {
+            aqi: document.getElementById("cAqi").checked,
+            rain: document.getElementById("cRain").checked,
+            wind: document.getElementById("cWind").checked,
+            snow: document.getElementById("cSnow").checked,
+            temp: document.getElementById("cTemp").checked,
+            daily: document.getElementById("cDaily").checked,
+          },
+        };
+        try {
+          await fetch(`${CFG.API}/alerts/subscribe`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+        } catch {}
+        document.getElementById("amForm").style.display = "none";
+        document.getElementById("amOk").style.display = "block";
+        document.getElementById("amOkTxt").textContent =
+          `Weather alerts for ${activeCity?.city || "Nepal"} will be sent to ${email}. You'll be notified about your selected conditions.`;
+      }
+
+      // ══════════════════════════════════════════
+      // GEOJSON NEPAL OUTLINE
+      // ══════════════════════════════════════════
+      (async () => {
+        try {
+          const r = await fetch(
+            "https://cdn.jsdelivr.net/gh/mesaugat/geoJSON-Nepal@master/nepal-districts.geojson",
+          );
+          if (r.ok) {
+            const geo = await r.json();
+            L.geoJSON(geo, {
+              style: {
+                fillColor: "#1e3a5f",
+                fillOpacity: 0.15,
+                color: "#2563eb",
+                weight: 1.2,
+                opacity: 0.4,
+              },
+              onEachFeature: (f, layer) => {
+                layer.on("mouseover", () =>
+                  layer.setStyle({ fillOpacity: 0.28, weight: 1.8 }),
+                );
+                layer.on("mouseout", () =>
+                  layer.setStyle({ fillOpacity: 0.15, weight: 1.2 }),
+                );
+              },
+            }).addTo(map);
+          }
+        } catch {}
+      })();
+    </script>
+  </body>
+</html>

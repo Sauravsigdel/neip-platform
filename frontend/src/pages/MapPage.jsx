@@ -1,11 +1,17 @@
 export default function MapPage() {
   return (
-    <div style={{ width: "100%", height: "100vh", border: "none" }}>
-      <iframe
-        src="/map_v2_77districts.html"
-        style={{ width: "100%", height: "100%", border: "none" }}
-        title="Nepal AQI Map"
-      />
-    </div>
+    <iframe
+      src="/weathernepal_map.html"
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100vh",
+        border: "none",
+        display: "block",
+      }}
+      title="WeatherNepal"
+    />
   );
 }
