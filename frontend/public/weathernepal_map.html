@@ -26,17 +26,73 @@
         height: 100%;
         font-family: "DM Sans", system-ui, sans-serif;
         overflow: hidden;
-        background: #080d1a;
+        transition:
+          background 0.3s,
+          color 0.3s;
       }
+
+      /* ── Dark theme (default) ── */
       :root {
         --bg: #080d1a;
         --card: #0f1629;
         --card2: #162038;
         --border: rgba(255, 255, 255, 0.07);
+        --border2: rgba(255, 255, 255, 0.12);
         --text: #f1f5f9;
         --sub: #64748b;
         --accent: #3b82f6;
-        --accent2: #06b6d4;
+        --panel: rgba(15, 22, 41, 0.97);
+        --hdr: rgba(8, 13, 26, 0.97);
+        --input: rgba(15, 22, 41, 0.97);
+        --drop: rgba(15, 22, 41, 0.98);
+        --cell: #162038;
+        --legend: rgba(15, 22, 41, 0.97);
+        --stats: rgba(15, 22, 41, 0.97);
+        --dp: rgba(8, 13, 26, 0.99);
+        --ai-bg: linear-gradient(
+          135deg,
+          rgba(37, 99, 235, 0.1),
+          rgba(8, 145, 178, 0.1)
+        );
+        --ai-border: rgba(59, 130, 246, 0.25);
+        --ai-text: #94a3b8;
+        --fc-sep: rgba(255, 255, 255, 0.06);
+        --fc-bar: rgba(255, 255, 255, 0.07);
+      }
+      body {
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      /* ── Light theme ── */
+      body.light {
+        --bg: #f0f4f8;
+        --card: #ffffff;
+        --card2: #f8fafc;
+        --border: rgba(0, 0, 0, 0.08);
+        --border2: rgba(0, 0, 0, 0.14);
+        --text: #0f172a;
+        --sub: #64748b;
+        --panel: rgba(255, 255, 255, 0.98);
+        --hdr: rgba(255, 255, 255, 0.97);
+        --input: rgba(255, 255, 255, 0.98);
+        --drop: rgba(255, 255, 255, 0.99);
+        --cell: #f1f5f9;
+        --legend: rgba(255, 255, 255, 0.97);
+        --stats: rgba(255, 255, 255, 0.97);
+        --dp: rgba(248, 250, 252, 0.99);
+        --ai-bg: linear-gradient(
+          135deg,
+          rgba(219, 234, 254, 0.8),
+          rgba(207, 250, 254, 0.8)
+        );
+        --ai-border: rgba(147, 197, 253, 0.5);
+        --ai-text: #334155;
+        --fc-sep: rgba(0, 0, 0, 0.06);
+        --fc-bar: rgba(0, 0, 0, 0.07);
+      }
+      body.light {
+        background: var(--bg);
       }
 
       /* HEADER */
@@ -47,13 +103,16 @@
         right: 0;
         height: 54px;
         z-index: 2000;
-        background: rgba(8, 13, 26, 0.96);
+        background: var(--hdr);
         border-bottom: 1px solid var(--border);
         backdrop-filter: blur(20px);
         display: flex;
         align-items: center;
         padding: 0 18px;
         gap: 14px;
+        transition:
+          background 0.3s,
+          border-color 0.3s;
       }
       .logo-wrap {
         display: flex;
@@ -74,8 +133,9 @@
       .logo-name {
         font-size: 16px;
         font-weight: 800;
-        color: #fff;
+        color: var(--text);
         letter-spacing: -0.3px;
+        transition: color 0.3s;
       }
       .logo-name span {
         color: #38bdf8;
@@ -86,6 +146,7 @@
         letter-spacing: 1.5px;
         text-transform: uppercase;
         margin-top: 1px;
+        transition: color 0.3s;
       }
       .hdr-sep {
         width: 1px;
@@ -102,7 +163,8 @@
       .hsv {
         font-size: 14px;
         font-weight: 800;
-        color: #fff;
+        color: var(--text);
+        transition: color 0.3s;
       }
       .hsl {
         font-size: 8px;
@@ -149,6 +211,7 @@
         color: var(--sub);
         font-family: "DM Mono", monospace;
         margin-left: 12px;
+        transition: color 0.3s;
       }
 
       /* MAP */
@@ -176,10 +239,13 @@
         gap: 9px;
         padding: 9px 14px;
         border-radius: 12px;
-        background: rgba(15, 22, 41, 0.97);
+        background: var(--input);
         border: 1px solid var(--border);
         backdrop-filter: blur(20px);
         box-shadow: 0 6px 28px rgba(0, 0, 0, 0.45);
+        transition:
+          background 0.3s,
+          border-color 0.3s;
       }
       #srchInput {
         flex: 1;
@@ -187,8 +253,9 @@
         border: none;
         outline: none;
         font-size: 13px;
-        color: #fff;
+        color: var(--text);
         font-family: "DM Sans", sans-serif;
+        transition: color 0.3s;
       }
       #srchInput::placeholder {
         color: var(--sub);
@@ -206,10 +273,11 @@
         margin-top: 5px;
         border-radius: 11px;
         overflow: hidden;
-        background: rgba(15, 22, 41, 0.98);
+        background: var(--drop);
         border: 1px solid var(--border);
         box-shadow: 0 10px 36px rgba(0, 0, 0, 0.5);
         display: none;
+        transition: background 0.3s;
       }
       .si {
         display: flex;
@@ -241,7 +309,8 @@
       .si-name {
         font-size: 13px;
         font-weight: 700;
-        color: #fff;
+        color: var(--text);
+        transition: color 0.3s;
       }
       .si-meta {
         font-size: 10px;
@@ -255,18 +324,54 @@
       }
 
       /* LAYER PANEL */
+      /* Layer FAB button */
+      #lyFab {
+        position: fixed;
+        top: 68px;
+        right: 14px;
+        z-index: 1501;
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        backdrop-filter: blur(20px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        color: var(--text);
+      }
+      #lyFab:hover {
+        box-shadow: 0 6px 22px rgba(0, 0, 0, 0.45);
+        transform: scale(1.05);
+      }
+      body.light #lyFab {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+      }
       #lyPnl {
         position: fixed;
-        top: 64px;
+        top: 68px;
         right: 14px;
         z-index: 1500;
-        width: 192px;
-        background: rgba(15, 22, 41, 0.97);
+        width: 210px;
+        background: var(--panel);
         border: 1px solid var(--border);
         border-radius: 14px;
         backdrop-filter: blur(20px);
         box-shadow: 0 6px 28px rgba(0, 0, 0, 0.45);
         overflow: hidden;
+        transition:
+          background 0.3s,
+          border-color 0.3s,
+          opacity 0.2s,
+          transform 0.2s;
+        display: none;
+      }
+      #lyPnl.open {
+        display: block;
       }
       .lp-hdr {
         padding: 10px 12px;
@@ -274,6 +379,7 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
+        transition: border-color 0.3s;
       }
       .lp-title {
         font-size: 10px;
@@ -281,6 +387,15 @@
         color: var(--sub);
         text-transform: uppercase;
         letter-spacing: 1px;
+      }
+      body.light .lp-hdr {
+        border-color: rgba(0, 0, 0, 0.1);
+      }
+      body.light .lp-sec {
+        color: #94a3b8;
+      }
+      body.light .lp-div {
+        background: rgba(0, 0, 0, 0.08);
       }
       .lp-list {
         padding: 6px;
@@ -294,6 +409,15 @@
         cursor: pointer;
         transition: background 0.12s;
         margin-bottom: 1px;
+      }
+      body.light .lp-item:hover {
+        background: rgba(0, 0, 0, 0.05);
+      }
+      body.light .lp-item.active {
+        background: rgba(59, 130, 246, 0.1);
+      }
+      body.light .lp-item.active {
+        background: rgba(59, 130, 246, 0.1);
       }
       .lp-item:hover {
         background: rgba(255, 255, 255, 0.04);
@@ -311,17 +435,28 @@
         font-weight: 600;
         color: var(--text);
         flex: 1;
+        transition: color 0.3s;
       }
       .lp-tog {
         width: 28px;
         height: 16px;
         border-radius: 8px;
-        border: none;
+        border: 1px solid rgba(128, 128, 128, 0.25);
         cursor: pointer;
         position: relative;
-        background: rgba(255, 255, 255, 0.1);
+        background: rgba(128, 128, 128, 0.15);
         flex-shrink: 0;
-        transition: background 0.2s;
+        transition:
+          background 0.2s,
+          border-color 0.2s;
+      }
+      body.light .lp-tog {
+        background: rgba(0, 0, 0, 0.12);
+        border-color: rgba(0, 0, 0, 0.2);
+      }
+      body.light .lp-tog.on {
+        background: var(--accent);
+        border-color: var(--accent);
       }
       .lp-tog.on {
         background: var(--accent);
@@ -351,6 +486,7 @@
         padding: 2px 7px 0;
         letter-spacing: 1px;
         text-transform: uppercase;
+        transition: color 0.3s;
       }
 
       /* STATS BAR */
@@ -363,13 +499,16 @@
         display: flex;
         gap: 0;
         align-items: stretch;
-        background: rgba(15, 22, 41, 0.97);
+        background: var(--stats);
         border: 1px solid var(--border);
         border-radius: 12px;
         backdrop-filter: blur(20px);
         box-shadow: 0 6px 28px rgba(0, 0, 0, 0.4);
         white-space: nowrap;
         overflow: hidden;
+        transition:
+          background 0.3s,
+          border-color 0.3s;
       }
       .sb-item {
         padding: 7px 16px;
@@ -377,11 +516,13 @@
       }
       .sb-item + .sb-item {
         border-left: 1px solid var(--border);
+        transition: border-color 0.3s;
       }
       .sb-val {
         font-size: 14px;
         font-weight: 800;
-        color: #fff;
+        color: var(--text);
+        transition: color 0.3s;
       }
       .sb-lbl {
         font-size: 8px;
@@ -397,13 +538,16 @@
         bottom: 72px;
         left: 14px;
         z-index: 1500;
-        background: rgba(15, 22, 41, 0.97);
+        background: var(--legend);
         border: 1px solid var(--border);
         border-radius: 11px;
         padding: 10px 13px;
         backdrop-filter: blur(20px);
         box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
         min-width: 130px;
+        transition:
+          background 0.3s,
+          border-color 0.3s;
       }
       #lgTitle {
         font-size: 8px;
@@ -412,12 +556,16 @@
         text-transform: uppercase;
         letter-spacing: 1px;
         margin-bottom: 7px;
+        transition: color 0.3s;
       }
       .lg-row {
         display: flex;
         align-items: center;
         gap: 7px;
         margin-bottom: 3px;
+      }
+      body.light #lgTitle {
+        color: #64748b;
       }
       .lg-dot {
         width: 9px;
@@ -427,8 +575,9 @@
       }
       .lg-lbl {
         font-size: 9px;
-        color: #94a3b8;
+        color: var(--sub);
         font-weight: 500;
+        transition: color 0.3s;
       }
 
       /* DETAIL PANEL */
@@ -439,10 +588,13 @@
         bottom: 0;
         width: 355px;
         z-index: 1600;
-        background: rgba(8, 13, 26, 0.99);
+        background: var(--dp);
         border-left: 1px solid var(--border);
         backdrop-filter: blur(20px);
-        transition: right 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+        transition:
+          right 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+          background 0.3s,
+          border-color 0.3s;
         overflow-y: auto;
         scrollbar-width: thin;
         scrollbar-color: var(--border) transparent;
@@ -457,9 +609,9 @@
         width: 28px;
         height: 28px;
         border-radius: 50%;
-        background: rgba(255, 255, 255, 0.07);
+        background: rgba(128, 128, 128, 0.12);
         border: 1px solid var(--border);
-        color: #fff;
+        color: var(--text);
         font-size: 13px;
         cursor: pointer;
         display: flex;
@@ -469,8 +621,17 @@
         z-index: 5;
       }
       .dp-x:hover {
-        background: rgba(239, 68, 68, 0.5);
-        border-color: #ef4444;
+        background: rgba(100, 116, 139, 0.25);
+        border-color: rgba(100, 116, 139, 0.4);
+      }
+      body.light .dp-x {
+        background: rgba(0, 0, 0, 0.06);
+        border-color: rgba(0, 0, 0, 0.15);
+        color: #0f172a;
+      }
+      body.light .dp-x:hover {
+        background: rgba(0, 0, 0, 0.12);
+        border-color: rgba(0, 0, 0, 0.25);
       }
 
       /* Hero */
@@ -547,6 +708,7 @@
         text-transform: uppercase;
         letter-spacing: 1.2px;
         margin-bottom: 9px;
+        transition: color 0.3s;
       }
       .dp-grid {
         display: grid;
@@ -554,11 +716,14 @@
         gap: 7px;
       }
       .dp-cell {
-        background: var(--card2);
+        background: var(--cell);
         border-radius: 9px;
         padding: 9px 8px;
         text-align: center;
         border: 1px solid var(--border);
+        transition:
+          background 0.3s,
+          border-color 0.3s;
       }
       .dp-cico {
         font-size: 16px;
@@ -567,7 +732,8 @@
       .dp-cval {
         font-size: 13px;
         font-weight: 800;
-        color: #fff;
+        color: var(--text);
+        transition: color 0.3s;
       }
       .dp-clbl {
         font-size: 7px;
@@ -575,6 +741,7 @@
         text-transform: uppercase;
         letter-spacing: 0.5px;
         margin-top: 2px;
+        transition: color 0.3s;
       }
 
       /* Forecast */
@@ -582,7 +749,7 @@
         display: flex;
         align-items: center;
         padding: 6px 0;
-        border-bottom: 1px solid var(--border);
+        border-bottom: 1px solid var(--fc-sep);
       }
       .fc-row:last-child {
         border-bottom: none;
@@ -605,7 +772,7 @@
       .fc-bw {
         flex: 1;
         height: 3px;
-        background: rgba(255, 255, 255, 0.07);
+        background: var(--fc-bar);
         border-radius: 2px;
         margin: 0 6px;
       }
@@ -616,9 +783,10 @@
       .fc-hi {
         font-size: 10px;
         font-weight: 700;
-        color: #fff;
+        color: var(--text);
         width: 44px;
         text-align: right;
+        transition: color 0.3s;
       }
       .fc-adot {
         width: 7px;
@@ -639,12 +807,11 @@
         margin: 0 16px 14px;
         padding: 12px;
         border-radius: 11px;
-        background: linear-gradient(
-          135deg,
-          rgba(37, 99, 235, 0.1),
-          rgba(8, 145, 178, 0.1)
-        );
-        border: 1px solid rgba(59, 130, 246, 0.25);
+        background: var(--ai-bg);
+        border: 1px solid var(--ai-border);
+        transition:
+          background 0.3s,
+          border-color 0.3s;
       }
       .ai-hdr {
         display: flex;
@@ -664,8 +831,9 @@
       }
       .ai-body {
         font-size: 11px;
-        color: #94a3b8;
+        color: var(--ai-text);
         line-height: 1.6;
+        transition: color 0.3s;
       }
       .ai-spin {
         display: flex;
@@ -734,11 +902,14 @@
         position: relative;
         z-index: 1;
         width: min(440px, 100%);
-        background: #0f1629;
+        background: var(--card);
         border: 1px solid var(--border);
         border-radius: 18px;
         box-shadow: 0 28px 70px rgba(0, 0, 0, 0.55);
         overflow: hidden;
+        transition:
+          background 0.3s,
+          border-color 0.3s;
       }
       .am-hdr {
         padding: 18px 22px;
@@ -772,6 +943,8 @@
       }
       .am-body {
         padding: 18px 22px;
+        background: var(--card);
+        transition: background 0.3s;
       }
       .fg {
         margin-bottom: 12px;
@@ -784,18 +957,22 @@
         letter-spacing: 0.8px;
         margin-bottom: 5px;
         display: block;
+        transition: color 0.3s;
       }
       .fi {
         width: 100%;
         padding: 9px 12px;
         border-radius: 9px;
-        background: var(--card2);
+        background: var(--cell);
         border: 1px solid var(--border);
-        color: #fff;
+        color: var(--text);
         font-size: 12px;
         font-family: "DM Sans", sans-serif;
         outline: none;
-        transition: border-color 0.2s;
+        transition:
+          border-color 0.2s,
+          background 0.3s,
+          color 0.3s;
       }
       .fi:focus {
         border-color: var(--accent);
@@ -814,10 +991,12 @@
         gap: 7px;
         padding: 7px 9px;
         border-radius: 7px;
-        background: var(--card2);
+        background: var(--cell);
         border: 1px solid var(--border);
         cursor: pointer;
-        transition: border-color 0.15s;
+        transition:
+          border-color 0.15s,
+          background 0.3s;
       }
       .cb-item:hover {
         border-color: var(--accent);
@@ -831,6 +1010,7 @@
         font-size: 11px;
         font-weight: 600;
         color: var(--text);
+        transition: color 0.3s;
       }
       .f-submit {
         width: 100%;
@@ -853,6 +1033,7 @@
         text-align: center;
         padding: 24px 22px;
         display: none;
+        background: var(--card);
       }
       .f-ok-ico {
         font-size: 44px;
@@ -861,13 +1042,15 @@
       .f-ok-title {
         font-size: 16px;
         font-weight: 800;
-        color: #fff;
+        color: var(--text);
         margin-bottom: 5px;
+        transition: color 0.3s;
       }
       .f-ok-txt {
         font-size: 12px;
         color: var(--sub);
         line-height: 1.5;
+        transition: color 0.3s;
       }
 
       /* Leaflet overrides */
@@ -916,6 +1099,571 @@
         background: var(--border);
         border-radius: 2px;
       }
+
+      /* ── AUTH STYLES ─────────────────────────────────────── */
+      /* Header right section */
+      .hdr-auth {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .auth-btn {
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 700;
+        cursor: pointer;
+        border: none;
+        font-family: "DM Sans", sans-serif;
+        transition: all 0.2s;
+        letter-spacing: 0.3px;
+      }
+      .auth-btn-login {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text);
+      }
+      .auth-btn-login:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .auth-btn-signup {
+        background: var(--accent);
+        color: #fff;
+      }
+      .auth-btn-signup:hover {
+        background: #2563eb;
+      }
+
+      /* User avatar */
+      .user-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 800;
+        color: #fff;
+        cursor: pointer;
+        position: relative;
+        flex-shrink: 0;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        transition: border-color 0.2s;
+      }
+      .user-avatar:hover {
+        border-color: rgba(255, 255, 255, 0.5);
+      }
+
+      /* Notification bell */
+      .notif-btn {
+        position: relative;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid var(--border);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        color: var(--text);
+      }
+      .notif-btn:hover {
+        background: rgba(255, 255, 255, 0.12);
+      }
+      body.light .notif-btn {
+        background: rgba(0, 0, 0, 0.05);
+        border-color: rgba(0, 0, 0, 0.1);
+      }
+      .notif-badge {
+        position: absolute;
+        top: -3px;
+        right: -3px;
+        min-width: 16px;
+        height: 16px;
+        border-radius: 8px;
+        background: #ef4444;
+        color: #fff;
+        font-size: 9px;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 3px;
+        border: 2px solid var(--bg);
+        display: none;
+      }
+      .notif-badge.show {
+        display: flex;
+      }
+
+      /* Notification dropdown */
+      #notifDrop {
+        position: fixed;
+        top: 58px;
+        right: 14px;
+        width: 320px;
+        z-index: 2500;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+        overflow: hidden;
+        display: none;
+      }
+      #notifDrop.show {
+        display: block;
+      }
+      .nd-hdr {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .nd-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text);
+      }
+      .nd-readall {
+        font-size: 10px;
+        color: var(--accent);
+        cursor: pointer;
+        font-weight: 600;
+        background: none;
+        border: none;
+        font-family: "DM Sans", sans-serif;
+      }
+      .nd-list {
+        max-height: 340px;
+        overflow-y: auto;
+      }
+      .nd-empty {
+        padding: 28px;
+        text-align: center;
+        color: var(--sub);
+        font-size: 12px;
+      }
+      .nd-item {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border);
+        cursor: pointer;
+        transition: background 0.12s;
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+      }
+      .nd-item:hover {
+        background: rgba(255, 255, 255, 0.04);
+      }
+      body.light .nd-item:hover {
+        background: rgba(0, 0, 0, 0.03);
+      }
+      .nd-item.unread {
+        background: rgba(59, 130, 246, 0.06);
+      }
+      .nd-item:last-child {
+        border-bottom: none;
+      }
+      .nd-ico {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 15px;
+        flex-shrink: 0;
+      }
+      .nd-ico.danger {
+        background: rgba(239, 68, 68, 0.15);
+      }
+      .nd-ico.warning {
+        background: rgba(249, 115, 22, 0.15);
+      }
+      .nd-ico.info {
+        background: rgba(59, 130, 246, 0.12);
+      }
+      .nd-body {
+        flex: 1;
+        min-width: 0;
+      }
+      .nd-ntitle {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text);
+        margin-bottom: 2px;
+      }
+      .nd-msg {
+        font-size: 11px;
+        color: var(--sub);
+        line-height: 1.4;
+      }
+      .nd-time {
+        font-size: 9px;
+        color: var(--sub);
+        margin-top: 3px;
+      }
+      .nd-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--accent);
+        flex-shrink: 0;
+        margin-top: 4px;
+      }
+
+      /* User menu dropdown */
+      #userMenu {
+        position: fixed;
+        top: 58px;
+        right: 14px;
+        width: 200px;
+        z-index: 2500;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+        overflow: hidden;
+        display: none;
+      }
+      #userMenu.show {
+        display: block;
+      }
+      .um-header {
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--border);
+      }
+      .um-name {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text);
+      }
+      .um-email {
+        font-size: 10px;
+        color: var(--sub);
+        margin-top: 1px;
+      }
+      .um-item {
+        padding: 10px 16px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: background 0.12s;
+      }
+      .um-item:hover {
+        background: rgba(255, 255, 255, 0.05);
+      }
+      body.light .um-item:hover {
+        background: rgba(0, 0, 0, 0.04);
+      }
+      .um-item.danger {
+        color: #ef4444;
+      }
+
+      /* ── MODAL BASE ──────────────────────────────────────── */
+      .wn-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 4000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+      }
+      .wn-modal.show {
+        display: flex;
+      }
+      .wn-modal-bg {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.75);
+        backdrop-filter: blur(8px);
+      }
+      .wn-modal-box {
+        position: relative;
+        z-index: 1;
+        width: min(420px, 100%);
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        box-shadow: 0 32px 80px rgba(0, 0, 0, 0.5);
+        overflow: hidden;
+      }
+      .wn-modal-hdr {
+        padding: 20px 24px;
+        background: linear-gradient(135deg, #0f172a, #1e3a8a);
+        text-align: center;
+      }
+      .wn-modal-logo {
+        font-size: 22px;
+        margin-bottom: 4px;
+      }
+      .wn-modal-title {
+        font-size: 18px;
+        font-weight: 800;
+        color: #fff;
+      }
+      .wn-modal-sub {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.6);
+        margin-top: 2px;
+      }
+      .wn-modal-body {
+        padding: 22px 24px;
+      }
+      .wn-modal-close {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+        color: #fff;
+        cursor: pointer;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* Form elements */
+      .wn-fg {
+        margin-bottom: 14px;
+      }
+      .wn-fl {
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--sub);
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        margin-bottom: 5px;
+        display: block;
+      }
+      .wn-fi {
+        width: 100%;
+        padding: 10px 13px;
+        border-radius: 10px;
+        background: var(--cell);
+        border: 1px solid var(--border);
+        color: var(--text);
+        font-size: 13px;
+        font-family: "DM Sans", sans-serif;
+        outline: none;
+        transition:
+          border-color 0.2s,
+          background 0.3s;
+      }
+      .wn-fi:focus {
+        border-color: var(--accent);
+      }
+      .wn-fi::placeholder {
+        color: var(--sub);
+      }
+      .wn-submit {
+        width: 100%;
+        padding: 12px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #2563eb, #0284c7);
+        color: #fff;
+        font-size: 13px;
+        font-weight: 700;
+        border: none;
+        cursor: pointer;
+        font-family: "DM Sans", sans-serif;
+        transition: opacity 0.2s;
+        margin-top: 4px;
+      }
+      .wn-submit:hover {
+        opacity: 0.88;
+      }
+      .wn-switch {
+        text-align: center;
+        margin-top: 14px;
+        font-size: 12px;
+        color: var(--sub);
+      }
+      .wn-switch a {
+        color: var(--accent);
+        cursor: pointer;
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .wn-error {
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 11px;
+        color: #ef4444;
+        margin-bottom: 12px;
+        display: none;
+      }
+      .wn-success {
+        background: rgba(34, 197, 94, 0.1);
+        border: 1px solid rgba(34, 197, 94, 0.3);
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 11px;
+        color: #22c55e;
+        margin-bottom: 12px;
+        display: none;
+      }
+
+      /* OTP inputs */
+      .otp-row {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        margin: 16px 0;
+      }
+      .otp-input {
+        width: 44px;
+        height: 52px;
+        border-radius: 10px;
+        background: var(--cell);
+        border: 1px solid var(--border);
+        color: var(--text);
+        font-size: 20px;
+        font-weight: 800;
+        text-align: center;
+        font-family: "DM Mono", monospace;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+      .otp-input:focus {
+        border-color: var(--accent);
+      }
+
+      /* Avatar selector */
+      .avatar-grid {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: center;
+        margin: 12px 0;
+      }
+      .avatar-opt {
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        overflow: hidden;
+        cursor: pointer;
+        border: 3px solid transparent;
+        transition: all 0.2s;
+        flex-shrink: 0;
+      }
+      .avatar-opt.selected {
+        border-color: #fff;
+        box-shadow: 0 0 0 3px var(--accent);
+      }
+
+      /* ── PROVINCE FILTER ─────────────────────────────────────── */
+      #provFab {
+        position: fixed;
+        top: 120px;
+        right: 14px;
+        z-index: 1501;
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        backdrop-filter: blur(20px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        color: var(--text);
+      }
+      /* Province panel opens BELOW the lyFab button, not overlapping it */
+      #provFab:hover {
+        box-shadow: 0 6px 22px rgba(0, 0, 0, 0.45);
+        transform: scale(1.05);
+      }
+      #provPnl {
+        position: fixed;
+        top: 120px;
+        right: 14px;
+        z-index: 1500;
+        width: 210px;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        backdrop-filter: blur(20px);
+        box-shadow: 0 6px 28px rgba(0, 0, 0, 0.45);
+        overflow: hidden;
+        display: none;
+        transition:
+          background 0.3s,
+          border-color 0.3s;
+      }
+      #provPnl.open {
+        display: block;
+      }
+      .pp-hdr {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .pp-title {
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--sub);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+      .pp-list {
+        padding: 6px;
+      }
+      .prov-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 9px;
+        border-radius: 8px;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        background: transparent;
+        width: 100%;
+        text-align: left;
+        transition: all 0.15s;
+        color: var(--text);
+        font-family: "DM Sans", sans-serif;
+        margin-bottom: 1px;
+      }
+      .prov-btn:hover {
+        background: rgba(255, 255, 255, 0.05);
+      }
+      body.light .prov-btn:hover {
+        background: rgba(0, 0, 0, 0.04);
+      }
+      .prov-btn.active {
+        color: #fff;
+        border-radius: 8px;
+      }
+      .prov-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
     </style>
   </head>
   <body>
@@ -953,6 +1701,113 @@
         <span class="live-lbl">LIVE</span>
       </div>
       <div id="hdrClock"></div>
+      <!-- Notification Bell (shown when logged in) -->
+      <div id="notifWrap" style="display: none; position: relative">
+        <button
+          class="notif-btn"
+          onclick="toggleNotifDrop()"
+          title="Notifications"
+        >
+          <svg
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+          </svg>
+          <span class="notif-badge" id="notifBadge"></span>
+        </button>
+      </div>
+      <!-- Auth buttons (shown when logged out) -->
+      <div id="authBtns" class="hdr-auth">
+        <button class="auth-btn auth-btn-login" onclick="openModal('login')">
+          Log In
+        </button>
+        <button class="auth-btn auth-btn-signup" onclick="openModal('signup')">
+          Sign Up
+        </button>
+      </div>
+      <!-- User avatar (shown when logged in) -->
+      <div id="userAvatarWrap" style="display: none; position: relative">
+        <div
+          class="user-avatar"
+          id="userAvatar"
+          onclick="toggleUserMenu()"
+        ></div>
+      </div>
+      <button
+        id="themeBtn"
+        onclick="toggleTheme()"
+        title="Toggle light/dark mode"
+        style="
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 5px 10px 5px 8px;
+          border-radius: 20px;
+          border: 1.5px solid rgba(255, 255, 255, 0.25);
+          background: rgba(255, 255, 255, 0.08);
+          cursor: pointer;
+          margin-left: 8px;
+          flex-shrink: 0;
+          transition: all 0.2s;
+          color: #e2e8f0;
+        "
+      >
+        <svg
+          id="themeTrack"
+          width="32"
+          height="18"
+          viewBox="0 0 32 18"
+          style="flex-shrink: 0"
+        >
+          <rect
+            x="1"
+            y="1"
+            width="30"
+            height="16"
+            rx="8"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            opacity="0.5"
+          />
+          <circle
+            id="themeThumb"
+            cx="9"
+            cy="9"
+            r="6"
+            fill="currentColor"
+            opacity="0.8"
+          />
+          <g id="themeIconInner" transform="translate(20,9)">
+            <!-- Moon icon (dark mode) -->
+            <path
+              d="M3,-5 A6,6 0 1,0 3,5 A4,4 0 1,1 3,-5 Z"
+              fill="currentColor"
+              opacity="0.7"
+              transform="scale(0.7)"
+            />
+          </g>
+        </svg>
+        <span
+          id="themeLbl"
+          style="
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--sub);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+          "
+          >Dark</span
+        >
+      </button>
     </div>
 
     <!-- SEARCH -->
@@ -973,6 +1828,7 @@
           id="srchInput"
           placeholder="Search district or city…"
           autocomplete="off"
+          value=""
         />
         <button id="srchClr">×</button>
       </div>
@@ -980,10 +1836,54 @@
     </div>
 
     <!-- LAYER PANEL -->
+    <!-- Layer FAB -->
+    <button id="lyFab" onclick="toggleLayerPanel()" title="Map Layers">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        style="color: var(--text)"
+      >
+        <polygon points="3,6 12,3 21,6 12,9" />
+        <polygon points="3,12 12,9 21,12 12,15" />
+        <polygon points="3,18 12,15 21,18 12,21" />
+      </svg>
+    </button>
+
+    <!-- Layer Panel -->
     <div id="lyPnl">
       <div class="lp-hdr">
         <span class="lp-title">Map Layers</span>
-        <span style="font-size: 8px; color: var(--sub)">Toggle</span>
+        <button
+          onclick="toggleLayerPanel()"
+          style="
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--sub);
+            display: flex;
+            align-items: center;
+            padding: 2px;
+          "
+          title="Close"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+          >
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
       </div>
       <div class="lp-list" id="lpList"></div>
     </div>
@@ -1019,6 +1919,90 @@
           <div class="lg-dot" style="background: #7f1d1d"></div>
           <div class="lg-lbl">300+ Hazardous</div>
         </div>
+      </div>
+    </div>
+
+    <!-- PROVINCE FAB -->
+    <button id="provFab" onclick="toggleProvPanel()" title="Filter by Province">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
+      </svg>
+    </button>
+
+    <!-- PROVINCE PANEL -->
+    <div id="provPnl">
+      <div class="pp-hdr">
+        <span class="pp-title">Filter Province</span>
+        <button
+          onclick="toggleProvPanel()"
+          style="
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--sub);
+            display: flex;
+            align-items: center;
+            padding: 2px;
+          "
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+          >
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+      <div class="pp-list">
+        <button class="prov-btn active" id="prov-0" onclick="filterProvince(0)">
+          <div
+            class="prov-dot"
+            style="background: linear-gradient(135deg, #3b82f6, #22c55e)"
+          ></div>
+          All Provinces
+        </button>
+        <button class="prov-btn" id="prov-1" onclick="filterProvince(1)">
+          <div class="prov-dot" style="background: #3b82f6"></div>
+          Koshi
+        </button>
+        <button class="prov-btn" id="prov-2" onclick="filterProvince(2)">
+          <div class="prov-dot" style="background: #eab308"></div>
+          Madhesh
+        </button>
+        <button class="prov-btn" id="prov-3" onclick="filterProvince(3)">
+          <div class="prov-dot" style="background: #22c55e"></div>
+          Bagmati
+        </button>
+        <button class="prov-btn" id="prov-4" onclick="filterProvince(4)">
+          <div class="prov-dot" style="background: #a855f7"></div>
+          Gandaki
+        </button>
+        <button class="prov-btn" id="prov-5" onclick="filterProvince(5)">
+          <div class="prov-dot" style="background: #f97316"></div>
+          Lumbini
+        </button>
+        <button class="prov-btn" id="prov-6" onclick="filterProvince(6)">
+          <div class="prov-dot" style="background: #ef4444"></div>
+          Karnali
+        </button>
+        <button class="prov-btn" id="prov-7" onclick="filterProvince(7)">
+          <div class="prov-dot" style="background: #06b6d4"></div>
+          Sudurpashchim
+        </button>
       </div>
     </div>
 
@@ -1188,9 +2172,29 @@
         </div>
       </div>
 
-      <button class="alrt-btn" onclick="openAlert()">
-        🔔 Set Weather Alert for This Location
-      </button>
+      <div id="alertBtnWrap">
+        <!-- Shown when NOT logged in -->
+        <button
+          class="alrt-btn"
+          id="alertBtnGuest"
+          onclick="openAlert()"
+          style="display: flex"
+        >
+          🔔 Set Weather Alert for This Location
+        </button>
+        <!-- Shown when logged in -->
+        <button
+          class="alrt-btn"
+          id="alertBtnUser"
+          onclick="sendDirectAlert()"
+          style="
+            display: none;
+            background: linear-gradient(135deg, #059669, #0284c7);
+          "
+        >
+          ⚡ Send Alert to My Email
+        </button>
+      </div>
     </div>
 
     <!-- ALERT MODAL -->
@@ -1274,10 +2278,12 @@
       // ⚙️ CONFIG — paste your API keys here
       // ══════════════════════════════════════════
       const CFG = {
-        OWM: "7ef9f5928ad13bd0affbc1a657ce3b5f ",
-        WINDY: "G0IXKsR8sageuB5hkB7v3ITa1TWkCaXd ",
+        OWM: "7ef9f5928ad13bd0affbc1a657ce3b5f ", // ← paste your OWM key from openweathermap.org
+        WINDY: "YOUR_WINDY_API_KEY",
         API: "http://localhost:5000/api",
       };
+      // ⚠️ IMPORTANT: Replace YOUR_OPENWEATHERMAP_API_KEY above with your real key
+      // Get it free at: https://openweathermap.org/api → My API Keys
 
       // ══════════════════════════════════════════
       // AQI HELPERS
@@ -1797,8 +2803,8 @@
         {
           city: "Gulariya",
           d: "Bardiya",
-          lat: 28.03,
-          lon: 81.33,
+          lat: 28.18,
+          lon: 81.5,
           zone: "terai",
         },
         {
@@ -1847,6 +2853,136 @@
         },
       ];
 
+      // Province lookup by district name
+      const PROVINCE_OF = {
+        Taplejung: 1,
+        Panchthar: 1,
+        Ilam: 1,
+        Jhapa: 1,
+        Khotang: 1,
+        Morang: 1,
+        Okhaldhunga: 1,
+        Sankhuwasabha: 1,
+        Solukhumbu: 1,
+        Sunsari: 1,
+        Dhankuta: 1,
+        Terhathum: 1,
+        Udayapur: 1,
+        Bhojpur: 1,
+        Bara: 2,
+        Dhanusha: 2,
+        Mahottari: 2,
+        Parsa: 2,
+        Rautahat: 2,
+        Saptari: 2,
+        Sarlahi: 2,
+        Siraha: 2,
+        Kathmandu: 3,
+        Lalitpur: 3,
+        Bhaktapur: 3,
+        Chitwan: 3,
+        Dhading: 3,
+        Dolakha: 3,
+        Kavrepalanchok: 3,
+        Makwanpur: 3,
+        Nuwakot: 3,
+        Ramechhap: 3,
+        Rasuwa: 3,
+        Sindhuli: 3,
+        Sindhupalchok: 3,
+        Kaski: 4,
+        Lamjung: 4,
+        Gorkha: 4,
+        Tanahun: 4,
+        Syangja: 4,
+        Parbat: 4,
+        Baglung: 4,
+        Myagdi: 4,
+        Mustang: 4,
+        Manang: 4,
+        Nawalpur: 4,
+        Banke: 5,
+        Bardiya: 5,
+        Dang: 5,
+        Kapilvastu: 5,
+        Rupandehi: 5,
+        Palpa: 5,
+        Gulmi: 5,
+        Arghakhanchi: 5,
+        Pyuthan: 5,
+        Rolpa: 5,
+        "Rukum East": 5,
+        Parasi: 5,
+        Surkhet: 6,
+        Dailekh: 6,
+        Jajarkot: 6,
+        Salyan: 6,
+        Rukum: 6,
+        Jumla: 6,
+        Kalikot: 6,
+        Mugu: 6,
+        Humla: 6,
+        Dolpa: 6,
+        Kailali: 7,
+        Kanchanpur: 7,
+        Dadeldhura: 7,
+        Doti: 7,
+        Achham: 7,
+        Bajhang: 7,
+        Bajura: 7,
+        Baitadi: 7,
+        Darchula: 7,
+      };
+      const PROVINCE_NAMES = {
+        1: "Koshi",
+        2: "Madhesh",
+        3: "Bagmati",
+        4: "Gandaki",
+        5: "Lumbini",
+        6: "Karnali",
+        7: "Sudurpashchim",
+      };
+      const PROVINCE_COLORS = {
+        1: "#3b82f6",
+        2: "#eab308",
+        3: "#22c55e",
+        4: "#a855f7",
+        5: "#f97316",
+        6: "#ef4444",
+        7: "#06b6d4",
+      };
+      const PROVINCE_BOUNDS = {
+        1: [
+          [26.3, 86.5],
+          [28.5, 88.2],
+        ],
+        2: [
+          [26.2, 85.0],
+          [27.2, 87.0],
+        ],
+        3: [
+          [26.9, 84.5],
+          [28.5, 86.5],
+        ],
+        4: [[27.8, 82.9], [29.2], [85.2]],
+        5: [
+          [27.4, 82.0],
+          [28.8, 84.5],
+        ],
+        6: [
+          [28.2, 81.1],
+          [30.1, 83.2],
+        ],
+        7: [
+          [28.6, 79.9],
+          [30.4, 82.3],
+        ],
+      };
+      // Fix nested array typo
+      PROVINCE_BOUNDS[4] = [
+        [27.8, 82.9],
+        [29.2, 85.2],
+      ];
       const seen = new Set();
       const CITIES = RAW.filter((c) => {
         const k = c.city + c.d;
@@ -1854,16 +2990,192 @@
         seen.add(k);
         return true;
       }).map((c, i) => {
+        // Start with simulated data — will be replaced by real data after fetch
         const aq = simAQI(c.zone, i);
         const wx = simWX(c.zone, c.lat, i);
+        const prov = PROVINCE_OF[c.d] || 0;
         return {
           ...c,
           ...aq,
           wx,
           h24: gen24(wx.temp, i),
           fc7: gen7(aq.aqi, wx.temp, i),
+          realData: false,
+          province: prov,
         };
       });
+
+      // ── REAL DATA FETCH SYSTEM ──────────────────────────────────────
+      const OPEN_METEO = "https://api.open-meteo.com/v1/forecast";
+
+      // WMO code → condition string
+      function wmoToStr(code) {
+        const m = {
+          0: "Clear",
+          1: "Mainly Clear",
+          2: "Partly Cloudy",
+          3: "Overcast",
+          45: "Foggy",
+          51: "Light Drizzle",
+          61: "Light Rain",
+          63: "Rain",
+          65: "Heavy Rain",
+          71: "Light Snow",
+          73: "Snow",
+          75: "Heavy Snow",
+          80: "Rain Showers",
+          95: "Thunderstorm",
+        };
+        const i = {
+          0: "☀️",
+          1: "🌤️",
+          2: "⛅",
+          3: "☁️",
+          45: "🌫️",
+          51: "🌦️",
+          61: "🌧️",
+          63: "🌧️",
+          65: "🌧️",
+          71: "🌨️",
+          73: "🌨️",
+          75: "❄️",
+          80: "🌦️",
+          95: "⛈️",
+        };
+        return { cond: m[code] || "Clear", icon: i[code] || "⛅" };
+      }
+
+      // Fetch real weather for one city from Open-Meteo
+      async function fetchRealWeather(city) {
+        try {
+          const r = await fetch(
+            `${OPEN_METEO}?latitude=${city.lat}&longitude=${city.lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,snowfall,wind_speed_10m,wind_direction_10m,cloud_cover,surface_pressure,uv_index,weather_code,visibility&hourly=temperature_2m,precipitation_probability,precipitation,snowfall,uv_index&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,snowfall_sum,wind_speed_10m_max,uv_index_max,weather_code&timezone=Asia%2FKathmandu&forecast_days=7`,
+            { signal: AbortSignal.timeout(8000) },
+          );
+          if (!r.ok) return null;
+          const d = await r.json();
+          const c = d.current;
+          const dirs = [
+            "N",
+            "NNE",
+            "NE",
+            "ENE",
+            "E",
+            "ESE",
+            "SE",
+            "SSE",
+            "S",
+            "SSW",
+            "SW",
+            "WSW",
+            "W",
+            "WNW",
+            "NW",
+            "NNW",
+          ];
+          const windDir =
+            dirs[Math.round((c.wind_direction_10m || 0) / 22.5) % 16];
+          const wmo = wmoToStr(c.weather_code);
+          return {
+            temp: Math.round(c.temperature_2m),
+            feelsLike: Math.round(c.apparent_temperature),
+            humidity: c.relative_humidity_2m,
+            wind: Math.round(c.wind_speed_10m),
+            windDir,
+            rain: (c.precipitation || 0).toFixed(1),
+            snow: (c.snowfall || 0).toFixed(1),
+            cloud: c.cloud_cover,
+            pressure: Math.round(c.surface_pressure),
+            uv: c.uv_index || 0,
+            visibility: c.visibility ? Math.round(c.visibility / 1000) : 10,
+            cond: wmo.cond,
+            icon: wmo.icon,
+            h24: d.hourly
+              ? d.hourly.time.slice(0, 24).map((t, i) => ({
+                  h: t.slice(11, 16),
+                  t: d.hourly.temperature_2m[i],
+                }))
+              : [],
+            fc7: d.daily
+              ? d.daily.time.map((t, i) => {
+                  const wmo7 = wmoToStr(d.daily.weather_code[i]);
+                  return {
+                    day:
+                      i === 0
+                        ? "Today"
+                        : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][
+                            new Date(t).getDay()
+                          ],
+                    icon: wmo7.icon,
+                    hi: Math.round(d.daily.temperature_2m_max[i]),
+                    lo: Math.round(d.daily.temperature_2m_min[i]),
+                    aqi: 0, // will use simulated AQI for forecast
+                  };
+                })
+              : [],
+          };
+        } catch (e) {
+          return null;
+        }
+      }
+
+      // Update one city with real data
+      function applyRealData(idx, wx) {
+        if (!wx) return;
+        const c = CITIES[idx];
+        c.wx = { ...c.wx, ...wx };
+        c.h24 = wx.h24.length ? wx.h24 : c.h24;
+        c.fc7 = wx.fc7.length
+          ? wx.fc7.map((f, i) => ({ ...f, aqi: c.fc7[i]?.aqi || c.aqi }))
+          : c.fc7;
+        c.realData = true;
+      }
+
+      // Rebuild heatmap layers with current CITIES data
+      function rebuildHeatLayers() {
+        const layers = [
+          [aqiH, () => hPts((c) => c.aqi / 300)],
+          [tmpH, () => hPts((c) => Math.max(0, (c.wx.temp + 10) / 50))],
+          [wnH, () => hPtsF((c) => c.wx.wind / 50, 0.06)],
+          [rnH, () => hPtsF((c) => parseFloat(c.wx.rain) / 14, 0.007)],
+          [snH, () => hPtsF((c) => parseFloat(c.wx.snow) / 10, 0)],
+          [hmH, () => hPts((c) => c.wx.humidity / 100)],
+          [uvH, () => hPts((c) => c.wx.uv / 11)],
+          [prH, () => hPts((c) => Math.max(0, (c.wx.pressure - 870) / 160))],
+        ];
+        layers.forEach(([layer, getFn]) => {
+          if (!layer) return;
+          const def = LAYER_DEFS.find((l) => l.lyr === layer);
+          const wasOn = def?.on && map.hasLayer(layer);
+          if (wasOn) map.removeLayer(layer);
+          const pts = getFn();
+          if (pts.length > 0) layer.setLatLngs(pts);
+          if (wasOn && pts.length > 0) layer.addTo(map);
+        });
+        allMarkers.forEach((m, i) => {
+          if (CITIES[i]) m.setIcon(mkPin(CITIES[i].aqi));
+        });
+        updateStats();
+        console.log("[WeatherNepal] Layers rebuilt with real data");
+      }
+
+      // Fetch real data in batches of 10 to avoid rate limiting
+      async function loadRealData() {
+        console.log("[WeatherNepal] Fetching real weather for 77 districts...");
+        const BATCH = 10;
+        for (let i = 0; i < CITIES.length; i += BATCH) {
+          const batch = CITIES.slice(i, i + BATCH);
+          const results = await Promise.all(
+            batch.map((c) => fetchRealWeather(c)),
+          );
+          results.forEach((wx, j) => applyRealData(i + j, wx));
+          // Small delay between batches
+          if (i + BATCH < CITIES.length)
+            await new Promise((r) => setTimeout(r, 500));
+        }
+        rebuildHeatLayers();
+        console.log("[WeatherNepal] Real data load complete");
+      }
 
       // ══════════════════════════════════════════
       // HEADER STATS
@@ -1934,10 +3246,15 @@
         maxZoom: 16,
         preferCanvas: true,
       });
-      L.tileLayer(
+      const darkTile = L.tileLayer(
         "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
         { attribution: "© CARTO © OpenStreetMap", maxZoom: 19 },
-      ).addTo(map);
+      );
+      const lightTile = L.tileLayer(
+        "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+        { attribution: "© CARTO © OpenStreetMap", maxZoom: 19 },
+      );
+      darkTile.addTo(map);
       map.fitBounds([
         [26.2, 80.0],
         [30.4, 88.2],
@@ -1946,83 +3263,112 @@
       // ══════════════════════════════════════════
       // WEATHER LAYERS
       // ══════════════════════════════════════════
-      const K = CFG.OWM;
+      // OWM tile layers
       function owm(l) {
+        const k = CFG.OWM;
+        if (!k || k === "YOUR_OPENWEATHERMAP_API_KEY") {
+          console.warn("OWM key not set — add your key to CFG.OWM");
+          return L.tileLayer("", {});
+        }
         return L.tileLayer(
-          `https://tile.openweathermap.org/map/${l}/{z}/{x}/{y}.png?appid=${K}`,
+          `https://tile.openweathermap.org/map/${l}/{z}/{x}/{y}.png?appid=${k}`,
           { opacity: 0.7, maxZoom: 19, attribution: "© OWM" },
         );
       }
 
-      // Local heatmap layers from city data
-      const mkHeat = (pts, grad, r = 48, b = 32) =>
-        L.heatLayer(pts, { radius: r, blur: b, maxZoom: 10, gradient: grad });
+      // Local heatmap layers — built from CITIES data after map is ready
+      const mkHeat = (pts, grad, opts = {}) =>
+        L.heatLayer(pts, {
+          radius: opts.radius || 48,
+          blur: opts.blur || 32,
+          maxZoom: 10,
+          gradient: grad,
+          minOpacity: opts.minOpacity || 0.4,
+        });
 
+      // ── HEATMAP HELPERS ─────────────────────────────────────────────
+      function hPts(fn) {
+        return CITIES.map((c) => {
+          const v = fn(c);
+          return [c.lat, c.lon, isNaN(v) ? 0 : Math.max(0, Math.min(1, v))];
+        });
+      }
+      function hPtsF(fn, min) {
+        return CITIES.filter((c) => (fn(c) || 0) > min).map((c) => [
+          c.lat,
+          c.lon,
+          Math.min(1, fn(c) || 0),
+        ]);
+      }
+      const HO = { radius: 34, blur: 26, minOpacity: 0.55 }; // tight — prevents cross-country bleed
+      const HOS = { radius: 42, blur: 30, minOpacity: 0.45 }; // sparse data
+
+      // AQI — all cities
       const aqiH = mkHeat(
-        CITIES.map((c) => [c.lat, c.lon, Math.min(c.aqi / 300, 1)]),
+        hPts((c) => c.aqi / 300),
         {
-          0: "#22c55e",
+          0.0: "#22c55e",
           0.2: "#86efac",
           0.4: "#eab308",
           0.6: "#f97316",
           0.8: "#ef4444",
-          1: "#7f1d1d",
+          1.0: "#7f1d1d",
         },
+        HO,
       );
+      // Temperature — -10°C to 40°C
       const tmpH = mkHeat(
-        CITIES.map((c) => [
-          c.lat,
-          c.lon,
-          Math.max(0, Math.min(1, (c.wx.temp + 10) / 50)),
-        ]),
+        hPts((c) => Math.max(0, (c.wx.temp + 10) / 50)),
         {
-          0: "#1e40af",
+          0.0: "#1e40af",
           0.3: "#38bdf8",
           0.5: "#22c55e",
           0.75: "#f97316",
-          1: "#7f1d1d",
+          1.0: "#7f1d1d",
         },
+        HO,
       );
+      // Wind — only where wind > 3 km/h
       const wnH = mkHeat(
-        CITIES.map((c) => [c.lat, c.lon, Math.min(c.wx.wind / 50, 1)]),
-        { 0: "#bfdbfe", 0.5: "#3b82f6", 1: "#1e3a8a" },
+        hPtsF((c) => c.wx.wind / 50, 0.06),
+        { 0.0: "#bfdbfe", 0.4: "#3b82f6", 0.8: "#1e3a8a", 1.0: "#0f172a" },
+        HO,
       );
+      // Rainfall — only cities with actual rain > 0.1mm
       const rnH = mkHeat(
-        CITIES.map((c) => [
-          c.lat,
-          c.lon,
-          Math.min(parseFloat(c.wx.rain) / 14, 1),
-        ]),
-        { 0: "#bfdbfe", 0.4: "#38bdf8", 0.7: "#0284c7", 1: "#1e3a8a" },
+        hPtsF((c) => parseFloat(c.wx.rain) / 14, 0.007),
+        { 0.0: "#bfdbfe", 0.4: "#38bdf8", 0.7: "#0284c7", 1.0: "#1e3a8a" },
+        HOS,
       );
+      // Snowfall — only cities with actual snow > 0 (mountain only)
       const snH = mkHeat(
-        CITIES.map((c) => [
-          c.lat,
-          c.lon,
-          Math.min(parseFloat(c.wx.snow) / 10, 1),
-        ]),
-        {
-          0: "rgba(255,255,255,0)",
-          0.4: "#bae6fd",
-          0.8: "#e0f2fe",
-          1: "#ffffff",
-        },
+        hPtsF((c) => parseFloat(c.wx.snow) / 10, 0),
+        { 0.0: "#bae6fd", 0.5: "#e0f2fe", 1.0: "#ffffff" },
+        { radius: 36, blur: 22, minOpacity: 0.55 },
       );
+      // Humidity — all cities 0-100%
       const hmH = mkHeat(
-        CITIES.map((c) => [c.lat, c.lon, c.wx.humidity / 100]),
-        { 0: "#fef9c3", 0.5: "#38bdf8", 1: "#1e3a8a" },
+        hPts((c) => c.wx.humidity / 100),
+        { 0.0: "#fef9c3", 0.4: "#a7f3d0", 0.7: "#38bdf8", 1.0: "#1e3a8a" },
+        HO,
       );
+      // UV Index — all cities 0-11
       const uvH = mkHeat(
-        CITIES.map((c) => [c.lat, c.lon, c.wx.uv / 11]),
-        { 0: "#22c55e", 0.4: "#eab308", 0.7: "#f97316", 1: "#7f1d1d" },
+        hPts((c) => c.wx.uv / 11),
+        {
+          0.0: "#22c55e",
+          0.3: "#a3e635",
+          0.5: "#eab308",
+          0.75: "#f97316",
+          1.0: "#7f1d1d",
+        },
+        HO,
       );
+      // Pressure — 870-1030 hPa range
       const prH = mkHeat(
-        CITIES.map((c) => [
-          c.lat,
-          c.lon,
-          Math.min((c.wx.pressure - 900) / 200, 1),
-        ]),
-        { 0: "#1e3a8a", 0.5: "#38bdf8", 1: "#fef9c3" },
+        hPts((c) => Math.max(0, (c.wx.pressure - 870) / 160)),
+        { 0.0: "#1e3a8a", 0.4: "#38bdf8", 0.7: "#a7f3d0", 1.0: "#fef9c3" },
+        HO,
       );
 
       const LAYER_DEFS = [
@@ -2098,12 +3444,22 @@
           on: false,
           type: "local",
         },
-        // OWM layers (need API key)
+        // Fire layer
+        {
+          id: "fire",
+          ico: "🔥",
+          name: "Fire Hotspots",
+          lyr: null,
+          on: false,
+          type: "fire",
+        },
+        // OWM layers (need API key in CFG.OWM above)
         {
           id: "owmCl",
           ico: "☁️",
           name: "Clouds (OWM)",
-          lyr: owm("clouds_new"),
+          lyr: null,
+          owmName: "clouds_new",
           on: false,
           type: "owm",
         },
@@ -2111,7 +3467,8 @@
           id: "owmRn",
           ico: "🌦️",
           name: "Precip (OWM)",
-          lyr: owm("precipitation_new"),
+          lyr: null,
+          owmName: "precipitation_new",
           on: false,
           type: "owm",
         },
@@ -2119,7 +3476,8 @@
           id: "owmWn",
           ico: "🌀",
           name: "Wind (OWM)",
-          lyr: owm("wind_new"),
+          lyr: null,
+          owmName: "wind_new",
           on: false,
           type: "owm",
         },
@@ -2127,11 +3485,23 @@
           id: "owmTm",
           ico: "🔥",
           name: "Temp (OWM)",
-          lyr: owm("temp_new"),
+          lyr: null,
+          owmName: "temp_new",
           on: false,
           type: "owm",
         },
       ];
+      // Build OWM layers lazily so API key is read at toggle time
+      LAYER_DEFS.filter((l) => l.type === "owm").forEach((l) => {
+        l.lyr = owm(l.owmName);
+      });
+
+      // Verify OWM key is set
+      if (!CFG.OWM || CFG.OWM === "YOUR_OPENWEATHERMAP_API_KEY") {
+        console.warn(
+          "⚠️ OWM key not set in CFG.OWM — OpenWeatherMap layers will not load",
+        );
+      }
 
       const LEGENDS = {
         aqiH: {
@@ -2175,8 +3545,8 @@
         snH: {
           t: "Snowfall",
           rows: [
-            ["rgba(255,255,255,0.2)", "Trace"],
             ["#bae6fd", "Light (<3cm)"],
+            ["#e0f2fe", "Moderate (3–7cm)"],
             ["#ffffff", "Heavy (>7cm)"],
           ],
         },
@@ -2216,29 +3586,101 @@
       LAYER_DEFS.forEach((l, i) => {
         if (i === 9) {
           lpList.innerHTML +=
+            '<div class="lp-div"></div><div class="lp-sec">🛰️ Satellite Data</div>';
+        }
+        if (i === 11) {
+          lpList.innerHTML +=
             '<div class="lp-div"></div><div class="lp-sec">OpenWeatherMap</div>';
         }
         const d = document.createElement("div");
         d.className = "lp-item" + (l.on ? " active" : "");
         d.id = "li_" + l.id;
-        d.innerHTML = `<span class="lp-ico">${l.ico}</span><span class="lp-name">${l.name}</span><button class="lp-tog${l.on ? " on" : ""}" id="lt_${l.id}"></button>`;
+        d.innerHTML = `<span class="lp-ico">${l.ico}</span><span class="lp-name">${l.name}</span><button class="lp-tog${l.on ? " on" : ""}" id="lt_${l.id}" onclick="event.stopPropagation();toggleLayer('${l.id}')"></button>`;
         d.onclick = () => toggleLayer(l.id);
         lpList.appendChild(d);
       });
 
+      function toggleLayerPanel() {
+        document.getElementById("lyPnl").classList.toggle("open");
+        const isOpen = document
+          .getElementById("lyPnl")
+          .classList.contains("open");
+        document.getElementById("lyFab").style.opacity = isOpen ? "0" : "1";
+        document.getElementById("lyFab").style.pointerEvents = isOpen
+          ? "none"
+          : "auto";
+      }
+
+      function setLayerOn(l, on) {
+        l.on = on;
+        const btn = document.getElementById("lt_" + l.id);
+        const item = document.getElementById("li_" + l.id);
+        if (btn) {
+          btn.classList.toggle("on", on);
+        }
+        if (item) {
+          item.classList.toggle("active", on);
+        }
+        if (l.id === "pins") {
+          allMarkers.forEach((m) => (on ? m.addTo(map) : map.removeLayer(m)));
+          return;
+        }
+        if (on) {
+          // Fire layer — fetch from backend
+          if (l.id === "fire") {
+            loadFireLayer();
+            return;
+          }
+          // For OWM layers, always rebuild to ensure fresh tile URL
+          if (l.type === "owm" && l.owmName) {
+            if (l.lyr && map.hasLayer(l.lyr)) map.removeLayer(l.lyr);
+            l.lyr = owm(l.owmName);
+          }
+          if (l.lyr) {
+            try {
+              if (!map.hasLayer(l.lyr)) l.lyr.addTo(map);
+            } catch (e) {
+              console.warn("Layer add error:", e);
+            }
+          }
+        } else {
+          if (l.id === "fire") {
+            fireMarkers.forEach((m) => map.removeLayer(m));
+            fireMarkers = [];
+            return;
+          }
+          if (l.lyr) {
+            try {
+              if (map.hasLayer(l.lyr)) map.removeLayer(l.lyr);
+            } catch (e) {
+              console.warn("Layer remove error:", e);
+            }
+          }
+        }
+      }
+
       function toggleLayer(id) {
         const l = LAYER_DEFS.find((x) => x.id === id);
         if (!l) return;
-        l.on = !l.on;
-        document.getElementById("lt_" + id).classList.toggle("on", l.on);
-        document.getElementById("li_" + id).classList.toggle("active", l.on);
+
+        // City Pins: simple toggle, independent
         if (l.id === "pins") {
-          allMarkers.forEach((m) => (l.on ? m.addTo(map) : map.removeLayer(m)));
+          setLayerOn(l, !l.on);
           return;
         }
-        if (l.lyr) {
-          l.on ? l.lyr.addTo(map) : map.removeLayer(l.lyr);
+
+        const newState = !l.on;
+
+        // Radio behavior: turn off all others in same group
+        if (newState) {
+          const group = l.type; // 'local' or 'owm'
+          LAYER_DEFS.filter(
+            (x) => x.type === group && x.id !== id && x.on,
+          ).forEach((x) => setLayerOn(x, false));
         }
+
+        setLayerOn(l, newState);
+
         // Update legend
         if (l.on && LEGENDS[id]) {
           const lg = LEGENDS[id];
@@ -2250,7 +3692,6 @@
             )
             .join("");
         } else if (!l.on) {
-          // Reset to AQI if no custom legend active
           const anyOn = LAYER_DEFS.filter((x) => x.on && LEGENDS[x.id]);
           if (!anyOn.length) {
             document.getElementById("lgTitle").textContent = "AQI Scale";
@@ -2318,10 +3759,20 @@
       function openDetail(c) {
         activeCity = c;
         const lv = gl(c.aqi);
+        // Don't pollute search bar — only update if user explicitly searched
         document.getElementById("dpHBg").style.background =
           HERO_GRADS[lv.lbl] || HERO_GRADS["Good"];
+        const aqiSrc =
+          c.aqiSource === "owm-copernicus"
+            ? "🛰️ Copernicus"
+            : c.aqiSource === "simulated"
+              ? "⚠️ Estimated"
+              : "📡 Sensor";
         document.getElementById("dpZone").textContent =
-          c.zone.charAt(0).toUpperCase() + c.zone.slice(1) + " Zone";
+          c.zone.charAt(0).toUpperCase() +
+          c.zone.slice(1) +
+          " Zone" +
+          (c.realData ? " · 🟢 Live" : " · 🟡 Est.");
         document.getElementById("dpCity").textContent = c.city;
         document.getElementById("dpDist").textContent =
           c.d + " District · Nepal";
@@ -2424,70 +3875,109 @@
       async function genAdvisory(c) {
         const el = document.getElementById("aiBody");
         el.innerHTML =
-          '<div class="ai-spin"><div class="spinner"></div>Generating advisory…</div>';
-        const prompt = `You are WeatherNepal AI. Give a practical 3-4 sentence advisory for ${c.city}, ${c.d} District, Nepal.
-Data: AQI ${c.aqi} (${gl(c.aqi).lbl}), Temp ${c.wx.temp}°C (feels ${c.wx.feelsLike}°C), Humidity ${c.wx.humidity}%, Wind ${c.wx.wind}km/h ${c.wx.windDir}, Rainfall ${c.wx.rain}mm${parseFloat(c.wx.snow) > 0 ? `, Snowfall ${c.wx.snow}cm` : ""}, Visibility ${c.wx.visibility}km, UV ${c.wx.uv}, Pressure ${c.wx.pressure}hPa.
-Zone: ${c.zone}. Season: ${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][new Date().getMonth()]}.
-Give specific Nepal-context advice: health warnings, travel safety, what to carry, risks. Max 60 words.`;
-        try {
-          const res = await fetch(`${CFG.API}/advisory/quick`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              prompt,
-              city: c.city,
-              aqi: c.aqi,
-              weather: c.wx,
-            }),
-          });
-          if (res.ok) {
-            const d = await res.json();
-            el.textContent = d.advisory || d.message || localAdvisory(c);
-          } else el.textContent = localAdvisory(c);
-        } catch {
+          '<div class="ai-spin"><div class="spinner"></div>Analyzing conditions…</div>';
+        // Use enhanced local advisory (no API key needed)
+        setTimeout(() => {
           el.textContent = localAdvisory(c);
-        }
+        }, 600);
       }
 
       function localAdvisory(c) {
         const t = [];
-        if (c.aqi > 200)
+        const month = new Date().getMonth();
+        const isMonsoon = month >= 5 && month <= 8;
+        const isWinter = month >= 11 || month <= 1;
+        const isSpring = month >= 2 && month <= 4;
+        const lv = gl(c.aqi);
+        const rain = parseFloat(c.wx.rain || 0);
+        const snow = parseFloat(c.wx.snow || 0);
+
+        // AQI advisory
+        if (c.aqi > 300)
           t.push(
-            "AQI is dangerously high — wear N95 mask and avoid outdoor activity.",
+            `⚠️ Hazardous air quality (AQI ${c.aqi}) — stay indoors, seal windows, use air purifier if available.`,
+          );
+        else if (c.aqi > 200)
+          t.push(
+            `🏭 Very unhealthy air (AQI ${c.aqi}) — avoid all outdoor activity, wear N95 mask if going out.`,
           );
         else if (c.aqi > 150)
           t.push(
-            "Air quality is unhealthy — limit time outdoors and wear a mask.",
+            `😷 Unhealthy air (AQI ${c.aqi}) — wear N95 mask outdoors, limit physical activity.`,
           );
         else if (c.aqi > 100)
           t.push(
-            "Air quality is moderate — sensitive individuals should limit outdoor exertion.",
+            `🌫️ Moderate air quality (AQI ${c.aqi}) — sensitive groups should reduce outdoor time.`,
           );
-        if (parseFloat(c.wx.snow) > 3)
+        else
           t.push(
-            `Heavy snowfall of ${c.wx.snow}cm — road closures likely in mountain passes. Dress in layers.`,
+            `✅ Good air quality (AQI ${c.aqi}) — safe for outdoor activities today.`,
           );
-        if (parseFloat(c.wx.rain) > 8)
+
+        // Weather advisory
+        if (snow > 5)
           t.push(
-            "Heavy rainfall — risk of flash floods and landslides. Avoid river banks and steep slopes.",
+            `❄️ Heavy snowfall ${snow}cm — mountain roads likely blocked, carry warm gear and emergency supplies.`,
           );
-        if (c.wx.wind > 30)
+        else if (snow > 0)
           t.push(
-            "Strong winds — secure loose objects and avoid exposed ridges and mountain trails.",
+            `🌨️ Light snow ${snow}cm — roads may be slippery, drive carefully in ${c.d} district.`,
           );
-        if (c.wx.temp < 2)
+
+        if (rain > 10)
           t.push(
-            "Near-freezing temperatures — layer up with thermal clothing and avoid prolonged exposure.",
+            `🌧️ Heavy rain ${rain}mm — high risk of flash floods and landslides${isMonsoon ? " during monsoon" : ""}, avoid river banks.`,
           );
-        if (c.wx.uv > 7)
+        else if (rain > 3)
           t.push(
-            "High UV radiation — apply SPF50 sunscreen and wear protective clothing.",
+            `🌦️ Moderate rain ${rain}mm — carry umbrella, be cautious on steep roads.`,
           );
-        if (!t.length)
+
+        if (c.wx.wind > 40)
           t.push(
-            `Conditions in ${c.city} are generally favorable today. ${c.wx.cond} with ${c.wx.temp}°C. Enjoy the day!`,
+            `💨 Strong winds ${c.wx.wind}km/h ${c.wx.windDir} — secure loose items, avoid exposed ridges.`,
           );
-        return t.join(" ");
+        if (c.wx.temp < 0)
+          t.push(
+            `🥶 Freezing ${c.wx.temp}°C — risk of frostbite, wear thermal layers and avoid prolonged exposure.`,
+          );
+        else if (c.wx.temp < 5)
+          t.push(`🧥 Cold ${c.wx.temp}°C — dress warmly in layers.`);
+        else if (c.wx.temp > 35)
+          t.push(
+            `🔥 Very hot ${c.wx.temp}°C — stay hydrated, avoid midday sun exposure.`,
+          );
+
+        if (c.wx.uv >= 9)
+          t.push(
+            `☀️ Extreme UV ${c.wx.uv}/11 — apply SPF50+, wear hat and protective clothing.`,
+          );
+        else if (c.wx.uv >= 6)
+          t.push(
+            `🌤️ High UV ${c.wx.uv}/11 — apply sunscreen before going outdoors.`,
+          );
+
+        // Zone-specific advice
+        if (c.zone === "mountain" && (snow > 0 || c.wx.temp < 5))
+          t.push(
+            `🏔️ Mountain zone: check trail conditions before trekking, inform someone of your route.`,
+          );
+        if (c.zone === "terai" && isMonsoon && rain > 0)
+          t.push(
+            `🌿 Terai: mosquito activity high during monsoon, use repellent.`,
+          );
+
+        // Seasonal context
+        if (isSpring && c.aqi > 100)
+          t.push(
+            `🔥 Burning season: agricultural fires in Terai are likely contributing to current air quality.`,
+          );
+
+        if (t.length === 1)
+          t.push(
+            `Current conditions in ${c.city}: ${c.wx.temp}°C, humidity ${c.wx.humidity}%, wind ${c.wx.wind}km/h ${c.wx.windDir}. ${c.wx.cond}.`,
+          );
+        return t.slice(0, 3).join(" ");
       }
 
       // ══════════════════════════════════════════
@@ -2496,6 +3986,9 @@ Give specific Nepal-context advice: health warnings, travel safety, what to carr
       const srchIn = document.getElementById("srchInput");
       const srchDrop = document.getElementById("srchDrop");
       const srchClr = document.getElementById("srchClr");
+      // Always start with empty search bar
+      srchIn.value = "";
+      srchClr.style.display = "none";
 
       srchIn.addEventListener("input", () => {
         const q = srchIn.value.trim().toLowerCase();
@@ -2523,8 +4016,9 @@ Give specific Nepal-context advice: health warnings, travel safety, what to carr
           el.onclick = () => {
             const city = CITIES.find((c) => c.city === el.dataset.city);
             if (city) {
-              srchIn.value = city.city;
               srchDrop.style.display = "none";
+              srchClr.style.display = "none";
+              srchIn.value = "";
               openDetail(city);
             }
           };
@@ -2592,6 +4086,85 @@ Give specific Nepal-context advice: health warnings, travel safety, what to carr
       }
 
       // ══════════════════════════════════════════
+      // THEME TOGGLE
+      // ══════════════════════════════════════════
+      function toggleTheme() {
+        const isLight = document.body.classList.toggle("light");
+        const btn = document.getElementById("themeBtn");
+        const thumb = document.getElementById("themeThumb");
+        const iconInner = document.getElementById("themeIconInner");
+        const lbl = document.getElementById("themeLbl");
+        if (isLight) {
+          btn.style.border = "1.5px solid rgba(234,179,8,0.6)";
+          btn.style.background = "rgba(251,191,36,0.1)";
+          btn.style.color = "#92400e";
+        } else {
+          btn.style.border = "1.5px solid rgba(255,255,255,0.25)";
+          btn.style.background = "rgba(255,255,255,0.08)";
+          btn.style.color = "#e2e8f0";
+        }
+
+        if (isLight) {
+          // Slide to right, show sun
+          thumb.setAttribute("cx", "23");
+          thumb.style.fill = "#f59e0b";
+          iconInner.setAttribute("transform", "translate(9,9)");
+          iconInner.innerHTML =
+            '<circle r="4" fill="#f59e0b" opacity="0.9"/><line x1="0" y1="-7" x2="0" y2="-5.5" stroke="#f59e0b" stroke-width="1.5"/><line x1="0" y1="5.5" x2="0" y2="7" stroke="#f59e0b" stroke-width="1.5"/><line x1="-7" y1="0" x2="-5.5" y2="0" stroke="#f59e0b" stroke-width="1.5"/><line x1="5.5" y1="0" x2="7" y2="0" stroke="#f59e0b" stroke-width="1.5"/><line x1="-5" y1="-5" x2="-4" y2="-4" stroke="#f59e0b" stroke-width="1.5"/><line x1="4" y1="4" x2="5" y2="5" stroke="#f59e0b" stroke-width="1.5"/><line x1="5" y1="-5" x2="4" y2="-4" stroke="#f59e0b" stroke-width="1.5"/><line x1="-4" y1="4" x2="-5" y2="5" stroke="#f59e0b" stroke-width="1.5"/>';
+          lbl.textContent = "Light";
+          btn.style.background = "rgba(251,191,36,0.12)";
+          btn.style.borderColor = "rgba(251,191,36,0.3)";
+          if (map.hasLayer(darkTile)) map.removeLayer(darkTile);
+          if (!map.hasLayer(lightTile)) lightTile.addTo(map);
+        } else {
+          // Slide to left, show moon
+          thumb.setAttribute("cx", "9");
+          thumb.style.fill = "";
+          iconInner.setAttribute("transform", "translate(23,9)");
+          iconInner.innerHTML =
+            '<path d="M3,-5 A6,6 0 1,0 3,5 A4,4 0 1,1 3,-5 Z" fill="currentColor" opacity="0.8" transform="scale(0.7)"/>';
+          lbl.textContent = "Dark";
+          btn.style.background = "rgba(128,128,128,0.1)";
+          btn.style.borderColor = "";
+          if (map.hasLayer(lightTile)) map.removeLayer(lightTile);
+          if (!map.hasLayer(darkTile)) darkTile.addTo(map);
+        }
+      }
+
+      // ══════════════════════════════════════════
+      // LOAD REAL WEATHER DATA ON STARTUP
+      // ══════════════════════════════════════════
+      // Show loading indicator
+      const loadingDiv = document.createElement("div");
+      loadingDiv.id = "realDataLoader";
+      loadingDiv.style.cssText =
+        "position:fixed;bottom:72px;left:50%;transform:translateX(-50%);z-index:2000;background:rgba(15,22,41,0.95);border:1px solid rgba(59,130,246,0.3);border-radius:10px;padding:8px 16px;display:flex;align-items:center;gap:8px;backdrop-filter:blur(10px);";
+      loadingDiv.innerHTML =
+        '<div style="width:10px;height:10px;border:2px solid rgba(59,130,246,0.3);border-top-color:#3b82f6;border-radius:50%;animation:spin 0.8s linear infinite"></div><span style="font-size:11px;color:#94a3b8;font-family:DM Sans,sans-serif;">Fetching real weather data…</span>';
+      document.body.appendChild(loadingDiv);
+
+      loadRealData()
+        .then(() => {
+          const el = document.getElementById("realDataLoader");
+          if (el) {
+            el.innerHTML =
+              '<span style="font-size:11px;color:#22c55e;font-family:DM Sans,sans-serif;">✓ Live weather data loaded</span>';
+            setTimeout(() => el.remove(), 2500);
+          }
+        })
+        .catch(() => {
+          const el = document.getElementById("realDataLoader");
+          if (el) setTimeout(() => el.remove(), 1000);
+        });
+
+      // Refresh real data every 10 minutes
+      setInterval(() => loadRealData().catch(() => {}), 10 * 60 * 1000);
+
+      // Load real AQI from backend immediately and every 15 min
+      loadRealAQI().catch(() => {});
+      setInterval(() => loadRealAQI().catch(() => {}), 15 * 60 * 1000);
+
+      // ══════════════════════════════════════════
       // GEOJSON NEPAL OUTLINE
       // ══════════════════════════════════════════
       (async () => {
@@ -2621,6 +4194,1207 @@ Give specific Nepal-context advice: health warnings, travel safety, what to carr
           }
         } catch {}
       })();
+
+      // ══════════════════════════════════════════
+      // AUTH SYSTEM
+      // ══════════════════════════════════════════
+      const API = CFG.API;
+      let currentUser = null;
+      let authToken = localStorage.getItem("wn_token");
+      let pendingEmail = "";
+      const AVATAR_IMAGES = [
+        "/avatars/avatar1.png",
+        "/avatars/avatar2.png",
+        "/avatars/avatar3.png",
+        "/avatars/avatar4.png",
+        "/avatars/avatar5.png",
+        "/avatars/avatar6.png",
+        "/avatars/avatar7.png",
+        "/avatars/avatar8.png",
+        "/avatars/avatar9.png",
+      ];
+      let selectedAvatarIndex = 1; // 1-based index
+
+      // Build avatar grid
+      function buildAvatarGrid() {
+        const grid = document.getElementById("avatarGrid");
+        if (!grid) return;
+        grid.innerHTML = AVATAR_IMAGES.map(
+          (src, i) => `
+    <div class="avatar-opt${i === 0 ? " selected" : ""}" onclick="selectAvatar(${i + 1},this)"
+      style="width:52px;height:52px;border-radius:50%;overflow:hidden;cursor:pointer;border:3px solid ${i === 0 ? "var(--accent)" : "transparent"};transition:all 0.2s;flex-shrink:0;">
+      <img src="${src}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background='#2563eb';this.style.display='none'"/>
+    </div>`,
+        ).join("");
+      }
+      function selectAvatar(index, el) {
+        selectedAvatarIndex = index;
+        document.querySelectorAll(".avatar-opt").forEach((e) => {
+          e.style.border = "3px solid transparent";
+          e.style.boxShadow = "none";
+        });
+        el.style.border = "3px solid var(--accent)";
+        el.style.boxShadow = "0 0 0 3px rgba(59,130,246,0.3)";
+      }
+
+      // Build OTP inputs
+      function buildOTPInputs() {
+        const row = document.getElementById("otpRow");
+        row.innerHTML = Array.from(
+          { length: 6 },
+          (_, i) =>
+            `<input class="otp-input" id="otp${i}" maxlength="1" type="text" inputmode="numeric" oninput="otpNext(${i})" onkeydown="otpBack(event,${i})">`,
+        ).join("");
+      }
+      function otpNext(i) {
+        const val = document.getElementById("otp" + i).value;
+        if (val && i < 5) document.getElementById("otp" + (i + 1)).focus();
+      }
+      function otpBack(e, i) {
+        if (
+          e.key === "Backspace" &&
+          !document.getElementById("otp" + i).value &&
+          i > 0
+        )
+          document.getElementById("otp" + (i - 1)).focus();
+      }
+      function getOTPValue() {
+        return Array.from(
+          { length: 6 },
+          (_, i) => document.getElementById("otp" + i)?.value || "",
+        ).join("");
+      }
+
+      // Show/hide error and success
+      function showAuthError(msg) {
+        const e = document.getElementById("authError");
+        e.textContent = msg;
+        e.style.display = "block";
+        document.getElementById("authSuccess").style.display = "none";
+      }
+      function showAuthSuccess(msg) {
+        const e = document.getElementById("authSuccess");
+        e.textContent = msg;
+        e.style.display = "block";
+        document.getElementById("authError").style.display = "none";
+      }
+      function clearAuthMsgs() {
+        document.getElementById("authError").style.display = "none";
+        document.getElementById("authSuccess").style.display = "none";
+      }
+
+      // Open modal
+      function openModal(type) {
+        buildAvatarGrid();
+        buildOTPInputs();
+        clearAuthMsgs();
+        document.getElementById("authModal").classList.add("show");
+        document.getElementById("loginForm").style.display = "none";
+        document.getElementById("signupForm").style.display = "none";
+        document.getElementById("otpForm").style.display = "none";
+        if (type === "login") {
+          document.getElementById("modalTitle").textContent = "Welcome Back";
+          document.getElementById("modalSub").textContent =
+            "Sign in to WeatherNepal";
+          document.getElementById("loginForm").style.display = "block";
+        } else {
+          document.getElementById("modalTitle").textContent = "Create Account";
+          document.getElementById("modalSub").textContent =
+            "Join WeatherNepal — its free";
+          document.getElementById("signupForm").style.display = "block";
+        }
+      }
+      function closeModal() {
+        document.getElementById("authModal").classList.remove("show");
+      }
+
+      // LOGIN
+      async function doLogin() {
+        const email = document.getElementById("loginEmail").value.trim();
+        const pass = document.getElementById("loginPass").value;
+        if (!email || !pass) {
+          showAuthError("Please fill in all fields.");
+          return;
+        }
+        try {
+          const res = await fetch(`${API}/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password: pass }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            showAuthError(data.error || "Login failed");
+            return;
+          }
+          authToken = data.token;
+          localStorage.setItem("wn_token", authToken);
+          setLoggedIn(data.user);
+          closeModal();
+        } catch (e) {
+          showAuthError("Connection error. Is the backend running?");
+        }
+      }
+
+      // SIGNUP
+      async function doSignup() {
+        const name = document.getElementById("signupName").value.trim();
+        const email = document.getElementById("signupEmail").value.trim();
+        const pass = document.getElementById("signupPass").value;
+        const location = document.getElementById("signupLocation").value.trim();
+        if (!name || !email || !pass || !location) {
+          showAuthError("Please fill in all fields.");
+          return;
+        }
+        if (pass.length < 6) {
+          showAuthError("Password must be at least 6 characters.");
+          return;
+        }
+        try {
+          // Try to find coords from CITIES data for this location
+          const locLower = location.toLowerCase().trim();
+          const matchedCity = CITIES.find(
+            (c) =>
+              c.city.toLowerCase() === locLower ||
+              c.d.toLowerCase() === locLower ||
+              c.city.toLowerCase().includes(locLower) ||
+              locLower.includes(c.city.toLowerCase()),
+          );
+          const lat = matchedCity ? matchedCity.lat : null;
+          const lon = matchedCity ? matchedCity.lon : null;
+          const district = matchedCity ? matchedCity.d : null;
+
+          const res = await fetch(`${API}/auth/signup`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name,
+              email,
+              password: pass,
+              location,
+              district,
+              lat,
+              lon,
+              avatarIndex: selectedAvatarIndex,
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            showAuthError(data.error || "Signup failed");
+            return;
+          }
+          pendingEmail = email;
+          document.getElementById("otpEmailShow").textContent = email;
+          document.getElementById("signupForm").style.display = "none";
+          document.getElementById("otpForm").style.display = "block";
+          document.getElementById("modalTitle").textContent =
+            "Verify Your Email";
+          document.getElementById("modalSub").textContent =
+            "Check your inbox for the code";
+          clearAuthMsgs();
+          showAuthSuccess("Verification code sent! Check your email.");
+          setTimeout(() => document.getElementById("otp0")?.focus(), 200);
+        } catch (e) {
+          showAuthError("Connection error. Is the backend running?");
+        }
+      }
+
+      // VERIFY OTP
+      async function doVerifyOTP() {
+        const otp = getOTPValue();
+        if (otp.length !== 6) {
+          showAuthError("Please enter the complete 6-digit code.");
+          return;
+        }
+        try {
+          const res = await fetch(`${API}/auth/verify-otp`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: pendingEmail, otp }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            showAuthError(data.error || "Verification failed");
+            return;
+          }
+          authToken = data.token;
+          localStorage.setItem("wn_token", authToken);
+          // Ensure avatarColor from signup selection is used
+          const userData = {
+            ...data.user,
+            avatarIndex: data.user.avatarIndex || selectedAvatarIndex,
+          };
+          setLoggedIn(userData);
+          closeModal();
+        } catch (e) {
+          showAuthError("Connection error.");
+        }
+      }
+
+      // RESEND OTP
+      async function doResendOTP() {
+        try {
+          await fetch(`${API}/auth/resend-otp`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: pendingEmail }),
+          });
+          showAuthSuccess("New code sent! Check your email.");
+          buildOTPInputs();
+          setTimeout(() => document.getElementById("otp0")?.focus(), 100);
+        } catch (e) {
+          showAuthError("Failed to resend.");
+        }
+      }
+
+      // SET LOGGED IN STATE
+      // Helper: returns HTML for user avatar (img or initials fallback)
+      function avatarHTML(user, size = 32, border = "") {
+        const idx = user.avatarIndex || user.avatar_index || 0;
+        const initials =
+          user.initials ||
+          (user.name || "?")
+            .split(" ")
+            .map((n) => n[0])
+            .join("")
+            .toUpperCase()
+            .slice(0, 2);
+        if (idx >= 1 && idx <= 9) {
+          return `<img src="/avatars/avatar${idx}.png" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;${border}" onerror="this.parentElement.innerHTML='<span style=\'font-size:${Math.round(size * 0.35)}px;font-weight:800;color:#fff;\'>${initials}</span>';this.parentElement.style.background='#2563eb'"/>`;
+        }
+        return `<span style="font-size:${Math.round(size * 0.35)}px;font-weight:800;color:#fff;">${initials}</span>`;
+      }
+
+      function setLoggedIn(user) {
+        currentUser = user;
+        // Always clear search bar on login
+        const si = document.getElementById("srchInput");
+        if (si) {
+          si.value = "";
+          document.getElementById("srchClr").style.display = "none";
+        }
+        document.getElementById("srchDrop").style.display = "none";
+        document.getElementById("authBtns").style.display = "none";
+        document.getElementById("userAvatarWrap").style.display = "flex";
+        document.getElementById("notifWrap").style.display = "flex";
+        const av = document.getElementById("userAvatar");
+        av.innerHTML = "";
+        av.style.background = "";
+        av.style.overflow = "hidden";
+        av.style.padding = "0";
+        const idx = user.avatarIndex || user.avatar_index || 0;
+        if (idx >= 1 && idx <= 9) {
+          const img = document.createElement("img");
+          img.src = `/avatars/avatar${idx}.png`;
+          img.style.cssText =
+            "width:100%;height:100%;object-fit:cover;border-radius:50%;";
+          img.onerror = () => {
+            av.innerHTML = "";
+            av.style.background = user.avatarColor || "#2563eb";
+            const initials = (user.name || "?")
+              .split(" ")
+              .map((n) => n[0])
+              .join("")
+              .toUpperCase()
+              .slice(0, 2);
+            av.textContent = initials;
+          };
+          av.appendChild(img);
+        } else {
+          const initials =
+            user.initials ||
+            (user.name || "?")
+              .split(" ")
+              .map((n) => n[0])
+              .join("")
+              .toUpperCase()
+              .slice(0, 2);
+          av.textContent = initials;
+          av.style.background = user.avatarColor || "#2563eb";
+        }
+        document.getElementById("umName").textContent = user.name;
+        document.getElementById("umEmail").textContent = user.email;
+        // Auto-fix missing coordinates by matching location name to CITIES
+        if ((!user.lat || !user.lon) && user.location) {
+          const locLower = user.location.toLowerCase().trim();
+          const matched =
+            CITIES.find(
+              (c) =>
+                c.city.toLowerCase() === locLower ||
+                c.d.toLowerCase() === locLower ||
+                c.city.toLowerCase().includes(locLower) ||
+                locLower.includes(c.city.toLowerCase()),
+            ) || CITIES.find((c) => c.d.toLowerCase().includes(locLower));
+          if (matched && authToken) {
+            user.lat = matched.lat;
+            user.lon = matched.lon;
+            user.district = matched.d;
+            currentUser.lat = matched.lat;
+            currentUser.lon = matched.lon;
+            currentUser.district = matched.d;
+            // Silently update in backend
+            fetch(`${API}/auth/update-location`, {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${authToken}`,
+              },
+              body: JSON.stringify({
+                location: user.location,
+                district: matched.d,
+                lat: matched.lat,
+                lon: matched.lon,
+              }),
+            }).catch(() => {});
+          }
+        }
+        // Fly to user location if available
+        if (user.lat && user.lon) {
+          setTimeout(
+            () =>
+              map.flyTo([user.lat, user.lon], 9, {
+                animate: true,
+                duration: 1.2,
+              }),
+            500,
+          );
+        }
+        loadNotifications();
+        // Update alert buttons — hide guest form, show direct send
+        const guestBtn = document.getElementById("alertBtnGuest");
+        const userBtn = document.getElementById("alertBtnUser");
+        if (guestBtn) guestBtn.style.display = "none";
+        if (userBtn) userBtn.style.display = "flex";
+        // Generate location-based notification on login
+        setTimeout(() => generateLoginNotification(user), 3000);
+      }
+
+      // LOGOUT
+      function logout() {
+        authToken = null;
+        currentUser = null;
+        localStorage.removeItem("wn_token");
+        document.getElementById("authBtns").style.display = "flex";
+        document.getElementById("userAvatarWrap").style.display = "none";
+        document.getElementById("notifWrap").style.display = "none";
+        document.getElementById("notifBadge").classList.remove("show");
+        // Restore guest alert button
+        const guestBtn = document.getElementById("alertBtnGuest");
+        const userBtn = document.getElementById("alertBtnUser");
+        if (guestBtn) guestBtn.style.display = "flex";
+        if (userBtn) userBtn.style.display = "none";
+        closeUserMenu();
+      }
+
+      // TOGGLE USER MENU
+      function toggleUserMenu() {
+        document.getElementById("userMenu").classList.toggle("show");
+        document.getElementById("notifDrop").classList.remove("show");
+      }
+      function closeUserMenu() {
+        document.getElementById("userMenu").classList.remove("show");
+      }
+
+      // ── NOTIFICATIONS ─────────────────────────────────────────────
+      function toggleNotifDrop() {
+        document.getElementById("notifDrop").classList.toggle("show");
+        document.getElementById("userMenu").classList.remove("show");
+        if (document.getElementById("notifDrop").classList.contains("show"))
+          loadNotifications();
+      }
+
+      const NOTIF_ICONS = {
+        aqi: "🏭",
+        rain: "🌧️",
+        wind: "💨",
+        snow: "❄️",
+        temp: "🥶",
+        daily: "🌅",
+        system: "🔔",
+      };
+      function timeAgo(date) {
+        const s = Math.floor((Date.now() - new Date(date)) / 1000);
+        if (s < 60) return "just now";
+        if (s < 3600) return Math.floor(s / 60) + "m ago";
+        if (s < 86400) return Math.floor(s / 3600) + "h ago";
+        return Math.floor(s / 86400) + "d ago";
+      }
+
+      async function loadNotifications() {
+        if (!authToken) return;
+        try {
+          const res = await fetch(`${API}/notifications`, {
+            headers: { Authorization: `Bearer ${authToken}` },
+          });
+          if (!res.ok) return;
+          const data = await res.json();
+          const badge = document.getElementById("notifBadge");
+          if (data.unreadCount > 0) {
+            badge.textContent = data.unreadCount > 9 ? "9+" : data.unreadCount;
+            badge.classList.add("show");
+          } else badge.classList.remove("show");
+          const list = document.getElementById("ndList");
+          if (!data.notifications.length) {
+            list.innerHTML =
+              '<div class="nd-empty">No notifications yet 🎉</div>';
+            return;
+          }
+          list.innerHTML = data.notifications
+            .map(
+              (n) => `
+      <div class="nd-item${n.read ? "" : " unread"}" onclick="markRead('${n._id}',this)">
+        <div class="nd-ico ${n.severity}">${NOTIF_ICONS[n.type] || "🔔"}</div>
+        <div class="nd-body">
+          <div class="nd-ntitle">${n.title}</div>
+          <div class="nd-msg">${n.message}</div>
+          <div class="nd-time">${timeAgo(n.createdAt)}</div>
+        </div>
+        ${n.read ? "" : '<div class="nd-dot"></div>'}
+      </div>`,
+            )
+            .join("");
+        } catch (e) {
+          console.error("Notifications error:", e);
+        }
+      }
+
+      async function markRead(id, el) {
+        if (!authToken) return;
+        el.classList.remove("unread");
+        el.querySelector(".nd-dot")?.remove();
+        await fetch(`${API}/notifications/${id}/read`, {
+          method: "PUT",
+          headers: { Authorization: `Bearer ${authToken}` },
+        });
+        loadNotifications();
+      }
+
+      async function markAllRead() {
+        if (!authToken) return;
+        await fetch(`${API}/notifications/read-all`, {
+          method: "PUT",
+          headers: { Authorization: `Bearer ${authToken}` },
+        });
+        loadNotifications();
+        document.getElementById("notifDrop").classList.remove("show");
+      }
+
+      // Close dropdowns on outside click
+      document.addEventListener("click", (e) => {
+        if (!e.target.closest("#notifWrap") && !e.target.closest("#notifDrop"))
+          document.getElementById("notifDrop").classList.remove("show");
+        if (
+          !e.target.closest("#userAvatarWrap") &&
+          !e.target.closest("#userMenu")
+        )
+          document.getElementById("userMenu").classList.remove("show");
+      });
+
+      // ── SEND DIRECT ALERT TO LOGGED IN USER ──────────────────────────
+      async function sendDirectAlert() {
+        if (!currentUser || !activeCity) return;
+        const btn = document.getElementById("alertBtnUser");
+        const origText = btn.innerHTML;
+        btn.innerHTML = "⏳ Sending...";
+        btn.disabled = true;
+        try {
+          const res = await fetch(`${API}/alerts/send-direct`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${authToken}`,
+            },
+            body: JSON.stringify({
+              city: activeCity.city,
+              district: activeCity.d,
+              lat: activeCity.lat,
+              lon: activeCity.lon,
+              aqi: activeCity.aqi,
+              weather: activeCity.wx,
+            }),
+          });
+          if (res.ok) {
+            btn.innerHTML = "✅ Alert Sent!";
+            btn.style.background = "linear-gradient(135deg,#059669,#047857)";
+            setTimeout(() => {
+              btn.innerHTML = origText;
+              btn.disabled = false;
+              btn.style.background = "linear-gradient(135deg,#059669,#0284c7)";
+            }, 3000);
+          } else {
+            btn.innerHTML = "❌ Failed";
+            setTimeout(() => {
+              btn.innerHTML = origText;
+              btn.disabled = false;
+            }, 2000);
+          }
+        } catch (e) {
+          btn.innerHTML = "❌ Error";
+          setTimeout(() => {
+            btn.innerHTML = origText;
+            btn.disabled = false;
+          }, 2000);
+        }
+      }
+
+      // ── GENERATE LOGIN NOTIFICATION ─────────────────────────────────
+      async function generateLoginNotification(user) {
+        try {
+          // Get city data for user location — by coords or name
+          let nearest = null;
+          if (user.lat && user.lon) {
+            nearest = CITIES.reduce((prev, curr) => {
+              const pd =
+                Math.abs(prev.lat - user.lat) + Math.abs(prev.lon - user.lon);
+              const cd =
+                Math.abs(curr.lat - user.lat) + Math.abs(curr.lon - user.lon);
+              return cd < pd ? curr : prev;
+            });
+          } else if (user.location) {
+            const loc = user.location.toLowerCase().trim();
+            nearest = CITIES.find(
+              (c) =>
+                c.city.toLowerCase() === loc ||
+                c.d.toLowerCase() === loc ||
+                c.city.toLowerCase().includes(loc) ||
+                loc.includes(c.city.toLowerCase()),
+            );
+            if (!nearest)
+              nearest = CITIES.find((c) => c.d.toLowerCase().includes(loc));
+            if (!nearest)
+              nearest = CITIES.find((c) => c.city === "Kathmandu") || CITIES[0];
+          }
+          if (!nearest) return;
+          const lv = gl(nearest.aqi);
+          const msg = `Welcome back, ${user.name.split(" ")[0]}! ${user.location}: AQI ${nearest.aqi} (${lv.lbl}), ${nearest.wx.temp}°C. ${lv.adv}`;
+          // Add to notification list UI (local, not saved to DB)
+          const list = document.getElementById("ndList");
+          if (list) {
+            const existing = list.querySelector(".nd-empty");
+            if (existing) existing.remove();
+            const item = document.createElement("div");
+            item.className = "nd-item unread";
+            item.innerHTML = `
+        <div class="nd-ico info">🌅</div>
+        <div class="nd-body">
+          <div class="nd-ntitle">📍 Your Location: ${user.location || nearest.city}</div>
+          <div class="nd-msg">${msg}</div>
+          <div class="nd-time">just now</div>
+        </div>
+        <div class="nd-dot"></div>`;
+            list.prepend(item);
+            // Show badge
+            const badge = document.getElementById("notifBadge");
+            badge.textContent = "1";
+            badge.classList.add("show");
+          }
+        } catch (e) {
+          console.error("Login notif error:", e);
+        }
+      }
+
+      // ── PROFILE MODAL ─────────────────────────────────────────────
+      function openProfile() {
+        closeUserMenu();
+        if (!currentUser) return;
+
+        // Find nearest city — by coords if available, else by name match
+        let nearest = null;
+        if (currentUser.lat && currentUser.lon) {
+          nearest = CITIES.reduce((prev, curr) => {
+            const pd =
+              Math.abs(prev.lat - currentUser.lat) +
+              Math.abs(prev.lon - currentUser.lon);
+            const cd =
+              Math.abs(curr.lat - currentUser.lat) +
+              Math.abs(curr.lon - currentUser.lon);
+            return cd < pd ? curr : prev;
+          });
+        } else if (currentUser.location) {
+          // Match by city or district name (case-insensitive)
+          const loc = currentUser.location.toLowerCase().trim();
+          nearest =
+            CITIES.find(
+              (c) =>
+                c.city.toLowerCase() === loc ||
+                c.d.toLowerCase() === loc ||
+                c.city.toLowerCase().includes(loc) ||
+                loc.includes(c.city.toLowerCase()),
+            ) || null;
+          // Fallback: find by district
+          if (!nearest)
+            nearest =
+              CITIES.find((c) => c.d.toLowerCase().includes(loc)) || null;
+          // Last resort: just use Kathmandu
+          if (!nearest)
+            nearest = CITIES.find((c) => c.city === "Kathmandu") || CITIES[0];
+        }
+        const lv = nearest ? gl(nearest.aqi) : null;
+
+        const html = `
+  <div style="position:fixed;inset:0;z-index:5000;display:flex;align-items:center;justify-content:center;padding:16px;" id="profileModal">
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);" onclick="document.getElementById('profileModal').remove()"></div>
+    <div style="position:relative;z-index:1;width:min(380px,100%);background:var(--card);border:1px solid var(--border);border-radius:20px;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,0.5);">
+      <!-- X close button top right -->
+      <button onclick="document.getElementById('profileModal').remove()" style="position:absolute;top:12px;right:12px;z-index:10;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+      <!-- Header -->
+      <div style="background:linear-gradient(135deg,#0f172a,#1e3a8a);padding:28px 24px 22px;text-align:center;">
+        <div style="width:72px;height:72px;border-radius:50%;overflow:hidden;margin:0 auto 10px;border:3px solid rgba(255,255,255,0.3);background:${currentUser.avatarIndex ? "transparent" : "#2563eb"};display:flex;align-items:center;justify-content:center;">
+          ${
+            currentUser.avatarIndex >= 1 && currentUser.avatarIndex <= 9
+              ? `<img src="/avatars/avatar${currentUser.avatarIndex}.png" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none';this.parentElement.innerHTML='<span style=\'font-size:24px;font-weight:800;color:#fff;\'>${currentUser.initials || currentUser.name[0]}</span>';this.parentElement.style.background='#2563eb'"/>`
+              : `<span style="font-size:24px;font-weight:800;color:#fff;">${currentUser.initials || currentUser.name[0]}</span>`
+          }
+        </div>
+        <div style="font-size:18px;font-weight:800;color:#fff;">${currentUser.name}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:2px;">${currentUser.email}</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.45);margin-top:4px;">📍 ${currentUser.location || "Location not set"}</div>
+      </div>
+      <!-- Weather grid from real CITIES data -->
+      <div style="padding:18px 20px;">
+        <div style="font-size:9px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Live Conditions — ${nearest ? nearest.city : currentUser.location}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+          <div style="background:var(--cell);border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border);">
+            <div style="font-size:18px;margin-bottom:3px;">🏭</div>
+            <div style="font-size:16px;font-weight:800;color:${lv ? lv.c : "var(--text)"};">${nearest ? nearest.aqi : "—"}</div>
+            <div style="font-size:9px;color:var(--sub);text-transform:uppercase;margin-top:2px;">${lv ? lv.lbl : "AQI"}</div>
+          </div>
+          <div style="background:var(--cell);border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border);">
+            <div style="font-size:18px;margin-bottom:3px;">🌡️</div>
+            <div style="font-size:16px;font-weight:800;color:var(--text);">${nearest ? nearest.wx.temp + "°C" : "—"}</div>
+            <div style="font-size:9px;color:var(--sub);text-transform:uppercase;margin-top:2px;">Temperature</div>
+          </div>
+          <div style="background:var(--cell);border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border);">
+            <div style="font-size:18px;margin-bottom:3px;">💨</div>
+            <div style="font-size:16px;font-weight:800;color:var(--text);">${nearest ? nearest.wx.wind + " km/h" : "—"}</div>
+            <div style="font-size:9px;color:var(--sub);text-transform:uppercase;margin-top:2px;">Wind ${nearest ? nearest.wx.windDir : ""}</div>
+          </div>
+          <div style="background:var(--cell);border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border);">
+            <div style="font-size:18px;margin-bottom:3px;">💧</div>
+            <div style="font-size:16px;font-weight:800;color:var(--text);">${nearest ? nearest.wx.humidity + "%" : "—"}</div>
+            <div style="font-size:9px;color:var(--sub);text-transform:uppercase;margin-top:2px;">Humidity</div>
+          </div>
+          <div style="background:var(--cell);border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border);">
+            <div style="font-size:18px;margin-bottom:3px;">🌧️</div>
+            <div style="font-size:16px;font-weight:800;color:var(--text);">${nearest ? nearest.wx.rain + " mm" : "—"}</div>
+            <div style="font-size:9px;color:var(--sub);text-transform:uppercase;margin-top:2px;">Rainfall</div>
+          </div>
+          <div style="background:var(--cell);border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border);">
+            <div style="font-size:18px;margin-bottom:3px;">☀️</div>
+            <div style="font-size:16px;font-weight:800;color:var(--text);">${nearest ? nearest.wx.uv + "/11" : "—"}</div>
+            <div style="font-size:9px;color:var(--sub);text-transform:uppercase;margin-top:2px;">UV Index</div>
+          </div>
+        </div>
+        <!-- Quick action buttons -->
+        <div style="display:flex;gap:8px;">
+          <button onclick="document.getElementById('profileModal').remove();openAlertSettings();" style="flex:1;padding:10px;border-radius:10px;background:var(--cell);border:1px solid var(--border);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">⚙️ Alert Settings</button>
+          <button onclick="document.getElementById('profileModal').remove();flyToUserLocation();" style="flex:1;padding:10px;border-radius:10px;background:var(--accent);border:none;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">📍 My Location</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+        document.body.insertAdjacentHTML("beforeend", html);
+      }
+
+      function flyToUserLocation() {
+        if (currentUser && currentUser.lat && currentUser.lon)
+          map.flyTo([currentUser.lat, currentUser.lon], 11, {
+            animate: true,
+            duration: 1.0,
+          });
+      }
+
+      // ── ALERT SETTINGS MODAL ──────────────────────────────────────
+      function openAlertSettings() {
+        closeUserMenu();
+        if (!currentUser) return;
+        const alerts = currentUser.alerts || {
+          aqi: true,
+          rain: true,
+          wind: false,
+          snow: false,
+          temp: false,
+          daily: true,
+        };
+        const opts = [
+          { key: "aqi", ico: "🏭", label: "AQI Unhealthy (>150)" },
+          { key: "rain", ico: "🌧️", label: "Heavy Rain (>5mm)" },
+          { key: "wind", ico: "💨", label: "Strong Wind (>40km/h)" },
+          { key: "snow", ico: "❄️", label: "Snowfall Detected" },
+          { key: "temp", ico: "🥶", label: "Below Freezing (0°C)" },
+          { key: "daily", ico: "🌅", label: "Daily Morning Summary" },
+        ];
+        const html = `
+  <div style="position:fixed;inset:0;z-index:5000;display:flex;align-items:center;justify-content:center;padding:16px;" id="alertSettingsModal">
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);" onclick="document.getElementById('alertSettingsModal').remove()"></div>
+    <div style="position:relative;z-index:1;width:min(380px,100%);background:var(--card);border:1px solid var(--border);border-radius:20px;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,0.5);">
+      <div style="background:linear-gradient(135deg,#1e3a8a,#1d4ed8);padding:18px 22px;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:16px;font-weight:800;color:#fff;">⚙️ Alert Settings</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.6);margin-top:2px;">Choose what alerts you receive</div>
+        </div>
+        <button onclick="document.getElementById('alertSettingsModal').remove()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:13px;">✕</button>
+      </div>
+      <div style="padding:18px 22px;">
+        <div style="font-size:10px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">📍 Location: ${currentUser.location || "Not set"}</div>
+        ${opts
+          .map(
+            (o) => `
+        <label style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;background:var(--cell);border:1px solid var(--border);margin-bottom:8px;cursor:pointer;transition:border-color 0.2s;">
+          <input type="checkbox" id="as_${o.key}" ${alerts[o.key] ? "checked" : ""} style="accent-color:var(--accent);width:15px;height:15px;">
+          <span style="font-size:16px;">${o.ico}</span>
+          <span style="font-size:12px;font-weight:600;color:var(--text);">${o.label}</span>
+        </label>`,
+          )
+          .join("")}
+        <button onclick="saveAlertSettings()" style="width:100%;padding:11px;border-radius:10px;background:linear-gradient(135deg,#2563eb,#0284c7);color:#fff;font-size:13px;font-weight:700;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:4px;">Save Settings →</button>
+      </div>
+    </div>
+  </div>`;
+        document.body.insertAdjacentHTML("beforeend", html);
+      }
+
+      async function saveAlertSettings() {
+        const keys = ["aqi", "rain", "wind", "snow", "temp", "daily"];
+        const alerts = {};
+        keys.forEach((k) => {
+          alerts[k] = document.getElementById("as_" + k)?.checked || false;
+        });
+        try {
+          const res = await fetch(`${API}/auth/alerts`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${authToken}`,
+            },
+            body: JSON.stringify({ alerts }),
+          });
+          if (res.ok) {
+            currentUser.alerts = alerts;
+            document.getElementById("alertSettingsModal")?.remove();
+          }
+        } catch (e) {
+          console.error("Save alerts error:", e);
+        }
+      }
+
+      // ── FIRE HOTSPOT LAYER ────────────────────────────────────────
+      let fireMarkers = [];
+      async function loadFireLayer() {
+        // Remove existing
+        fireMarkers.forEach((m) => map.removeLayer(m));
+        fireMarkers = [];
+        const l = LAYER_DEFS.find((x) => x.id === "fire");
+        if (!l || !l.on) return;
+        try {
+          const res = await fetch(`${CFG.API}/fire/hotspots`);
+          if (!res.ok) return;
+          const data = await res.json();
+          if (!data.hotspots || !data.hotspots.length) {
+            console.log("[Fire] No hotspots found for Nepal currently");
+            return;
+          }
+          data.hotspots.forEach((h) => {
+            const col =
+              h.confidence === "high"
+                ? "#ef4444"
+                : h.confidence === "nominal"
+                  ? "#f97316"
+                  : "#eab308";
+            const size = h.frp > 50 ? 18 : h.frp > 20 ? 14 : 10;
+            const icon = L.divIcon({
+              html: `<svg width="${size}" height="${size}" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="10" cy="10" r="9" fill="${col}" opacity="0.85" stroke="white" stroke-width="1.5"/>
+          <text x="10" y="14" text-anchor="middle" font-size="10" fill="white">🔥</text>
+        </svg>`,
+              className: "",
+              iconSize: [size, size],
+              iconAnchor: [size / 2, size / 2],
+            });
+            const m = L.marker([h.lat, h.lon], {
+              icon,
+              title: `Fire (${h.confidence} confidence, FRP:${h.frp}MW)`,
+            });
+            m.bindPopup(`<div style="font-family:DM Sans,sans-serif;padding:6px;min-width:160px;background:#111827;color:#fff;border-radius:8px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:4px;">🔥 Fire Hotspot</div>
+        <div style="font-size:11px;color:#94a3b8;">Satellite: ${h.satellite}</div>
+        <div style="font-size:11px;color:#94a3b8;">Confidence: <span style="color:${col};font-weight:700;">${h.confidence}</span></div>
+        <div style="font-size:11px;color:#94a3b8;">FRP: ${h.frp} MW</div>
+        <div style="font-size:11px;color:#94a3b8;">Detected: ${h.acqDate} ${h.acqTime}</div>
+      </div>`);
+            m.addTo(map);
+            fireMarkers.push(m);
+          });
+          console.log(`[Fire] Loaded ${fireMarkers.length} hotspots on map`);
+        } catch (e) {
+          console.error("[Fire] Load error:", e);
+        }
+      }
+
+      // Also handle fire layer removal
+      const origSetLayerOn = setLayerOn;
+
+      // ── FETCH REAL AQI FROM BACKEND ────────────────────────────────
+      async function loadRealAQI() {
+        try {
+          const res = await fetch(`${CFG.API}/aqi/latest`);
+          if (!res.ok) return;
+          const data = await res.json();
+          if (!data || !data.length) return;
+          let updated = 0;
+          data.forEach((record) => {
+            const idx = CITIES.findIndex(
+              (c) => c.city === record.city || c.d === record.district,
+            );
+            if (idx >= 0 && record.aqi) {
+              CITIES[idx].aqi = record.aqi;
+              CITIES[idx].pm25 = record.pm25 || CITIES[idx].pm25;
+              CITIES[idx].pm10 = record.pm10 || CITIES[idx].pm10;
+              CITIES[idx].no2 = record.no2 || CITIES[idx].no2;
+              CITIES[idx].aqiSource = record.data_source || "simulated";
+              updated++;
+            }
+          });
+          if (updated > 0) {
+            // Rebuild AQI heatmap and update pins
+            aqiH.setLatLngs(
+              CITIES.map((c) => [c.lat, c.lon, Math.min(c.aqi / 300, 1)]),
+            );
+            allMarkers.forEach((m, i) => {
+              if (CITIES[i]) m.setIcon(mkPin(CITIES[i].aqi));
+            });
+            updateStats();
+            console.log(`[WeatherNepal] Real AQI loaded for ${updated} cities`);
+          }
+        } catch (e) {
+          console.error("[AQI] Real data load error:", e);
+        }
+      }
+
+      // ══════════════════════════════════════════
+      // PROVINCE FILTER
+      // ══════════════════════════════════════════
+      let activeProvince = 0;
+      const PROVINCE_BBOX = {
+        1: [
+          [26.3, 86.5],
+          [28.5, 88.2],
+        ],
+        2: [
+          [26.2, 85.0],
+          [27.2, 87.0],
+        ],
+        3: [
+          [26.9, 84.5],
+          [28.5, 86.5],
+        ],
+        4: [
+          [27.8, 82.9],
+          [29.2, 85.2],
+        ],
+        5: [
+          [27.4, 82.0],
+          [28.8, 84.5],
+        ],
+        6: [
+          [28.2, 81.1],
+          [30.1, 83.2],
+        ],
+        7: [
+          [28.6, 79.9],
+          [30.4, 82.3],
+        ],
+      };
+
+      function toggleProvPanel() {
+        const pnl = document.getElementById("provPnl");
+        const fab = document.getElementById("provFab");
+        const isOpen = pnl.classList.toggle("open");
+        fab.style.opacity = isOpen ? "0" : "1";
+        fab.style.pointerEvents = isOpen ? "none" : "auto";
+        // Close map layer panel if open
+        if (isOpen) {
+          document.getElementById("lyPnl").classList.remove("open");
+          document.getElementById("lyFab").style.opacity = "1";
+          document.getElementById("lyFab").style.pointerEvents = "auto";
+        }
+      }
+
+      // Also update toggleLayerPanel to close province panel
+      const _origToggleLP =
+        typeof toggleLayerPanel === "function" ? toggleLayerPanel : null;
+      function toggleLayerPanel() {
+        document.getElementById("lyPnl").classList.toggle("open");
+        const isOpen = document
+          .getElementById("lyPnl")
+          .classList.contains("open");
+        document.getElementById("lyFab").style.opacity = isOpen ? "0" : "1";
+        document.getElementById("lyFab").style.pointerEvents = isOpen
+          ? "none"
+          : "auto";
+        // Hide/show province FAB based on layer panel state
+        document.getElementById("provFab").style.opacity = isOpen ? "0" : "1";
+        document.getElementById("provFab").style.pointerEvents = isOpen
+          ? "none"
+          : "auto";
+        // Close province panel if open
+        if (isOpen) {
+          document.getElementById("provPnl").classList.remove("open");
+        }
+      }
+
+      function filterProvince(p) {
+        activeProvince = p;
+
+        // Update button styles with proper province colors
+        for (let i = 0; i <= 7; i++) {
+          const btn = document.getElementById("prov-" + i);
+          if (!btn) continue;
+          if (i === p) {
+            btn.classList.add("active");
+            if (p === 0) {
+              btn.style.background = "rgba(59,130,246,0.25)";
+              btn.style.color = "var(--text)";
+            } else {
+              const col = PROVINCE_COLORS[p];
+              btn.style.background = col;
+              btn.style.color = "#fff";
+            }
+          } else {
+            btn.classList.remove("active");
+            btn.style.background = "transparent";
+            btn.style.color = "var(--text)";
+          }
+        }
+
+        // Show/hide markers
+        allMarkers.forEach((m, i) => {
+          const city = CITIES[i];
+          if (!city) return;
+          const show = p === 0 || city.province === p;
+          if (
+            show &&
+            !map.hasLayer(m) &&
+            LAYER_DEFS.find((l) => l.id === "pins")?.on
+          )
+            m.addTo(map);
+          else if (!show && map.hasLayer(m)) map.removeLayer(m);
+        });
+
+        // Fly to province bounds
+        if (p === 0) {
+          map.fitBounds(
+            [
+              [26.2, 80.0],
+              [30.4, 88.2],
+            ],
+            { animate: true, duration: 0.8 },
+          );
+        } else if (PROVINCE_BBOX[p]) {
+          map.fitBounds(PROVINCE_BBOX[p], {
+            animate: true,
+            duration: 0.8,
+            padding: [20, 20],
+          });
+        }
+
+        // Update stats bar for filtered cities
+        const filtered =
+          p === 0 ? CITIES : CITIES.filter((c) => c.province === p);
+        if (filtered.length) {
+          const aqis = filtered.map((c) => c.aqi);
+          const avg = Math.round(aqis.reduce((a, b) => a + b, 0) / aqis.length);
+          document.getElementById("hAvgAqi").textContent = avg;
+          document.getElementById("hAvgAqi").style.color = gl(avg).c;
+          document.getElementById("sbGood").textContent = aqis.filter(
+            (a) => a <= 50,
+          ).length;
+          document.getElementById("sbMod").textContent = aqis.filter(
+            (a) => a > 50 && a <= 100,
+          ).length;
+          document.getElementById("sbUnh").textContent = aqis.filter(
+            (a) => a > 150 && a <= 300,
+          ).length;
+          document.getElementById("sbHaz").textContent = aqis.filter(
+            (a) => a > 300,
+          ).length;
+          document.getElementById("sbSnow").textContent = filtered.filter(
+            (c) => parseFloat(c.wx.snow) > 0,
+          ).length;
+        }
+      }
+      // Auto-login if token exists
+      (async () => {
+        if (!authToken) return;
+        try {
+          const res = await fetch(`${API}/auth/me`, {
+            headers: { Authorization: `Bearer ${authToken}` },
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setLoggedIn({
+              ...data.user,
+              initials: data.user.name
+                .split(" ")
+                .map((n) => n[0])
+                .join("")
+                .toUpperCase()
+                .slice(0, 2),
+            });
+          } else {
+            localStorage.removeItem("wn_token");
+            authToken = null;
+          }
+        } catch {}
+      })();
     </script>
+
+    <!-- ── NOTIFICATION DROPDOWN ── -->
+    <div id="notifDrop">
+      <div class="nd-hdr">
+        <span class="nd-title">🔔 Notifications</span>
+        <button class="nd-readall" onclick="markAllRead()">
+          Mark all read
+        </button>
+      </div>
+      <div class="nd-list" id="ndList">
+        <div class="nd-empty">No notifications yet</div>
+      </div>
+    </div>
+
+    <!-- ── USER MENU ── -->
+    <div id="userMenu">
+      <div class="um-header">
+        <div class="um-name" id="umName">—</div>
+        <div class="um-email" id="umEmail">—</div>
+      </div>
+      <div class="um-item" onclick="openProfile()">👤 My Profile</div>
+      <div class="um-item" onclick="openAlertSettings()">⚙️ Alert Settings</div>
+      <div class="um-item danger" onclick="logout()">🚪 Log Out</div>
+    </div>
+
+    <!-- ── AUTH MODAL ── -->
+    <div class="wn-modal" id="authModal">
+      <div class="wn-modal-bg" onclick="closeModal()"></div>
+      <div class="wn-modal-box">
+        <button class="wn-modal-close" onclick="closeModal()">✕</button>
+        <div class="wn-modal-hdr">
+          <div class="wn-modal-logo">🌏</div>
+          <div class="wn-modal-title" id="modalTitle">Welcome Back</div>
+          <div class="wn-modal-sub" id="modalSub">Sign in to WeatherNepal</div>
+        </div>
+        <div class="wn-modal-body">
+          <div class="wn-error" id="authError"></div>
+          <div class="wn-success" id="authSuccess"></div>
+
+          <!-- LOGIN FORM -->
+          <div id="loginForm">
+            <div class="wn-fg">
+              <label class="wn-fl">Email Address</label
+              ><input
+                class="wn-fi"
+                id="loginEmail"
+                type="email"
+                placeholder="you@email.com"
+              />
+            </div>
+            <div class="wn-fg">
+              <label class="wn-fl">Password</label
+              ><input
+                class="wn-fi"
+                id="loginPass"
+                type="password"
+                placeholder="Your password"
+              />
+            </div>
+            <button class="wn-submit" onclick="doLogin()">Log In →</button>
+            <div class="wn-switch">
+              Don't have an account?
+              <a onclick="openModal('signup')">Sign up free</a>
+            </div>
+          </div>
+
+          <!-- SIGNUP FORM -->
+          <div id="signupForm" style="display: none">
+            <div
+              style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px"
+            >
+              <div class="wn-fg">
+                <label class="wn-fl">Full Name</label
+                ><input class="wn-fi" id="signupName" placeholder="Your name" />
+              </div>
+              <div class="wn-fg">
+                <label class="wn-fl">Location</label
+                ><input
+                  class="wn-fi"
+                  id="signupLocation"
+                  placeholder="e.g. Kathmandu"
+                />
+              </div>
+            </div>
+            <div class="wn-fg">
+              <label class="wn-fl">Email Address</label
+              ><input
+                class="wn-fi"
+                id="signupEmail"
+                type="email"
+                placeholder="you@email.com"
+              />
+            </div>
+            <div class="wn-fg">
+              <label class="wn-fl">Password</label
+              ><input
+                class="wn-fi"
+                id="signupPass"
+                type="password"
+                placeholder="Min 6 characters"
+              />
+            </div>
+            <div class="wn-fg">
+              <label class="wn-fl">Choose Avatar Color</label>
+              <div class="avatar-grid" id="avatarGrid"></div>
+            </div>
+            <button class="wn-submit" onclick="doSignup()">
+              Create Account →
+            </button>
+            <div class="wn-switch">
+              Already have an account?
+              <a onclick="openModal('login')">Log in</a>
+            </div>
+          </div>
+
+          <!-- OTP FORM -->
+          <div id="otpForm" style="display: none">
+            <p
+              style="
+                font-size: 13px;
+                color: var(--sub);
+                text-align: center;
+                margin-bottom: 4px;
+              "
+            >
+              Enter the 6-digit code sent to
+            </p>
+            <p
+              style="
+                font-size: 13px;
+                font-weight: 700;
+                color: var(--text);
+                text-align: center;
+                margin-bottom: 16px;
+              "
+              id="otpEmailShow"
+            ></p>
+            <div class="otp-row" id="otpRow"></div>
+            <button class="wn-submit" onclick="doVerifyOTP()">
+              Verify Email →
+            </button>
+            <div class="wn-switch">
+              Didn't get it? <a onclick="doResendOTP()">Resend OTP</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </body>
 </html>

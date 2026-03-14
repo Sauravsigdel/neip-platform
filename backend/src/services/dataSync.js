@@ -5,11 +5,13 @@ const WeatherData = require("../models/WeatherData");
 const DisasterRisk = require("../models/DisasterRisk");
 const AQIPrediction = require("../models/AQIPrediction");
 const NEPAL_CITIES = require("../../../nepal_cities");
+const { syncFireHotspots } = require("./nasaFirms");
 
 const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast";
+const OWM_AIR_URL = "https://api.openweathermap.org/data/2.5/air_pollution";
 const ML_SERVICE_URL = process.env.ML_SERVICE_URL || "http://localhost:5001";
 
-// ── US EPA AQI breakpoints for PM2.5 (µg/m³) ─────────────────────────────────
+// ── US EPA AQI breakpoints for PM2.5 ────────────────────────────
 const PM25_BREAKPOINTS = [
   { cLow: 0.0, cHigh: 12.0, iLow: 0, iHigh: 50 },
   { cLow: 12.1, cHigh: 35.4, iLow: 51, iHigh: 100 },
@@ -22,19 +24,18 @@ const PM25_BREAKPOINTS = [
 
 function pm25ToAQI(pm25) {
   if (pm25 == null || isNaN(pm25) || pm25 < 0) return null;
-  const truncated = Math.floor(pm25 * 10) / 10;
+  const t = Math.floor(pm25 * 10) / 10;
   for (const bp of PM25_BREAKPOINTS) {
-    if (truncated >= bp.cLow && truncated <= bp.cHigh) {
+    if (t >= bp.cLow && t <= bp.cHigh) {
       return Math.round(
-        ((bp.iHigh - bp.iLow) / (bp.cHigh - bp.cLow)) * (truncated - bp.cLow) +
-          bp.iLow,
+        ((bp.iHigh - bp.iLow) / (bp.cHigh - bp.cLow)) * (t - bp.cLow) + bp.iLow,
       );
     }
   }
   return 500;
 }
 
-// ── PM10 AQI breakpoints ──────────────────────────────────────────────────────
+// ── PM10 AQI breakpoints ─────────────────────────────────────────
 const PM10_BREAKPOINTS = [
   { cLow: 0, cHigh: 54, iLow: 0, iHigh: 50 },
   { cLow: 55, cHigh: 154, iLow: 51, iHigh: 100 },
@@ -47,19 +48,18 @@ const PM10_BREAKPOINTS = [
 
 function pm10ToAQI(pm10) {
   if (pm10 == null || isNaN(pm10) || pm10 < 0) return null;
-  const truncated = Math.floor(pm10);
+  const t = Math.floor(pm10);
   for (const bp of PM10_BREAKPOINTS) {
-    if (truncated >= bp.cLow && truncated <= bp.cHigh) {
+    if (t >= bp.cLow && t <= bp.cHigh) {
       return Math.round(
-        ((bp.iHigh - bp.iLow) / (bp.cHigh - bp.cLow)) * (truncated - bp.cLow) +
-          bp.iLow,
+        ((bp.iHigh - bp.iLow) / (bp.cHigh - bp.cLow)) * (t - bp.cLow) + bp.iLow,
       );
     }
   }
   return 500;
 }
 
-// ── Z-Score anomaly detection ─────────────────────────────────────────────────
+// ── Z-Score anomaly detection ────────────────────────────────────
 function detectAnomaly(value, historicalValues) {
   if (!historicalValues || historicalValues.length < 3) return false;
   const mean =
@@ -72,16 +72,57 @@ function detectAnomaly(value, historicalValues) {
   return Math.abs((value - mean) / stdDev) > 2.5;
 }
 
-// ── Realistic Nepal AQI simulation per city type ──────────────────────────────
+// ── REAL: Fetch AQI from OWM Air Pollution API (Copernicus) ─────
+async function fetchOWMAirPollution(city) {
+  const key = process.env.OWM_KEY;
+  if (!key) return null;
+
+  try {
+    const res = await axios.get(OWM_AIR_URL, {
+      params: { lat: city.lat, lon: city.lon, appid: key },
+      timeout: 8000,
+    });
+
+    const data = res.data?.list?.[0];
+    if (!data) return null;
+
+    const comp = data.components;
+    const pm25 = comp.pm2_5;
+    const pm10 = comp.pm10;
+    const no2 = comp.no2;
+    const o3 = comp.o3;
+    const co = comp.co;
+    const so2 = comp.so2;
+    const nh3 = comp.nh3;
+
+    const aqiFromPM25 = pm25ToAQI(pm25);
+    const aqiFromPM10 = pm10ToAQI(pm10);
+    const aqi = Math.max(aqiFromPM25 || 0, aqiFromPM10 || 0);
+
+    return {
+      pm25: pm25 ? +pm25.toFixed(1) : null,
+      pm10: pm10 ? +pm10.toFixed(1) : null,
+      no2: no2 ? +no2.toFixed(1) : null,
+      o3: o3 ? +o3.toFixed(1) : null,
+      co: co ? +co.toFixed(2) : null,
+      so2: so2 ? +so2.toFixed(1) : null,
+      nh3: nh3 ? +nh3.toFixed(1) : null,
+      aqi,
+      dataSource: "owm-copernicus",
+    };
+  } catch (err) {
+    return null;
+  }
+}
+
+// ── FALLBACK: Realistic simulation if OWM unavailable ───────────
 function simulateAQIForCity(city) {
-  // Valley cities (Kathmandu valley) — higher pollution
   const valleyDistricts = [
     "Kathmandu",
     "Lalitpur",
     "Bhaktapur",
     "Kavrepalanchok",
   ];
-  // Terai (flatland) border cities — moderate-high
   const teraiDistricts = [
     "Parsa",
     "Morang",
@@ -98,139 +139,53 @@ function simulateAQIForCity(city) {
     "Siraha",
     "Rautahat",
   ];
-  // Hill/mountain — lower
-  const hillDistricts = [
-    "Kaski",
-    "Makwanpur",
-    "Palpa",
-    "Baglung",
-    "Tanahun",
-    "Syangja",
-    "Dang",
-    "Dailekh",
-    "Doti",
-  ];
-
-  let basePM25, noise;
-  if (valleyDistricts.includes(city.district)) {
-    basePM25 = 60 + Math.random() * 80; // 60-140 µg/m³
-  } else if (teraiDistricts.includes(city.district)) {
-    basePM25 = 30 + Math.random() * 60; // 30-90 µg/m³
-  } else {
-    basePM25 = 10 + Math.random() * 30; // 10-40 µg/m³
-  }
-
-  // Seasonal factor — Nepal pollution peaks Nov-Feb
-  const month = new Date().getMonth(); // 0-11
+  let basePM25;
+  if (valleyDistricts.includes(city.district))
+    basePM25 = 60 + Math.random() * 80;
+  else if (teraiDistricts.includes(city.district))
+    basePM25 = 30 + Math.random() * 60;
+  else basePM25 = 10 + Math.random() * 30;
+  const month = new Date().getMonth();
   const winterFactor = month >= 10 || month <= 1 ? 1.4 : 1.0;
-
   const pm25 = basePM25 * winterFactor;
   const pm10 = pm25 * (1.5 + Math.random() * 0.5);
   const no2 = 10 + Math.random() * 40;
   const co = 0.3 + Math.random() * 1.5;
   const o3 = 20 + Math.random() * 60;
-
-  const aqiFromPM25 = pm25ToAQI(pm25);
-  const aqiFromPM10 = pm10ToAQI(pm10);
-  const aqi = Math.max(aqiFromPM25 || 0, aqiFromPM10 || 0);
-
+  const aqi = Math.max(pm25ToAQI(pm25) || 0, pm10ToAQI(pm10) || 0);
   return {
-    pm25: Math.round(pm25 * 10) / 10,
-    pm10: Math.round(pm10 * 10) / 10,
-    no2: Math.round(no2 * 10) / 10,
-    co: Math.round(co * 100) / 100,
-    o3: Math.round(o3 * 10) / 10,
+    pm25: +pm25.toFixed(1),
+    pm10: +pm10.toFixed(1),
+    no2: +no2.toFixed(1),
+    co: +co.toFixed(2),
+    o3: +o3.toFixed(1),
     aqi,
+    dataSource: "simulated",
   };
 }
 
-// ── Fetch from OpenAQ v3 API ──────────────────────────────────────────────────
-async function fetchOpenAQForCity(city) {
-  try {
-    // Try OpenAQ v3: search by radius around city coordinates
-    const response = await axios.get("https://api.openaq.org/v3/locations", {
-      params: {
-        coordinates: `${city.lat},${city.lon}`,
-        radius: 25000, // 25km radius
-        limit: 5,
-        order_by: "distance",
-      },
-      headers: { "X-API-Key": process.env.OPENAQ_API_KEY || "" },
-      timeout: 8000,
-    });
-
-    const locations = response.data?.results;
-    if (!locations || locations.length === 0) return null;
-
-    // Find the closest location with recent data
-    for (const loc of locations) {
-      if (!loc.sensors || loc.sensors.length === 0) continue;
-      const pm25Sensor = loc.sensors.find(
-        (s) => s.name === "pm25" || s.parameter?.name === "pm25",
-      );
-      const pm10Sensor = loc.sensors.find(
-        (s) => s.name === "pm10" || s.parameter?.name === "pm10",
-      );
-
-      if (pm25Sensor || pm10Sensor) {
-        // Fetch latest measurements for this location
-        const measRes = await axios.get(
-          `https://api.openaq.org/v3/locations/${loc.id}/latest`,
-          {
-            headers: { "X-API-Key": process.env.OPENAQ_API_KEY || "" },
-            timeout: 8000,
-          },
-        );
-
-        const measurements = measRes.data?.results || [];
-        const pm25Meas = measurements.find((m) => m.parameter === "pm25");
-        const pm10Meas = measurements.find((m) => m.parameter === "pm10");
-        const no2Meas = measurements.find((m) => m.parameter === "no2");
-
-        if (pm25Meas || pm10Meas) {
-          const pm25 = pm25Meas?.value;
-          const pm10 = pm10Meas?.value;
-          const no2 = no2Meas?.value;
-
-          const aqiFromPM25 = pm25 ? pm25ToAQI(pm25) : null;
-          const aqiFromPM10 = pm10 ? pm10ToAQI(pm10) : null;
-          const aqi = Math.max(aqiFromPM25 || 0, aqiFromPM10 || 0);
-
-          return {
-            pm25: pm25 ? Math.round(pm25 * 10) / 10 : null,
-            pm10: pm10 ? Math.round(pm10 * 10) / 10 : null,
-            no2: no2 ? Math.round(no2 * 10) / 10 : null,
-            co: null,
-            o3: null,
-            aqi,
-            stationName: loc.name,
-            dataSource: "openaq",
-          };
-        }
-      }
-    }
-    return null;
-  } catch (err) {
-    // OpenAQ unavailable or rate-limited
-    return null;
-  }
-}
-
-// ── Main: fetch AQI for all 40+ cities ───────────────────────────────────────
+// ── Fetch AQI for all cities ─────────────────────────────────────
 const fetchAirQualityData = async () => {
   console.log(
-    `[DataSync] Fetching AQI for ${NEPAL_CITIES.length} Nepal cities...`,
+    `[DataSync] Fetching AQI for ${NEPAL_CITIES.length} cities via OWM Copernicus...`,
   );
   const allAQIs = [];
+  const owmKey = process.env.OWM_KEY;
+  if (!owmKey)
+    console.warn("[DataSync] OWM_KEY not set — using simulated AQI fallback");
 
   for (const city of NEPAL_CITIES) {
     try {
-      let airData = await fetchOpenAQForCity(city);
+      let airData = null;
 
-      if (!airData || !airData.aqi || airData.aqi === 0) {
-        // Fallback: realistic simulation
+      // Try real OWM Air Pollution API first
+      if (owmKey) {
+        airData = await fetchOWMAirPollution(city);
+      }
+
+      // Fallback to simulation if OWM fails
+      if (!airData || !airData.aqi) {
         airData = simulateAQIForCity(city);
-        airData.dataSource = "simulated";
       }
 
       allAQIs.push(airData.aqi);
@@ -244,21 +199,25 @@ const fetchAirQualityData = async () => {
         co: airData.co,
         o3: airData.o3,
         aqi: airData.aqi,
-        data_source: airData.dataSource || "simulated",
-        station_name: airData.stationName || city.city,
+        data_source: airData.dataSource,
+        station_name:
+          airData.dataSource === "owm-copernicus"
+            ? "Copernicus Satellite"
+            : city.city,
         lat: city.lat,
         lon: city.lon,
       });
 
       console.log(
-        `[DataSync] ${city.city}: AQI=${airData.aqi} (${airData.dataSource || "simulated"})`,
+        `[DataSync] ${city.city}: AQI=${airData.aqi} (${airData.dataSource})`,
       );
 
       // Anomaly detection
-      if (allAQIs.length > 3) {
-        if (detectAnomaly(airData.aqi, allAQIs.slice(0, -1))) {
-          console.warn(`[ALERT] Anomalous AQI in ${city.city}: ${airData.aqi}`);
-        }
+      if (
+        allAQIs.length > 3 &&
+        detectAnomaly(airData.aqi, allAQIs.slice(0, -1))
+      ) {
+        console.warn(`[ALERT] Anomalous AQI in ${city.city}: ${airData.aqi}`);
       }
 
       // AQI prediction via ML service
@@ -268,7 +227,6 @@ const fetchAirQualityData = async () => {
           .limit(30)
           .select("aqi");
         const historicalAqi = recent.map((r) => r.aqi);
-
         const mlRes = await axios.post(
           `${ML_SERVICE_URL}/predict/aqi`,
           {
@@ -278,7 +236,6 @@ const fetchAirQualityData = async () => {
           },
           { timeout: 5000 },
         );
-
         if (mlRes.data?.forecast) {
           await AQIPrediction.create({
             district: city.district,
@@ -289,28 +246,27 @@ const fetchAirQualityData = async () => {
           });
         }
       } catch (_) {
-        /* ML service optional */
+        /* ML optional */
       }
+
+      // Small delay to respect OWM rate limits (60 calls/min free tier)
+      if (owmKey) await new Promise((r) => setTimeout(r, 1100));
     } catch (err) {
       console.error(`[DataSync] Error for ${city.city}: ${err.message}`);
     }
   }
-  console.log(
-    `[DataSync] AQI sync complete for ${NEPAL_CITIES.length} cities.`,
-  );
+  console.log(`[DataSync] AQI sync complete for ${NEPAL_CITIES.length} cities`);
 };
 
-// ── Fetch weather for all cities ──────────────────────────────────────────────
+// ── Fetch weather for all cities ─────────────────────────────────
 const fetchWeatherData = async () => {
-  console.log("[DataSync] Fetching weather data...");
-
+  console.log("[DataSync] Fetching weather data from Open-Meteo...");
   for (const city of NEPAL_CITIES) {
     try {
       let temperature = 25,
         windSpeed = 10,
         rainfall = 0,
         humidity = 60;
-
       try {
         const res = await axios.get(OPEN_METEO_URL, {
           params: {
@@ -353,7 +309,6 @@ const fetchWeatherData = async () => {
           },
           { timeout: 5000 },
         );
-
         if (riskRes.data?.risk_category) {
           await DisasterRisk.create({
             district: city.district,
@@ -392,20 +347,33 @@ const fetchWeatherData = async () => {
       );
     }
   }
+  console.log("[DataSync] Weather sync complete");
 };
 
+// ── Init all data sync services ──────────────────────────────────
 const initDataSync = () => {
-  console.log(
-    "[DataSync] Initializing — Nepal AQI Live Dashboard (5-min refresh)",
-  );
+  console.log("[DataSync] Initializing WeatherNepal data sync");
+
   // Run immediately on startup
   fetchAirQualityData();
   fetchWeatherData();
-  // Every 5 minutes
-  cron.schedule("*/5 * * * *", async () => {
-    console.log("[DataSync] 5-min refresh triggered...");
+  syncFireHotspots();
+
+  // AQI every 60 min (OWM free tier: 60 calls/min, 1M/month)
+  cron.schedule("5 * * * *", async () => {
+    console.log("[DataSync] Hourly AQI sync...");
     await fetchAirQualityData();
+  });
+
+  // Weather every 5 min
+  cron.schedule("*/5 * * * *", async () => {
     await fetchWeatherData();
+  });
+
+  // NASA FIRMS fire hotspots every 3 hours
+  cron.schedule("0 */3 * * *", async () => {
+    console.log("[DataSync] NASA FIRMS fire sync...");
+    await syncFireHotspots();
   });
 };
 

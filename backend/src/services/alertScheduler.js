@@ -166,7 +166,11 @@ async function processSubscriber(sub) {
     });
 
     // Update last sent time
-    await UserAlert.findByIdAndUpdate(sub._id, { lastAlertSent: new Date() });
+    await UserAlert.findByIdAndUpdate(
+      sub._id,
+      { lastAlertSent: new Date() },
+      { returnDocument: "after" },
+    );
 
     console.log(
       `[Scheduler] Alert sent to ${sub.email} for ${sub.location} — triggers: ${triggered.map((t) => t.type).join(", ") || "daily"}`,
