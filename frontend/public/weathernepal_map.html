@@ -15,6 +15,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/leaflet-velocity@1.6.0/dist/leaflet-velocity.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-velocity@1.6.0/dist/leaflet-velocity.min.js"></script>
     <style>
       * {
         margin: 0;
@@ -215,15 +220,15 @@
       }
 
       /* MAP */
-      #map {
+      #wnMap {
         position: fixed;
         top: 54px;
         left: 0;
         right: 0;
         bottom: 0;
         z-index: 1;
+        transition: opacity 0.15s ease;
       }
-
       /* SEARCH */
       #srchWrap {
         position: fixed;
@@ -1889,7 +1894,7 @@
     </div>
 
     <!-- MAP -->
-    <div id="map"></div>
+    <div id="wnMap"></div>
 
     <!-- LEGEND -->
     <div id="legend">
@@ -2279,7 +2284,6 @@
       // ══════════════════════════════════════════
       const CFG = {
         OWM: "7ef9f5928ad13bd0affbc1a657ce3b5f ", // ← paste your OWM key from openweathermap.org
-        WINDY: "YOUR_WINDY_API_KEY",
         API: "http://localhost:5000/api",
       };
       // ⚠️ IMPORTANT: Replace YOUR_OPENWEATHERMAP_API_KEY above with your real key
@@ -3240,11 +3244,18 @@
       // ══════════════════════════════════════════
       // MAP
       // ══════════════════════════════════════════
-      const map = L.map("map", {
+      const REGION_BOUNDS = [
+        [22.0, 74.0],
+        [33.0, 93.0],
+      ];
+
+      const map = L.map("wnMap", {
         zoomControl: true,
-        minZoom: 6,
-        maxZoom: 16,
+        minZoom: 5,
+        maxZoom: 11,
         preferCanvas: true,
+        maxBounds: REGION_BOUNDS,
+        maxBoundsViscosity: 1.0,
       });
       const darkTile = L.tileLayer(
         "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
@@ -3257,7 +3268,7 @@
       darkTile.addTo(map);
       map.fitBounds([
         [26.2, 80.0],
-        [30.4, 88.2],
+        [30.5, 88.2],
       ]);
 
       // ══════════════════════════════════════════
@@ -3370,6 +3381,85 @@
         { 0.0: "#1e3a8a", 0.4: "#38bdf8", 0.7: "#a7f3d0", 1.0: "#fef9c3" },
         HO,
       );
+
+      // ── WIND PARTICLES (leaflet-velocity + Open-Meteo) ──────────────
+      async function loadVelocityLayer() {
+        const def = LAYER_DEFS.find((x) => x.id === "velocity");
+        if (!def) return;
+        if (def.lyr && map.hasLayer(def.lyr)) map.removeLayer(def.lyr);
+        def.lyr = null;
+        try {
+          // Regional bounding box to avoid visible clipping around Nepal.
+          // Covers parts of India, Nepal, Bhutan, southern Tibet/China, Bangladesh.
+          const LA1 = 33.0,
+            LA2 = 22.0,
+            LO1 = 74.0,
+            LO2 = 93.0,
+            NY = 18,
+            NX = 30;
+          const DY = (LA1 - LA2) / (NY - 1);
+          const DX = (LO2 - LO1) / (NX - 1);
+          const lats = Array.from({ length: NY }, (_, r) => LA1 - r * DY);
+          const lons = Array.from({ length: NX }, (_, c) => LO1 + c * DX);
+
+          // Fetch current wind for every grid point in parallel
+          const results = await Promise.all(
+            lats.flatMap((lat) =>
+              lons.map((lon) =>
+                fetch(
+                  `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=wind_speed_10m,wind_direction_10m`,
+                ).then((r) => r.json()),
+              ),
+            ),
+          );
+
+          // Build U/V arrays (m/s). Met convention: direction is "from", so negate.
+          const uData = [],
+            vData = [];
+          for (const res of results) {
+            const speed = (res.current?.wind_speed_10m ?? 0) / 3.6; // km/h → m/s
+            const dir =
+              ((res.current?.wind_direction_10m ?? 0) * Math.PI) / 180;
+            uData.push(-speed * Math.sin(dir)); // eastward component
+            vData.push(-speed * Math.cos(dir)); // northward component
+          }
+
+          const header = {
+            parameterCategory: 2,
+            la1: LA1,
+            la2: LA2,
+            lo1: LO1,
+            lo2: LO2,
+            nx: NX,
+            ny: NY,
+            dx: DX,
+            dy: DY,
+            refTime: new Date().toISOString(),
+          };
+
+          def.lyr = L.velocityLayer({
+            displayValues: true,
+            displayOptions: {
+              velocityType: "Wind",
+              position: "bottomleft",
+              emptyString: "No wind data",
+              angleConvention: "meteoCW",
+              showCardinal: true,
+              speedUnit: "m/s",
+            },
+            data: [
+              { header: { ...header, parameterNumber: 2 }, data: uData },
+              { header: { ...header, parameterNumber: 3 }, data: vData },
+            ],
+            maxVelocity: 10,
+            colorScale: ["#ffffcc", "#a1dab4", "#41b6c4", "#2c7fb8", "#253494"],
+          });
+
+          if (def.on) def.lyr.addTo(map);
+        } catch (e) {
+          console.warn("Wind particle layer error:", e);
+        }
+      }
 
       const LAYER_DEFS = [
         {
@@ -3489,6 +3579,15 @@
           owmName: "temp_new",
           on: false,
           type: "owm",
+        },
+        {
+          id: "velocity",
+          ico: "🌬️",
+          name: "Wind Particles",
+          lyr: null,
+          on: true,
+          type: "velocity",
+          group: "owm",
         },
       ];
       // Build OWM layers lazily so API key is read at toggle time
@@ -3626,6 +3725,10 @@
           return;
         }
         if (on) {
+          if (l.type === "velocity") {
+            loadVelocityLayer();
+            return;
+          }
           // Fire layer — fetch from backend
           if (l.id === "fire") {
             loadFireLayer();
@@ -3644,6 +3747,10 @@
             }
           }
         } else {
+          if (l.type === "velocity") {
+            if (l.lyr && map.hasLayer(l.lyr)) map.removeLayer(l.lyr);
+            return;
+          }
           if (l.id === "fire") {
             fireMarkers.forEach((m) => map.removeLayer(m));
             fireMarkers = [];
@@ -3673,9 +3780,9 @@
 
         // Radio behavior: turn off all others in same group
         if (newState) {
-          const group = l.type; // 'local' or 'owm'
+          const group = l.group || l.type;
           LAYER_DEFS.filter(
-            (x) => x.type === group && x.id !== id && x.on,
+            (x) => (x.group || x.type) === group && x.id !== id && x.on,
           ).forEach((x) => setLayerOn(x, false));
         }
 
@@ -3699,6 +3806,9 @@
           }
         }
       }
+
+      // Auto-start wind particle layer on page load
+      loadVelocityLayer();
 
       // ══════════════════════════════════════════
       // PIN ICONS
@@ -4094,6 +4204,7 @@
         const thumb = document.getElementById("themeThumb");
         const iconInner = document.getElementById("themeIconInner");
         const lbl = document.getElementById("themeLbl");
+        const mapEl = document.getElementById("wnMap");
         if (isLight) {
           btn.style.border = "1.5px solid rgba(234,179,8,0.6)";
           btn.style.background = "rgba(251,191,36,0.1)";
@@ -4104,31 +4215,37 @@
           btn.style.color = "#e2e8f0";
         }
 
-        if (isLight) {
-          // Slide to right, show sun
-          thumb.setAttribute("cx", "23");
-          thumb.style.fill = "#f59e0b";
-          iconInner.setAttribute("transform", "translate(9,9)");
-          iconInner.innerHTML =
-            '<circle r="4" fill="#f59e0b" opacity="0.9"/><line x1="0" y1="-7" x2="0" y2="-5.5" stroke="#f59e0b" stroke-width="1.5"/><line x1="0" y1="5.5" x2="0" y2="7" stroke="#f59e0b" stroke-width="1.5"/><line x1="-7" y1="0" x2="-5.5" y2="0" stroke="#f59e0b" stroke-width="1.5"/><line x1="5.5" y1="0" x2="7" y2="0" stroke="#f59e0b" stroke-width="1.5"/><line x1="-5" y1="-5" x2="-4" y2="-4" stroke="#f59e0b" stroke-width="1.5"/><line x1="4" y1="4" x2="5" y2="5" stroke="#f59e0b" stroke-width="1.5"/><line x1="5" y1="-5" x2="4" y2="-4" stroke="#f59e0b" stroke-width="1.5"/><line x1="-4" y1="4" x2="-5" y2="5" stroke="#f59e0b" stroke-width="1.5"/>';
-          lbl.textContent = "Light";
-          btn.style.background = "rgba(251,191,36,0.12)";
-          btn.style.borderColor = "rgba(251,191,36,0.3)";
-          if (map.hasLayer(darkTile)) map.removeLayer(darkTile);
-          if (!map.hasLayer(lightTile)) lightTile.addTo(map);
-        } else {
-          // Slide to left, show moon
-          thumb.setAttribute("cx", "9");
-          thumb.style.fill = "";
-          iconInner.setAttribute("transform", "translate(23,9)");
-          iconInner.innerHTML =
-            '<path d="M3,-5 A6,6 0 1,0 3,5 A4,4 0 1,1 3,-5 Z" fill="currentColor" opacity="0.8" transform="scale(0.7)"/>';
-          lbl.textContent = "Dark";
-          btn.style.background = "rgba(128,128,128,0.1)";
-          btn.style.borderColor = "";
-          if (map.hasLayer(lightTile)) map.removeLayer(lightTile);
-          if (!map.hasLayer(darkTile)) darkTile.addTo(map);
-        }
+        // Fade map during tile switch to avoid flicker
+        if (mapEl) mapEl.style.opacity = "0.7";
+
+        setTimeout(() => {
+          if (isLight) {
+            // Slide to right, show sun
+            thumb.setAttribute("cx", "23");
+            thumb.style.fill = "#f59e0b";
+            iconInner.setAttribute("transform", "translate(9,9)");
+            iconInner.innerHTML =
+              '<circle r="4" fill="#f59e0b" opacity="0.9"/><line x1="0" y1="-7" x2="0" y2="-5.5" stroke="#f59e0b" stroke-width="1.5"/><line x1="0" y1="5.5" x2="0" y2="7" stroke="#f59e0b" stroke-width="1.5"/><line x1="-7" y1="0" x2="-5.5" y2="0" stroke="#f59e0b" stroke-width="1.5"/><line x1="5.5" y1="0" x2="7" y2="0" stroke="#f59e0b" stroke-width="1.5"/><line x1="-5" y1="-5" x2="-4" y2="-4" stroke="#f59e0b" stroke-width="1.5"/><line x1="4" y1="4" x2="5" y2="5" stroke="#f59e0b" stroke-width="1.5"/><line x1="5" y1="-5" x2="4" y2="-4" stroke="#f59e0b" stroke-width="1.5"/><line x1="-4" y1="4" x2="-5" y2="5" stroke="#f59e0b" stroke-width="1.5"/>';
+            lbl.textContent = "Light";
+            btn.style.background = "rgba(251,191,36,0.12)";
+            btn.style.borderColor = "rgba(251,191,36,0.3)";
+            if (map.hasLayer(darkTile)) map.removeLayer(darkTile);
+            if (!map.hasLayer(lightTile)) lightTile.addTo(map);
+          } else {
+            // Slide to left, show moon
+            thumb.setAttribute("cx", "9");
+            thumb.style.fill = "";
+            iconInner.setAttribute("transform", "translate(23,9)");
+            iconInner.innerHTML =
+              '<path d="M3,-5 A6,6 0 1,0 3,5 A4,4 0 1,1 3,-5 Z" fill="currentColor" opacity="0.8" transform="scale(0.7)"/>';
+            lbl.textContent = "Dark";
+            btn.style.background = "rgba(128,128,128,0.1)";
+            btn.style.borderColor = "";
+            if (map.hasLayer(lightTile)) map.removeLayer(lightTile);
+            if (!map.hasLayer(darkTile)) darkTile.addTo(map);
+          }
+          if (mapEl) mapEl.style.opacity = "1";
+        }, 150);
       }
 
       // ══════════════════════════════════════════
