@@ -16,6 +16,7 @@ const alertRoutes = require("./routes/alertRoutes");
 const { router: authRoutes } = require("./routes/authRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const fireRoutes = require("./routes/fireRoutes");
+const owmProxy = require("./routes/owmProxy");
 
 const app = express();
 
@@ -39,6 +40,7 @@ app.use("/api/alerts", alertRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/fire", fireRoutes);
+app.use("/api/owm-tile", owmProxy);
 
 // Health check
 app.get("/api/health", (req, res) => {
