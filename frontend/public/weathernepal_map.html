@@ -2283,7 +2283,7 @@
       // ⚙️ CONFIG — paste your API keys here
       // ══════════════════════════════════════════
       const CFG = {
-        OWM: "7ef9f5928ad13bd0affbc1a657ce3b5f ", // ← paste your OWM key from openweathermap.org
+        OWM: "",   // key removed — tiles now proxied through backend
         API: "http://localhost:5000/api",
       };
 
@@ -3266,13 +3266,8 @@
       // ══════════════════════════════════════════
       // OWM tile layers
       function owm(l) {
-        const k = CFG.OWM;
-        if (!k || k === "YOUR_OPENWEATHERMAP_API_KEY") {
-          console.warn("OWM key not set — add your key to CFG.OWM");
-          return L.tileLayer("", {});
-        }
         return L.tileLayer(
-          `https://tile.openweathermap.org/map/${l}/{z}/{x}/{y}.png?appid=${k}`,
+          `${CFG.API.replace("/api", "")}/api/owm-tile/${l}/{z}/{x}/{y}.png`,
           { opacity: 0.7, maxZoom: 19, attribution: "© OWM" },
         );
       }
@@ -3791,13 +3786,6 @@
       LAYER_DEFS.filter((l) => l.type === "owm").forEach((l) => {
         l.lyr = owm(l.owmName);
       });
-
-      // Verify OWM key is set
-      if (!CFG.OWM || CFG.OWM === "YOUR_OPENWEATHERMAP_API_KEY") {
-        console.warn(
-          "⚠️ OWM key not set in CFG.OWM — OpenWeatherMap layers will not load",
-        );
-      }
 
       const LEGENDS = {
         aqiH: {
