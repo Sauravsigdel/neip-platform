@@ -1,3 +1,6 @@
+require("dotenv").config({
+  path: require("path").resolve(__dirname, "../../.env"),
+});
 const cron = require("node-cron");
 const axios = require("axios");
 const User = require("../models/User");

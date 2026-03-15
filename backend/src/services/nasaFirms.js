@@ -1,3 +1,6 @@
+require("dotenv").config({
+  path: require("path").resolve(__dirname, "../../.env"),
+});
 const axios = require("axios");
 const FireHotspot = require("../models/FireHotspot");
 
