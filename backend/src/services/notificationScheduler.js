@@ -7,6 +7,7 @@ const User = require("../models/User");
 const Notification = require("../models/Notification");
 const AirQuality = require("../models/AirQuality");
 const { sendAlertEmail } = require("./emailService");
+const { generateQuickAdvisory } = require("../routes/advisoryRoutes");
 
 const OPEN_METEO = "https://api.open-meteo.com/v1/forecast";
 
@@ -144,7 +145,9 @@ async function processUser(user) {
     const hasDaily = alerts.some((a) => a.type === "daily");
 
     // Check hour — only send daily at 8 AM Nepal time
-    const nepalDate = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kathmandu" }));
+    const nepalDate = new Date(
+      new Date().toLocaleString("en-US", { timeZone: "Asia/Kathmandu" }),
+    );
     const nepalHour = nepalDate.getHours();
     if (hasDaily && !hasDanger && nepalHour !== 8) return;
 
@@ -164,6 +167,18 @@ async function processUser(user) {
 
     // Send email
     try {
+      const advisory = generateQuickAdvisory({
+        city: user.location,
+        aqi,
+        weather: {
+          temp: weather?.temperature,
+          humidity: weather?.humidity,
+          wind: weather?.windSpeed,
+          rain: weather?.rainfall,
+          snow: weather?.snowfall,
+        },
+      });
+
       await sendAlertEmail({
         to: user.email,
         name: user.name,
@@ -179,7 +194,7 @@ async function processUser(user) {
         },
         aqi,
         alerts: { [mainAlert.type]: true },
-        advisory: null,
+        advisory,
       });
     } catch (emailErr) {
       console.error(

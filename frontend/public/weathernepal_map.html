@@ -2283,7 +2283,7 @@
       // ⚙️ CONFIG — paste your API keys here
       // ══════════════════════════════════════════
       const CFG = {
-        OWM: "",   // key removed — tiles now proxied through backend
+        OWM: "", // key removed — tiles now proxied through backend
         API: "http://localhost:5000/api",
       };
 
@@ -2504,6 +2504,13 @@
           zone: "terai",
         },
         {
+          city: "Birtamod",
+          d: "Jhapa",
+          lat: 26.64,
+          lon: 87.99,
+          zone: "terai",
+        },
+        {
           city: "Dhankuta",
           d: "Dhankuta",
           lat: 26.98,
@@ -2522,6 +2529,13 @@
           d: "Sunsari",
           lat: 26.57,
           lon: 87.15,
+          zone: "terai",
+        },
+        {
+          city: "Itahari",
+          d: "Sunsari",
+          lat: 26.66,
+          lon: 87.27,
           zone: "terai",
         },
         { city: "Dharan", d: "Sunsari", lat: 26.82, lon: 87.28, zone: "hill" },
@@ -2775,6 +2789,13 @@
           zone: "hill",
         },
         {
+          city: "Simikot",
+          d: "Humla",
+          lat: 29.97,
+          lon: 81.82,
+          zone: "mountain",
+        },
+        {
           city: "Dhangadhi",
           d: "Kailali",
           lat: 28.69,
@@ -2831,13 +2852,6 @@
           zone: "mountain",
         },
         { city: "Dipayal", d: "Doti", lat: 29.27, lon: 80.95, zone: "hill" },
-        {
-          city: "Simikot",
-          d: "Humla",
-          lat: 29.97,
-          lon: 81.82,
-          zone: "mountain",
-        },
         {
           city: "Sanfebagar",
           d: "Achham",
@@ -2952,36 +2966,6 @@
         5: "#f97316",
         6: "#ef4444",
         7: "#06b6d4",
-      };
-      const PROVINCE_BOUNDS = {
-        1: [
-          [26.3, 86.5],
-          [28.5, 88.2],
-        ],
-        2: [
-          [26.2, 85.0],
-          [27.2, 87.0],
-        ],
-        3: [
-          [26.9, 84.5],
-          [28.5, 86.5],
-        ],
-        4: [
-          [27.8, 82.9],
-          [29.2, 85.2],
-        ],
-        5: [
-          [27.4, 82.0],
-          [28.8, 84.5],
-        ],
-        6: [
-          [28.2, 81.1],
-          [30.1, 83.2],
-        ],
-        7: [
-          [28.6, 79.9],
-          [30.4, 82.3],
-        ],
       };
       const seen = new Set();
       const CITIES = RAW.filter((c) => {

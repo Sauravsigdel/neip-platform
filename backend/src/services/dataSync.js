@@ -275,17 +275,16 @@ const fetchWeatherData = async () => {
           params: {
             latitude: city.lat,
             longitude: city.lon,
-            current_weather: true,
-            hourly:
+            current:
               "temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m",
-            forecast_days: 1,
+            timezone: "Asia/Kathmandu",
           },
           timeout: 8000,
         });
-        temperature = res.data.current_weather?.temperature ?? 25;
-        windSpeed = res.data.current_weather?.windspeed ?? 10;
-        rainfall = res.data.hourly?.precipitation?.[0] ?? 0;
-        humidity = res.data.hourly?.relative_humidity_2m?.[0] ?? 60;
+        temperature = res.data.current?.temperature_2m ?? 25;
+        windSpeed = res.data.current?.wind_speed_10m ?? 10;
+        rainfall = res.data.current?.precipitation ?? 0;
+        humidity = res.data.current?.relative_humidity_2m ?? 60;
       } catch (_) {
         rainfall = Math.random() * 15;
         temperature = 18 + Math.random() * 15;

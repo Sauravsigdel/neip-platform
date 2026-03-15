@@ -123,14 +123,15 @@ def cluster_districts(district_data_list):
 # ─── ML MODULE 4: Z-Score Anomaly Detection ────────────────────────────────────
 def detect_anomaly(value, historical_values):
     """
-    Returns True if value is anomalous (Z-score > 2.5).
+    Returns (bool, float) tuple: (is_anomalous, z_score).
+    is_anomalous is True if Z-score > 2.5.
     """
     if not historical_values or len(historical_values) < 3:
-        return False
+        return False, 0.0
     mean = np.mean(historical_values)
     std = np.std(historical_values)
     if std == 0:
-        return False
+        return False, 0.0
     z_score = abs((value - mean) / std)
     is_anomaly = z_score > 2.5
     return bool(is_anomaly), round(float(z_score), 2)

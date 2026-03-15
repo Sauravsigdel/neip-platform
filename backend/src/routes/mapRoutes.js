@@ -4,7 +4,7 @@ const AirQuality = require("../models/AirQuality");
 const AQIPrediction = require("../models/AQIPrediction");
 const NEPAL_CITIES = require("../../../nepal_cities");
 
-// GET /api/map/all-cities - Returns latest AQI for all 40+ Nepal cities
+// GET /api/map/all-cities - Returns latest AQI for all Nepal cities
 router.get("/all-cities", async (req, res) => {
   try {
     const results = [];
@@ -16,7 +16,10 @@ router.get("/all-cities", async (req, res) => {
         .select("aqi pm25 pm10 no2 co o3 timestamp data_source station_name");
 
       // Get 7-day forecast from AQIPrediction collection
-      const forecasts = await AQIPrediction.find({ district: city.district, date: { $gte: new Date() } })
+      const forecasts = await AQIPrediction.find({
+        district: city.district,
+        date: { $gte: new Date() },
+      })
         .sort({ date: 1 })
         .limit(7)
         .select("predicted_aqi date confidence_interval");
@@ -71,7 +74,10 @@ router.get("/city/:cityName", async (req, res) => {
       timestamp: -1,
     });
 
-    const forecasts = await AQIPrediction.find({ district: cityMeta.district, date: { $gte: new Date() } })
+    const forecasts = await AQIPrediction.find({
+      district: cityMeta.district,
+      date: { $gte: new Date() },
+    })
       .sort({ date: 1 })
       .limit(7);
 
