@@ -29,7 +29,7 @@ async function fetchWeather(lat, lon) {
         latitude: lat,
         longitude: lon,
         current:
-          "temperature_2m,relative_humidity_2m,precipitation,snowfall,wind_speed_10m",
+          "temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,snowfall,wind_speed_10m",
         timezone: "Asia/Kathmandu",
       },
       timeout: 8000,
@@ -37,6 +37,7 @@ async function fetchWeather(lat, lon) {
     const c = res.data.current;
     return {
       temperature: c.temperature_2m,
+      feelsLike: c.apparent_temperature,
       humidity: c.relative_humidity_2m,
       rainfall: c.precipitation,
       snowfall: c.snowfall,
@@ -143,12 +144,9 @@ async function processUser(user) {
     const hasDaily = alerts.some((a) => a.type === "daily");
 
     // Check hour — only send daily at 8 AM Nepal time
-    const nepalHour = new Date().toLocaleString("en-US", {
-      timeZone: "Asia/Kathmandu",
-      hour: "numeric",
-      hour12: false,
-    });
-    if (hasDaily && !hasDanger && parseInt(nepalHour) !== 8) return;
+    const nepalDate = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kathmandu" }));
+    const nepalHour = nepalDate.getHours();
+    if (hasDaily && !hasDanger && nepalHour !== 8) return;
 
     // Use only the most severe/first alert
     const mainAlert = alerts[0];
@@ -173,7 +171,7 @@ async function processUser(user) {
         district: user.district,
         weather: {
           temperature: weather?.temperature,
-          feelsLike: weather?.temperature,
+          feelsLike: weather?.feelsLike,
           humidity: weather?.humidity,
           windSpeed: weather?.windSpeed,
           rainfall: weather?.rainfall,

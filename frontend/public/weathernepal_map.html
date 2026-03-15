@@ -2966,7 +2966,10 @@
           [26.9, 84.5],
           [28.5, 86.5],
         ],
-        4: [[27.8, 82.9], [29.2], [85.2]],
+        4: [
+          [27.8, 82.9],
+          [29.2, 85.2],
+        ],
         5: [
           [27.4, 82.0],
           [28.8, 84.5],
@@ -2980,11 +2983,6 @@
           [30.4, 82.3],
         ],
       };
-      // Fix nested array typo
-      PROVINCE_BOUNDS[4] = [
-        [27.8, 82.9],
-        [29.2, 85.2],
-      ];
       const seen = new Set();
       const CITIES = RAW.filter((c) => {
         const k = c.city + c.d;
@@ -3907,6 +3905,17 @@
         document.getElementById("lyFab").style.pointerEvents = isOpen
           ? "none"
           : "auto";
+        // Hide/show province FAB based on layer panel state
+        const provFab = document.getElementById("provFab");
+        if (provFab) {
+          provFab.style.opacity = isOpen ? "0" : "1";
+          provFab.style.pointerEvents = isOpen ? "none" : "auto";
+        }
+        // Close province panel if open
+        if (isOpen) {
+          const provPnl = document.getElementById("provPnl");
+          if (provPnl) provPnl.classList.remove("open");
+        }
       }
 
       function setLayerOn(l, on) {
@@ -5432,29 +5441,6 @@
           document.getElementById("lyPnl").classList.remove("open");
           document.getElementById("lyFab").style.opacity = "1";
           document.getElementById("lyFab").style.pointerEvents = "auto";
-        }
-      }
-
-      // Also update toggleLayerPanel to close province panel
-      const _origToggleLP =
-        typeof toggleLayerPanel === "function" ? toggleLayerPanel : null;
-      function toggleLayerPanel() {
-        document.getElementById("lyPnl").classList.toggle("open");
-        const isOpen = document
-          .getElementById("lyPnl")
-          .classList.contains("open");
-        document.getElementById("lyFab").style.opacity = isOpen ? "0" : "1";
-        document.getElementById("lyFab").style.pointerEvents = isOpen
-          ? "none"
-          : "auto";
-        // Hide/show province FAB based on layer panel state
-        document.getElementById("provFab").style.opacity = isOpen ? "0" : "1";
-        document.getElementById("provFab").style.pointerEvents = isOpen
-          ? "none"
-          : "auto";
-        // Close province panel if open
-        if (isOpen) {
-          document.getElementById("provPnl").classList.remove("open");
         }
       }
 

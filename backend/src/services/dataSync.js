@@ -277,7 +277,7 @@ const fetchWeatherData = async () => {
             longitude: city.lon,
             current_weather: true,
             hourly:
-              "temperature_2m,relativehumidity_2m,precipitation,windspeed_10m",
+              "temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m",
             forecast_days: 1,
           },
           timeout: 8000,
@@ -285,7 +285,7 @@ const fetchWeatherData = async () => {
         temperature = res.data.current_weather?.temperature ?? 25;
         windSpeed = res.data.current_weather?.windspeed ?? 10;
         rainfall = res.data.hourly?.precipitation?.[0] ?? 0;
-        humidity = res.data.hourly?.relativehumidity_2m?.[0] ?? 60;
+        humidity = res.data.hourly?.relative_humidity_2m?.[0] ?? 60;
       } catch (_) {
         rainfall = Math.random() * 15;
         temperature = 18 + Math.random() * 15;

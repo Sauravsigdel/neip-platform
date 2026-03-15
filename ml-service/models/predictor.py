@@ -132,4 +132,5 @@ def detect_anomaly(value, historical_values):
     if std == 0:
         return False
     z_score = abs((value - mean) / std)
-    return bool(z_score > 2.5), round(float(z_score), 2)
+    is_anomaly = z_score > 2.5
+    return bool(is_anomaly), round(float(z_score), 2)

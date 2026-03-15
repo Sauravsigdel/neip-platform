@@ -60,6 +60,12 @@ app.post("/api/test-email", async (req, res) => {
   }
 });
 
+// Global error handler (must be after routes and before app.listen)
+app.use((err, req, res, next) => {
+  console.error('[Error]', err.message);
+  res.status(err.status || 500).json({ error: err.message });
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`WeatherNepal backend running on port ${PORT}`);

@@ -1,15 +1,19 @@
 const nodemailer = require("nodemailer");
 
-// ── IMPORTANT: Transporter created lazily inside function ────────
-// This ensures process.env variables are loaded before use
+// ── IMPORTANT: Transporter created once after env variables are loaded ───────
+// nodemailer reuses the same SMTP connection pool across calls
+let _transporter = null;
 function getTransporter() {
-  return nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_APP_PASSWORD,
-    },
-  });
+  if (!_transporter) {
+    _transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_APP_PASSWORD,
+      },
+    });
+  }
+  return _transporter;
 }
 
 // ── AQI color helper ─────────────────────────────────────────────

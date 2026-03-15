@@ -9,6 +9,10 @@ const AirQualitySchema = new mongoose.Schema({
   co: { type: Number },
   o3: { type: Number },
   aqi: { type: Number, required: true },
+  data_source: { type: String, default: 'simulated' },
+  station_name: { type: String },
+  lat: { type: Number },
+  lon: { type: Number },
   timestamp: { type: Date, default: Date.now }
 });
 
