@@ -2,71 +2,8 @@ const express = require("express");
 const router = express.Router();
 // Smart local advisory — no API key needed
 
-// ── POST /api/advisory/generate ─────────────────────────────────
-// Original endpoint — kept for backwards compatibility
-router.post("/generate", async (req, res) => {
-  const { district, aqi, risk_level, rainfall, temperature } = req.body;
-  if (!district) return res.status(400).json({ error: "District is required" });
-
-  try {
-    const prompt = `You are an environmental health advisor for Nepal. Based on the following real-time data for ${district} district, provide a concise safety advisory in 3 sections:
-
-Environmental Data:
-- Air Quality Index (AQI): ${aqi ?? "N/A"} ${aqi > 150 ? "(Unhealthy)" : aqi > 100 ? "(Moderate)" : "(Good)"}
-- Disaster Risk Level: ${risk_level ?? "N/A"}
-- Current Rainfall: ${rainfall ?? 0} mm
-- Temperature: ${temperature ?? "N/A"}°C
-
-Provide advisory in exactly this format:
-1. HEALTH PRECAUTIONS: (2-3 specific sentences about air quality health impacts and masks/indoor advice)
-2. OUTDOOR ACTIVITY GUIDANCE: (2-3 sentences about what activities are safe or should be avoided)
-3. DISASTER PREPAREDNESS: (2-3 sentences about flood/landslide risk and what precautions to take)
-
-Be specific, actionable, and relevant to Nepal's context. Keep it concise.`;
-
-    // Smart local advisory
-    const tips = [];
-    if ((aqi || 0) > 150)
-      tips.push(
-        `1. HEALTH PRECAUTIONS: AQI is ${aqi} (Unhealthy). Wear N95 mask outdoors. Keep windows closed. Sensitive groups should stay indoors.`,
-      );
-    else
-      tips.push(
-        `1. HEALTH PRECAUTIONS: Air quality is acceptable (AQI ${aqi || "N/A"}). Safe for most outdoor activities.`,
-      );
-    if ((rainfall || 0) > 5)
-      tips.push(
-        `2. OUTDOOR ACTIVITY GUIDANCE: Heavy rainfall expected. Avoid river banks and steep slopes. Risk of flash floods and landslides.`,
-      );
-    else
-      tips.push(
-        `2. OUTDOOR ACTIVITY GUIDANCE: Weather conditions are suitable for outdoor activities. Carry an umbrella as a precaution.`,
-      );
-    const riskTip =
-      risk_level === "Critical" || risk_level === "High"
-        ? `High disaster risk detected. Prepare emergency kit. Monitor local alerts.`
-        : `Disaster risk is ${risk_level || "Low"}. Stay informed via local authorities.`;
-    tips.push(`3. DISASTER PREPAREDNESS: ${riskTip}`);
-
-    res.json({
-      district,
-      advisory: tips.join("\n"),
-      generated_at: new Date().toISOString(),
-      source: "local-engine",
-    });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ error: "Failed to generate advisory", details: error.message });
-  }
-});
-
-// ── POST /api/advisory/quick ─────────────────────────────────────
-// Smart local advisory based on real weather conditions
-router.post("/quick", async (req, res) => {
-  const { city, aqi, weather } = req.body;
-  if (!city) return res.status(400).json({ error: "city is required" });
-
+// ── Shared advisory logic (exported for internal use) ────────────
+function generateQuickAdvisory({ city, aqi, weather }) {
   const tips = [];
   const month = new Date().getMonth();
   const isSpring = month >= 2 && month <= 4;
@@ -125,7 +62,60 @@ router.post("/quick", async (req, res) => {
   if (isMonsoon && rain > 0)
     tips.push(`Monsoon season: mosquito activity high, use repellent.`);
 
-  const advisory = tips.slice(0, 3).join(" ");
+  return tips.slice(0, 3).join(" ");
+}
+
+// ── POST /api/advisory/generate ─────────────────────────────────
+// Original endpoint — kept for backwards compatibility
+router.post("/generate", async (req, res) => {
+  const { district, aqi, risk_level, rainfall, temperature } = req.body;
+  if (!district) return res.status(400).json({ error: "District is required" });
+
+  try {
+    // Smart local advisory
+    const tips = [];
+    if ((aqi || 0) > 150)
+      tips.push(
+        `1. HEALTH PRECAUTIONS: AQI is ${aqi} (Unhealthy). Wear N95 mask outdoors. Keep windows closed. Sensitive groups should stay indoors.`,
+      );
+    else
+      tips.push(
+        `1. HEALTH PRECAUTIONS: Air quality is acceptable (AQI ${aqi || "N/A"}). Safe for most outdoor activities.`,
+      );
+    if ((rainfall || 0) > 5)
+      tips.push(
+        `2. OUTDOOR ACTIVITY GUIDANCE: Heavy rainfall expected. Avoid river banks and steep slopes. Risk of flash floods and landslides.`,
+      );
+    else
+      tips.push(
+        `2. OUTDOOR ACTIVITY GUIDANCE: Weather conditions are suitable for outdoor activities. Carry an umbrella as a precaution.`,
+      );
+    const riskTip =
+      risk_level === "Critical" || risk_level === "High"
+        ? `High disaster risk detected. Prepare emergency kit. Monitor local alerts.`
+        : `Disaster risk is ${risk_level || "Low"}. Stay informed via local authorities.`;
+    tips.push(`3. DISASTER PREPAREDNESS: ${riskTip}`);
+
+    res.json({
+      district,
+      advisory: tips.join("\n"),
+      generated_at: new Date().toISOString(),
+      source: "local-engine",
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: "Failed to generate advisory", details: error.message });
+  }
+});
+
+// ── POST /api/advisory/quick ─────────────────────────────────────
+// Smart local advisory based on real weather conditions
+router.post("/quick", async (req, res) => {
+  const { city, aqi, weather } = req.body;
+  if (!city) return res.status(400).json({ error: "city is required" });
+
+  const advisory = generateQuickAdvisory({ city, aqi, weather });
   res.json({
     city,
     advisory,
@@ -135,3 +125,4 @@ router.post("/quick", async (req, res) => {
 });
 
 module.exports = router;
+module.exports.generateQuickAdvisory = generateQuickAdvisory;

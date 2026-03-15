@@ -2,9 +2,9 @@ const cron = require("node-cron");
 const axios = require("axios");
 const UserAlert = require("../models/UserAlert");
 const { sendAlertEmail } = require("./emailService");
+const { generateQuickAdvisory } = require("../routes/advisoryRoutes");
 
 const OPEN_METEO = "https://api.open-meteo.com/v1/forecast";
-const API_BASE = `http://localhost:${process.env.PORT || 5000}/api`;
 
 // ── Fetch real weather for a location ───────────────────────────
 async function fetchWeatherForLocation(lat, lon) {
@@ -61,24 +61,19 @@ async function fetchAQIForLocation(district) {
 }
 
 // ── Get AI advisory for conditions ──────────────────────────────
-async function getAdvisory(city, aqi, weather) {
+function getAdvisory(city, aqi, weather) {
   try {
-    const res = await axios.post(
-      `${API_BASE}/advisory/quick`,
-      {
-        city,
-        aqi,
-        weather: {
-          temp: weather.temperature,
-          humidity: weather.humidity,
-          wind: weather.windSpeed,
-          rain: weather.rainfall,
-          snow: weather.snowfall,
-        },
+    return generateQuickAdvisory({
+      city,
+      aqi,
+      weather: {
+        temp: weather.temperature,
+        humidity: weather.humidity,
+        wind: weather.windSpeed,
+        rain: weather.rainfall,
+        snow: weather.snowfall,
       },
-      { timeout: 15000 },
-    );
-    return res.data?.advisory || null;
+    });
   } catch {
     return null;
   }
@@ -151,7 +146,7 @@ async function processSubscriber(sub) {
     if (!shouldSendAlert(sub.lastAlertSent, isDailyOnly)) return;
 
     // Get AI advisory
-    const advisory = await getAdvisory(sub.location, aqi, weather);
+    const advisory = getAdvisory(sub.location, aqi, weather);
 
     // Send email
     await sendAlertEmail({
@@ -169,7 +164,7 @@ async function processSubscriber(sub) {
     await UserAlert.findByIdAndUpdate(
       sub._id,
       { lastAlertSent: new Date() },
-      { returnDocument: "after" },
+      { new: true },
     );
 
     console.log(

@@ -46,6 +46,16 @@ router.put("/read-all", authMiddleware, async (req, res) => {
   }
 });
 
+// ── DELETE /api/notifications/clear-all ─────────────────────────
+router.delete("/clear-all", authMiddleware, async (req, res) => {
+  try {
+    await Notification.deleteMany({ userId: req.userId });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── DELETE /api/notifications/:id ───────────────────────────────
 router.delete("/:id", authMiddleware, async (req, res) => {
   try {
@@ -53,16 +63,6 @@ router.delete("/:id", authMiddleware, async (req, res) => {
       _id: req.params.id,
       userId: req.userId,
     });
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ── DELETE /api/notifications/clear-all ─────────────────────────
-router.delete("/clear-all", authMiddleware, async (req, res) => {
-  try {
-    await Notification.deleteMany({ userId: req.userId });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

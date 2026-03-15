@@ -251,28 +251,22 @@ router.post("/verify-otp", async (req, res) => {
     return res.status(400).json({ error: "email and otp are required" });
 
   try {
-    const otpRecord = await OTP.findOne({
-      email: email.toLowerCase(),
-      type: "verify",
-    });
+    // Atomically increment attempts and get the updated record
+    // If attempts was already >= 5, the query won't match and returns null
+    const otpRecord = await OTP.findOneAndUpdate(
+      { email: email.toLowerCase(), type: "verify", attempts: { $lt: 5 } },
+      { $inc: { attempts: 1 } },
+      { new: true },
+    );
     if (!otpRecord)
       return res
         .status(400)
-        .json({ error: "OTP expired or not found. Please request a new one." });
-
-    // Limit attempts
-    if (otpRecord.attempts >= 5) {
-      await OTP.deleteOne({ _id: otpRecord._id });
-      return res
-        .status(400)
-        .json({ error: "Too many attempts. Please request a new OTP." });
-    }
+        .json({ error: "Too many attempts or OTP expired. Please request a new one." });
 
     if (otpRecord.otp !== otp.toString()) {
-      await OTP.updateOne({ _id: otpRecord._id }, { $inc: { attempts: 1 } });
       return res.status(400).json({
         error: "Incorrect OTP",
-        attemptsLeft: 5 - otpRecord.attempts - 1,
+        attemptsLeft: 5 - otpRecord.attempts,
       });
     }
 
@@ -280,7 +274,7 @@ router.post("/verify-otp", async (req, res) => {
     const user = await User.findOneAndUpdate(
       { email: email.toLowerCase() },
       { isVerified: true },
-      { returnDocument: "after" },
+      { new: true },
     );
     await OTP.deleteOne({ _id: otpRecord._id });
 
@@ -376,7 +370,7 @@ router.put("/alerts", authMiddleware, async (req, res) => {
     const user = await User.findByIdAndUpdate(
       req.userId,
       { alerts: req.body.alerts },
-      { returnDocument: "after" },
+      { new: true },
     );
     res.json({ success: true, alerts: user.alerts });
   } catch (err) {
@@ -417,7 +411,7 @@ router.put("/update-location", authMiddleware, async (req, res) => {
     const user = await User.findByIdAndUpdate(
       req.userId,
       { location, district, lat, lon },
-      { returnDocument: "after" },
+      { new: true },
     );
     res.json({
       success: true,

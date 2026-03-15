@@ -39,7 +39,7 @@ router.post("/subscribe", async (req, res) => {
       },
       {
         upsert: true,
-        returnDocument: "after",
+        new: true,
         setDefaultsOnInsert: true,
       },
     );
