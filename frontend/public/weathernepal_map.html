@@ -2286,8 +2286,6 @@
         OWM: "7ef9f5928ad13bd0affbc1a657ce3b5f ", // ← paste your OWM key from openweathermap.org
         API: "http://localhost:5000/api",
       };
-      // ⚠️ IMPORTANT: Replace YOUR_OPENWEATHERMAP_API_KEY above with your real key
-      // Get it free at: https://openweathermap.org/api → My API Keys
 
       // ══════════════════════════════════════════
       // AQI HELPERS
@@ -3160,12 +3158,10 @@
           if (CITIES[i]) m.setIcon(mkPin(CITIES[i].aqi));
         });
         updateStats();
-        console.log("[WeatherNepal] Layers rebuilt with real data");
       }
 
       // Fetch real data in batches of 10 to avoid rate limiting
       async function loadRealData() {
-        console.log("[WeatherNepal] Fetching real weather for 77 districts...");
         const BATCH = 10;
         for (let i = 0; i < CITIES.length; i += BATCH) {
           const batch = CITIES.slice(i, i + BATCH);
@@ -3178,7 +3174,6 @@
             await new Promise((r) => setTimeout(r, 500));
         }
         rebuildHeatLayers();
-        console.log("[WeatherNepal] Real data load complete");
       }
 
       // ══════════════════════════════════════════
@@ -3245,13 +3240,13 @@
       // MAP
       // ══════════════════════════════════════════
       const REGION_BOUNDS = [
-        [22.0, 74.0],
-        [33.0, 93.0],
+        [5.0, 60.0],
+        [55.0, 150.0],
       ];
 
       const map = L.map("wnMap", {
         zoomControl: true,
-        minZoom: 5,
+        minZoom: 4,
         maxZoom: 11,
         preferCanvas: true,
         maxBounds: REGION_BOUNDS,
@@ -3259,17 +3254,14 @@
       });
       const darkTile = L.tileLayer(
         "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-        { attribution: "© CARTO © OpenStreetMap", maxZoom: 19 },
+        { attribution: "© CARTO © OpenStreetMap", maxZoom: 19, noWrap: true },
       );
       const lightTile = L.tileLayer(
         "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-        { attribution: "© CARTO © OpenStreetMap", maxZoom: 19 },
+        { attribution: "© CARTO © OpenStreetMap", maxZoom: 19, noWrap: true },
       );
       darkTile.addTo(map);
-      map.fitBounds([
-        [26.2, 80.0],
-        [30.5, 88.2],
-      ]);
+      map.fitBounds(REGION_BOUNDS);
 
       // ══════════════════════════════════════════
       // WEATHER LAYERS
@@ -3383,79 +3375,286 @@
       );
 
       // ── WIND PARTICLES (leaflet-velocity + Open-Meteo) ──────────────
+      const VELOCITY_ASIA_BOUNDS = {
+        LA1: 55.0,
+        LA2: 5.0,
+        LO1: 60.0,
+        LO2: 150.0,
+      };
+      const VELOCITY_MODES = {
+        low: { NY: 8, NX: 12, batchSize: 12 },
+        high: { NY: 11, NX: 17, batchSize: 14 },
+      };
+      const VELOCITY_CACHE_TTL_MS = 10 * 60 * 1000;
+      const velocityDatasetCache = new Map();
+      let velocityQualityMode = null;
+      let velocityQualityRefreshTimer = null;
+      let velocityLoadSeq = 0;
+
+      function getVelocityModeForZoom() {
+        return map.getZoom() >= 6 ? "high" : "low";
+      }
+
+      function scheduleVelocityQualityRefresh() {
+        const def = LAYER_DEFS.find((x) => x.id === "velocity");
+        if (!def?.on) return;
+        if (velocityQualityRefreshTimer) {
+          clearTimeout(velocityQualityRefreshTimer);
+        }
+        velocityQualityRefreshTimer = setTimeout(() => {
+          const nextMode = getVelocityModeForZoom();
+          if (nextMode !== velocityQualityMode) {
+            loadVelocityLayer();
+          }
+        }, 180);
+      }
+
+      function buildVelocityDatasetFromCities({ LA1, LA2, LO1, LO2, NY, NX }) {
+        const DY = (LA1 - LA2) / (NY - 1);
+        const DX = (LO2 - LO1) / (NX - 1);
+        const header = {
+          parameterCategory: 2,
+          la1: LA1,
+          la2: LA2,
+          lo1: LO1,
+          lo2: LO2,
+          nx: NX,
+          ny: NY,
+          dx: DX,
+          dy: DY,
+          refTime: new Date().toISOString(),
+        };
+
+        const dirDeg = {
+          N: 0,
+          NNE: 22.5,
+          NE: 45,
+          ENE: 67.5,
+          E: 90,
+          ESE: 112.5,
+          SE: 135,
+          SSE: 157.5,
+          S: 180,
+          SSW: 202.5,
+          SW: 225,
+          WSW: 247.5,
+          W: 270,
+          WNW: 292.5,
+          NW: 315,
+          NNW: 337.5,
+        };
+
+        const uData = [];
+        const vData = [];
+
+        for (let r = 0; r < NY; r++) {
+          const lat = LA1 - r * DY;
+          for (let c = 0; c < NX; c++) {
+            const lon = LO1 + c * DX;
+
+            let sumU = 0;
+            let sumV = 0;
+            let sumW = 0;
+
+            for (const city of CITIES) {
+              const speedKmh = city?.wx?.wind;
+              const wd = city?.wx?.windDir;
+              if (!Number.isFinite(speedKmh) || !wd) continue;
+
+              const deg = dirDeg[wd] ?? 0;
+              const rad = (deg * Math.PI) / 180;
+              const speed = speedKmh / 3.6;
+              const u = -speed * Math.sin(rad);
+              const v = -speed * Math.cos(rad);
+
+              const dLat = lat - city.lat;
+              const dLon = lon - city.lon;
+              const w = 1 / (dLat * dLat + dLon * dLon + 0.2);
+
+              sumU += u * w;
+              sumV += v * w;
+              sumW += w;
+            }
+
+            uData.push(sumW ? sumU / sumW : 0);
+            vData.push(sumW ? sumV / sumW : 0);
+          }
+        }
+
+        return [
+          { header: { ...header, parameterNumber: 2 }, data: uData },
+          { header: { ...header, parameterNumber: 3 }, data: vData },
+        ];
+      }
+
       async function loadVelocityLayer() {
         const def = LAYER_DEFS.find((x) => x.id === "velocity");
         if (!def) return;
-        if (def.lyr && map.hasLayer(def.lyr)) map.removeLayer(def.lyr);
-        def.lyr = null;
+        const loadSeq = ++velocityLoadSeq;
+        const previousLayer = def.lyr || null;
         try {
-          // Regional bounding box to avoid visible clipping around Nepal.
-          // Covers parts of India, Nepal, Bhutan, southern Tibet/China, Bangladesh.
-          const LA1 = 33.0,
-            LA2 = 22.0,
-            LO1 = 74.0,
-            LO2 = 93.0,
-            NY = 18,
-            NX = 30;
+          // Full Asia coverage in both modes; only density changes with zoom.
+          const mode = getVelocityModeForZoom();
+          velocityQualityMode = mode;
+          const modeCfg = VELOCITY_MODES[mode];
+          const { LA1, LA2, LO1, LO2 } = VELOCITY_ASIA_BOUNDS;
+          const { NY, NX, batchSize } = modeCfg;
           const DY = (LA1 - LA2) / (NY - 1);
           const DX = (LO2 - LO1) / (NX - 1);
           const lats = Array.from({ length: NY }, (_, r) => LA1 - r * DY);
           const lons = Array.from({ length: NX }, (_, c) => LO1 + c * DX);
 
-          // Fetch current wind for every grid point in parallel
-          const results = await Promise.all(
-            lats.flatMap((lat) =>
-              lons.map((lon) =>
-                fetch(
-                  `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=wind_speed_10m,wind_direction_10m`,
-                ).then((r) => r.json()),
-              ),
-            ),
-          );
+          // Reuse recent data to avoid heavy API traffic when users toggle layers.
+          const cached = velocityDatasetCache.get(mode);
+          let dataset = cached?.dataset || null;
+          const cacheAge = cached ? Date.now() - cached.ts : Infinity;
 
-          // Build U/V arrays (m/s). Met convention: direction is "from", so negate.
-          const uData = [],
-            vData = [];
-          for (const res of results) {
-            const speed = (res.current?.wind_speed_10m ?? 0) / 3.6; // km/h → m/s
-            const dir =
-              ((res.current?.wind_direction_10m ?? 0) * Math.PI) / 180;
-            uData.push(-speed * Math.sin(dir)); // eastward component
-            vData.push(-speed * Math.cos(dir)); // northward component
+          if (!dataset || cacheAge > VELOCITY_CACHE_TTL_MS) {
+            const points = lats.flatMap((lat) =>
+              lons.map((lon) => ({ lat, lon })),
+            );
+
+            // Batch requests so browser/API isn't flooded at Asia scale.
+            const results = [];
+            for (let i = 0; i < points.length; i += batchSize) {
+              const batch = points.slice(i, i + batchSize);
+              const batchResults = await Promise.all(
+                batch.map(({ lat, lon }) =>
+                  fetch(
+                    `https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(3)}&longitude=${lon.toFixed(3)}&current=wind_speed_10m,wind_direction_10m`,
+                  )
+                    .then((r) => (r.ok ? r.json() : null))
+                    .catch(() => null),
+                ),
+              );
+              results.push(...batchResults);
+              // Light pacing prevents temporary API throttling on browser clients.
+              if (i + batchSize < points.length) {
+                await new Promise((r) => setTimeout(r, 80));
+              }
+            }
+
+            // Build U/V arrays (m/s). Met convention: direction is "from", so negate.
+            const uData = [],
+              vData = [];
+            let validSamples = 0;
+            for (const res of results) {
+              const speedRaw = res?.current?.wind_speed_10m;
+              const dirRaw = res?.current?.wind_direction_10m;
+              const hasValidSample =
+                Number.isFinite(speedRaw) && Number.isFinite(dirRaw);
+              const speed = hasValidSample ? speedRaw / 3.6 : 0; // km/h → m/s
+              const dir = hasValidSample ? (dirRaw * Math.PI) / 180 : 0;
+              if (hasValidSample) validSamples++;
+              uData.push(-speed * Math.sin(dir)); // eastward component
+              vData.push(-speed * Math.cos(dir)); // northward component
+            }
+
+            const minValid = Math.max(20, Math.floor(points.length * 0.25));
+            if (validSamples < minValid) {
+              console.warn(
+                `Wind samples too sparse (${validSamples}/${points.length}), using fallback cache`,
+              );
+              dataset = null;
+            } else {
+              const header = {
+                parameterCategory: 2,
+                la1: LA1,
+                la2: LA2,
+                lo1: LO1,
+                lo2: LO2,
+                nx: NX,
+                ny: NY,
+                dx: DX,
+                dy: DY,
+                refTime: new Date().toISOString(),
+              };
+
+              dataset = [
+                { header: { ...header, parameterNumber: 2 }, data: uData },
+                { header: { ...header, parameterNumber: 3 }, data: vData },
+              ];
+              velocityDatasetCache.set(mode, { dataset, ts: Date.now() });
+            }
           }
 
-          const header = {
-            parameterCategory: 2,
-            la1: LA1,
-            la2: LA2,
-            lo1: LO1,
-            lo2: LO2,
-            nx: NX,
-            ny: NY,
-            dx: DX,
-            dy: DY,
-            refTime: new Date().toISOString(),
-          };
+          // If active mode cache is missing, fallback to last good dataset from other mode.
+          if (!dataset) {
+            const altMode = mode === "high" ? "low" : "high";
+            dataset = velocityDatasetCache.get(altMode)?.dataset || null;
+          }
 
-          def.lyr = L.velocityLayer({
+          if (!dataset) {
+            // Final fallback when API is throttled: derive vector field from city weather data.
+            dataset = buildVelocityDatasetFromCities({
+              LA1,
+              LA2,
+              LO1,
+              LO2,
+              NY,
+              NX,
+            });
+          }
+
+          if (!dataset) {
+            console.warn(
+              "Wind particle layer unavailable: no valid dataset yet",
+            );
+            return;
+          }
+
+          const nextLayer = L.velocityLayer({
             displayValues: true,
             displayOptions: {
               velocityType: "Wind",
               position: "bottomleft",
-              emptyString: "No wind data",
+              emptyString: "Loading wind...",
               angleConvention: "meteoCW",
               showCardinal: true,
               speedUnit: "m/s",
             },
-            data: [
-              { header: { ...header, parameterNumber: 2 }, data: uData },
-              { header: { ...header, parameterNumber: 3 }, data: vData },
-            ],
+            data: dataset,
             maxVelocity: 10,
             colorScale: ["#ffffcc", "#a1dab4", "#41b6c4", "#2c7fb8", "#253494"],
           });
 
-          if (def.on) def.lyr.addTo(map);
+          const getVelocityEl = (layer) =>
+            layer?._canvas || layer?._container || null;
+
+          // If another reload started after this one, discard this layer.
+          if (loadSeq !== velocityLoadSeq) {
+            return;
+          }
+
+          // If user toggled layer off while loading, keep it detached.
+          if (!def.on) {
+            return;
+          }
+
+          // Smooth swap: fade-in new layer, then fade-out/remove old layer.
+          nextLayer.addTo(map);
+          const nextEl = getVelocityEl(nextLayer);
+          if (nextEl) {
+            nextEl.style.opacity = "0";
+            nextEl.style.transition = "opacity 260ms ease";
+            requestAnimationFrame(() => {
+              nextEl.style.opacity = "1";
+            });
+          }
+
+          if (previousLayer && map.hasLayer(previousLayer)) {
+            const previousEl = getVelocityEl(previousLayer);
+            if (previousEl) {
+              previousEl.style.transition = "opacity 200ms ease";
+              previousEl.style.opacity = "0";
+              setTimeout(() => {
+                if (map.hasLayer(previousLayer)) map.removeLayer(previousLayer);
+              }, 210);
+            } else {
+              map.removeLayer(previousLayer);
+            }
+          }
+          def.lyr = nextLayer;
         } catch (e) {
           console.warn("Wind particle layer error:", e);
         }
@@ -3748,6 +3947,10 @@
           }
         } else {
           if (l.type === "velocity") {
+            velocityLoadSeq++;
+            if (velocityQualityRefreshTimer) {
+              clearTimeout(velocityQualityRefreshTimer);
+            }
             if (l.lyr && map.hasLayer(l.lyr)) map.removeLayer(l.lyr);
             return;
           }
@@ -3809,6 +4012,7 @@
 
       // Auto-start wind particle layer on page load
       loadVelocityLayer();
+      map.on("zoomend", scheduleVelocityQualityRefresh);
 
       // ══════════════════════════════════════════
       // PIN ICONS
@@ -5108,7 +5312,6 @@
           if (!res.ok) return;
           const data = await res.json();
           if (!data.hotspots || !data.hotspots.length) {
-            console.log("[Fire] No hotspots found for Nepal currently");
             return;
           }
           data.hotspots.forEach((h) => {
@@ -5142,14 +5345,10 @@
             m.addTo(map);
             fireMarkers.push(m);
           });
-          console.log(`[Fire] Loaded ${fireMarkers.length} hotspots on map`);
         } catch (e) {
           console.error("[Fire] Load error:", e);
         }
       }
-
-      // Also handle fire layer removal
-      const origSetLayerOn = setLayerOn;
 
       // ── FETCH REAL AQI FROM BACKEND ────────────────────────────────
       async function loadRealAQI() {
@@ -5181,7 +5380,6 @@
               if (CITIES[i]) m.setIcon(mkPin(CITIES[i].aqi));
             });
             updateStats();
-            console.log(`[WeatherNepal] Real AQI loaded for ${updated} cities`);
           }
         } catch (e) {
           console.error("[AQI] Real data load error:", e);
