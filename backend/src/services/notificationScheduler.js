@@ -13,6 +13,7 @@ const OPEN_METEO = "https://api.open-meteo.com/v1/forecast";
 
 // ── AQI level helper ─────────────────────────────────────────────
 function aqiLevel(aqi) {
+  if (!Number.isFinite(aqi)) return { label: "Unavailable", severity: "info" };
   if (aqi <= 50) return { label: "Good", severity: "info" };
   if (aqi <= 100) return { label: "Moderate", severity: "info" };
   if (aqi <= 150)
@@ -61,14 +62,23 @@ function gotNotificationToday(user) {
 function buildNotification(user, weather, aqi) {
   const alerts = [];
 
-  if (user.alerts.aqi && aqi > 150) {
-    const lvl = aqiLevel(aqi);
-    alerts.push({
-      type: "aqi",
-      severity: lvl.severity,
-      title: `⚠️ Air Quality Alert — ${user.location}`,
-      message: `AQI is ${aqi} (${lvl.label}) in ${user.location}. ${aqi > 200 ? "Avoid all outdoor activity. Stay indoors." : "Wear N95 mask if going outdoors."}`,
-    });
+  if (user.alerts.aqi) {
+    if (!Number.isFinite(aqi)) {
+      alerts.push({
+        type: "aqiUnavailable",
+        severity: "info",
+        title: `ℹ️ AQI Data Unavailable — ${user.location}`,
+        message: `AQI data is currently unavailable in ${user.location}. Advisory and alerts are based on weather signals (temperature, wind, rainfall, snowfall).`,
+      });
+    } else if (aqi > 150) {
+      const lvl = aqiLevel(aqi);
+      alerts.push({
+        type: "aqi",
+        severity: lvl.severity,
+        title: `⚠️ Air Quality Alert — ${user.location}`,
+        message: `AQI is ${aqi} (${lvl.label}) in ${user.location}. ${aqi > 200 ? "Avoid all outdoor activity. Stay indoors." : "Wear N95 mask if going outdoors."}`,
+      });
+    }
   }
   if (user.alerts.rain && weather && parseFloat(weather.rainfall) > 5) {
     alerts.push({
@@ -105,11 +115,14 @@ function buildNotification(user, weather, aqi) {
 
   // Daily summary if enabled and no alerts triggered
   if (user.alerts.daily && alerts.length === 0 && weather) {
+    const aqiText = Number.isFinite(aqi)
+      ? `AQI ${aqi} (${aqiLevel(aqi).label})`
+      : "AQI unavailable";
     alerts.push({
       type: "daily",
       severity: "info",
       title: `🌅 Daily Weather — ${user.location}`,
-      message: `Today in ${user.location}: ${weather.temperature}°C, AQI ${aqi} (${aqiLevel(aqi).label}). Humidity ${weather.humidity}%, Wind ${weather.windSpeed}km/h.`,
+      message: `Today in ${user.location}: ${weather.temperature}°C, ${aqiText}. Humidity ${weather.humidity}%, Wind ${weather.windSpeed}km/h.`,
     });
   }
 
@@ -129,7 +142,7 @@ async function processUser(user) {
     const aqiRecord = await AirQuality.findOne({
       district: user.district,
     }).sort({ timestamp: -1 });
-    const aqi = aqiRecord?.aqi || 0;
+    const aqi = Number.isFinite(aqiRecord?.aqi) ? aqiRecord.aqi : null;
 
     // Get real weather
     const weather = await fetchWeather(user.lat, user.lon);

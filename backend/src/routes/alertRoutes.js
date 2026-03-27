@@ -2,6 +2,9 @@ const express = require("express");
 const router = express.Router();
 const UserAlert = require("../models/UserAlert");
 const axios = require("axios");
+const authMiddleware = require("./authMiddleware");
+const adminMiddleware = require("./adminMiddleware");
+const User = require("../models/User");
 const {
   sendAlertEmail,
   sendConfirmationEmail,
@@ -12,64 +15,13 @@ const OPEN_METEO = "https://api.open-meteo.com/v1/forecast";
 // ── POST /api/alerts/subscribe ───────────────────────────────────
 // Subscribe to weather alerts for a location
 router.post("/subscribe", async (req, res) => {
-  const { name, email, location, district, lat, lon, alerts } = req.body;
-
-  if (!name || !email || !location) {
-    return res
-      .status(400)
-      .json({ error: "name, email, and location are required" });
-  }
-  if (!/\S+@\S+\.\S+/.test(email)) {
-    return res.status(400).json({ error: "Invalid email address" });
-  }
-
-  try {
-    // Upsert — update if same email+location already exists
-    const alert = await UserAlert.findOneAndUpdate(
-      { email: email.toLowerCase(), location },
-      {
-        name,
-        email: email.toLowerCase(),
-        location,
-        district,
-        lat,
-        lon,
-        alerts,
-        active: true,
-      },
-      {
-        upsert: true,
-        new: true,
-        setDefaultsOnInsert: true,
-      },
-    );
-
-    let confirmationEmailSent = true;
-    try {
-      await sendConfirmationEmail({
-        to: alert.email,
-        name: alert.name,
-        location: alert.location,
-        alerts: alert.alerts,
-      });
-    } catch (emailErr) {
-      confirmationEmailSent = false;
-      console.error("[Alerts] Confirmation email error:", emailErr.message);
-    }
-
-    res.json({
-      success: true,
-      message: `Alert subscription activated for ${location}`,
-      id: alert._id,
-      confirmationEmailSent,
-    });
-  } catch (err) {
-    console.error("[Alerts] Subscribe error:", err.message);
-    res.status(500).json({
-      error: "Failed to save alert subscription",
-      details: err.message,
-    });
-  }
+  return res.status(503).json({
+    success: false,
+    paused: true,
+    error: "Subscription-based email alerts are temporarily paused.",
+    message:
+      "Please use direct alerts for now. AQI may be unavailable in some locations; alerts will rely on temperature, wind, rain, and snow conditions with advisory guidance.",
+  });
 });
 
 // ── GET /api/alerts/subscriptions?email= ────────────────────────
@@ -107,7 +59,7 @@ router.delete("/unsubscribe", async (req, res) => {
 
 // ── GET /api/alerts/all ──────────────────────────────────────────
 // Admin: get all active subscriptions
-router.get("/all", async (req, res) => {
+router.get("/all", adminMiddleware, async (req, res) => {
   try {
     const all = await UserAlert.find({ active: true }).sort({ createdAt: -1 });
     res.json({ count: all.length, subscriptions: all });
@@ -118,16 +70,9 @@ router.get("/all", async (req, res) => {
 
 // ── POST /api/alerts/send-direct ────────────────────────────────
 // Logged-in user sends themselves an alert for any city
-router.post("/send-direct", async (req, res) => {
+router.post("/send-direct", authMiddleware, async (req, res) => {
   try {
-    // Manually verify token
-    const jwt = require("jsonwebtoken");
-    const JWT_SECRET = process.env.JWT_SECRET || "weathernepal_secret_2026";
-    const token = req.headers.authorization?.split(" ")[1];
-    if (!token) return res.status(401).json({ error: "Not authenticated" });
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const User = require("../models/User");
-    const user = await User.findById(decoded.userId);
+    const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ error: "User not found" });
 
     const { city, district, lat, lon, aqi, weather } = req.body;
@@ -173,11 +118,19 @@ router.post("/send-direct", async (req, res) => {
       };
     }
 
-    // Smart local advisory
+    const safeAqi = Number.isFinite(Number(aqi)) ? Number(aqi) : null;
+
+    // Transparent local advisory when AQI is unavailable.
     const tips = [];
-    if ((aqi || 0) > 150)
-      tips.push(`AQI ${aqi} is unhealthy — wear N95 mask outdoors.`);
-    else tips.push(`Air quality (AQI ${aqi || 0}) is acceptable today.`);
+    if (safeAqi == null) {
+      tips.push(
+        "AQI data is currently unavailable for this location. Advisory is based on weather conditions.",
+      );
+    } else if (safeAqi > 150) {
+      tips.push(`AQI ${safeAqi} is unhealthy — wear N95 mask outdoors.`);
+    } else {
+      tips.push(`Air quality (AQI ${safeAqi}) is acceptable today.`);
+    }
     if (parseFloat(currentWeather.rain || 0) > 5)
       tips.push(
         `Heavy rain ${currentWeather.rain}mm — risk of flooding, stay safe.`,
@@ -203,9 +156,10 @@ router.post("/send-direct", async (req, res) => {
         rainfall: currentWeather.rain,
         snowfall: currentWeather.snow,
       },
-      aqi: aqi || 0,
+      aqi: safeAqi,
       alerts: {
-        aqi: (aqi || 0) > 150,
+        aqi: safeAqi != null && safeAqi > 150,
+        aqiUnavailable: safeAqi == null,
         rain: parseFloat(currentWeather.rain || 0) > 5,
         wind: (currentWeather.wind || 0) > 30,
         snow: parseFloat(currentWeather.snow || 0) > 0,

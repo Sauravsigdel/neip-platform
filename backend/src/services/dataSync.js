@@ -13,6 +13,8 @@ const { syncFireHotspots } = require("./nasaFirms");
 const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast";
 const OWM_AIR_URL = "https://api.openweathermap.org/data/2.5/air_pollution";
 const ML_SERVICE_URL = process.env.ML_SERVICE_URL || "http://localhost:5001";
+const WAQI_ONLY_AQI_MODE =
+  (process.env.WAQI_ONLY_AQI_MODE || "true").toLowerCase() === "true";
 
 // ── US EPA AQI breakpoints for PM2.5 ────────────────────────────
 const PM25_BREAKPOINTS = [
@@ -269,6 +271,7 @@ const fetchWeatherData = async () => {
       let temperature = 25,
         windSpeed = 10,
         rainfall = 0,
+        snowfall = 0,
         humidity = 60;
       try {
         const res = await axios.get(OPEN_METEO_URL, {
@@ -276,7 +279,7 @@ const fetchWeatherData = async () => {
             latitude: city.lat,
             longitude: city.lon,
             current:
-              "temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m",
+              "temperature_2m,relative_humidity_2m,precipitation,snowfall,wind_speed_10m",
             timezone: "Asia/Kathmandu",
           },
           timeout: 8000,
@@ -284,9 +287,11 @@ const fetchWeatherData = async () => {
         temperature = res.data.current?.temperature_2m ?? 25;
         windSpeed = res.data.current?.wind_speed_10m ?? 10;
         rainfall = res.data.current?.precipitation ?? 0;
+        snowfall = res.data.current?.snowfall ?? 0;
         humidity = res.data.current?.relative_humidity_2m ?? 60;
       } catch (_) {
         rainfall = Math.random() * 15;
+        snowfall = 0;
         temperature = 18 + Math.random() * 15;
         humidity = 50 + Math.random() * 40;
       }
@@ -296,6 +301,7 @@ const fetchWeatherData = async () => {
         temperature,
         wind_speed: windSpeed,
         rainfall,
+        snowfall,
         humidity,
       });
 
@@ -357,15 +363,21 @@ const initDataSync = () => {
   console.log("[DataSync] Initializing WeatherNepal data sync");
 
   // Run immediately on startup
-  fetchAirQualityData();
+  if (!WAQI_ONLY_AQI_MODE) {
+    fetchAirQualityData();
+  } else {
+    console.log("[DataSync] WAQI-only AQI mode enabled: skipping OWM AQI sync");
+  }
   fetchWeatherData();
   syncFireHotspots();
 
   // AQI every 60 min (OWM free tier: 60 calls/min, 1M/month)
-  cron.schedule("5 * * * *", async () => {
-    console.log("[DataSync] Hourly AQI sync...");
-    await fetchAirQualityData();
-  });
+  if (!WAQI_ONLY_AQI_MODE) {
+    cron.schedule("5 * * * *", async () => {
+      console.log("[DataSync] Hourly AQI sync...");
+      await fetchAirQualityData();
+    });
+  }
 
   // Weather every 5 min
   cron.schedule("*/5 * * * *", async () => {

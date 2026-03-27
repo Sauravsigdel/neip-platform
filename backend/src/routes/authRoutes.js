@@ -13,6 +13,7 @@ const nodemailer = require("nodemailer");
 
 const JWT_SECRET = process.env.JWT_SECRET || "weathernepal_secret_2026";
 const OPEN_METEO = "https://api.open-meteo.com/v1/forecast";
+const ALLOW_PUBLIC_SIGNUP = process.env.ALLOW_PUBLIC_SIGNUP === "true";
 
 // ── Send welcome + AI report notifications after signup ──────────
 async function sendWelcomeNotifications(user) {
@@ -172,6 +173,12 @@ function otpEmailHTML(name, otp) {
 
 // ── POST /api/auth/signup ────────────────────────────────────────
 router.post("/signup", async (req, res) => {
+  if (!ALLOW_PUBLIC_SIGNUP) {
+    return res.status(403).json({
+      error: "Public signup is disabled. Admin login only.",
+      code: "SIGNUP_DISABLED",
+    });
+  }
   const { name, email, password, location, district, lat, lon } = req.body;
   if (!name || !email || !password || !location)
     return res
@@ -246,6 +253,12 @@ router.post("/signup", async (req, res) => {
 
 // ── POST /api/auth/verify-otp ────────────────────────────────────
 router.post("/verify-otp", async (req, res) => {
+  if (!ALLOW_PUBLIC_SIGNUP) {
+    return res.status(403).json({
+      error: "OTP verification is disabled. Admin login only.",
+      code: "OTP_DISABLED",
+    });
+  }
   const { email, otp } = req.body;
   if (!email || !otp)
     return res.status(400).json({ error: "email and otp are required" });
@@ -259,9 +272,9 @@ router.post("/verify-otp", async (req, res) => {
       { new: true },
     );
     if (!otpRecord)
-      return res
-        .status(400)
-        .json({ error: "Too many attempts or OTP expired. Please request a new one." });
+      return res.status(400).json({
+        error: "Too many attempts or OTP expired. Please request a new one.",
+      });
 
     if (otpRecord.otp !== otp.toString()) {
       return res.status(400).json({
@@ -344,6 +357,7 @@ router.post("/login", async (req, res) => {
         avatarColor: user.avatarColor,
         avatarIndex: user.avatarIndex || 1,
         initials: user.getInitials(),
+        role: user.role,
         alerts: user.alerts,
       },
     });
@@ -378,8 +392,49 @@ router.put("/alerts", authMiddleware, async (req, res) => {
   }
 });
 
+// ── PUT /api/auth/change-password ───────────────────────────────
+router.put("/change-password", authMiddleware, async (req, res) => {
+  const { currentPassword, newPassword } = req.body || {};
+  if (!currentPassword || !newPassword) {
+    return res
+      .status(400)
+      .json({ error: "currentPassword and newPassword are required" });
+  }
+  if (String(newPassword).length < 6) {
+    return res
+      .status(400)
+      .json({ error: "New password must be at least 6 characters" });
+  }
+  if (currentPassword === newPassword) {
+    return res
+      .status(400)
+      .json({ error: "New password must be different from current password" });
+  }
+
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const ok = await user.comparePassword(currentPassword);
+    if (!ok)
+      return res.status(401).json({ error: "Current password is incorrect" });
+
+    user.password = newPassword;
+    await user.save();
+    res.json({ success: true, message: "Password updated successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── POST /api/auth/resend-otp ────────────────────────────────────
 router.post("/resend-otp", async (req, res) => {
+  if (!ALLOW_PUBLIC_SIGNUP) {
+    return res.status(403).json({
+      error: "OTP resend is disabled. Admin login only.",
+      code: "OTP_DISABLED",
+    });
+  }
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: "email is required" });
   try {

@@ -18,6 +18,7 @@ const UserSchema = new mongoose.Schema({
   avatarIndex: { type: Number, default: 1, min: 1, max: 9 }, // 1-9 avatar image index
   avatarColor: { type: String, default: "#2563eb" }, // fallback color if no image
   isVerified: { type: Boolean, default: false },
+  role: { type: String, enum: ["user", "admin"], default: "user" },
   alerts: {
     aqi: { type: Boolean, default: true },
     rain: { type: Boolean, default: true },

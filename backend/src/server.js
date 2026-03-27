@@ -27,7 +27,8 @@ connectDB();
 
 // Background services
 initDataSync();
-initAlertScheduler();
+// Subscription-based scheduler paused for now.
+// initAlertScheduler();
 initNotificationScheduler();
 
 // Routes
@@ -64,7 +65,7 @@ app.post("/api/test-email", async (req, res) => {
 
 // Global error handler (must be after routes and before app.listen)
 app.use((err, req, res, next) => {
-  console.error('[Error]', err.message);
+  console.error("[Error]", err.message);
   res.status(err.status || 500).json({ error: err.message });
 });
 

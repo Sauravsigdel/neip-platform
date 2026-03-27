@@ -174,6 +174,7 @@ router.get("/current", async (req, res) => {
         humidity: c.relative_humidity_2m,
         wind_speed: c.wind_speed_10m,
         rainfall: c.precipitation,
+        snowfall: c.snowfall,
       });
     } catch (_) {
       /* non-critical */

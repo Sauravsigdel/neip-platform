@@ -18,6 +18,7 @@ function getTransporter() {
 
 // ── AQI color helper ─────────────────────────────────────────────
 function aqiColor(aqi) {
+  if (!Number.isFinite(aqi)) return { bg: "#475569", text: "Unavailable" };
   if (aqi <= 50) return { bg: "#16a34a", text: "Good" };
   if (aqi <= 100) return { bg: "#ca8a04", text: "Moderate" };
   if (aqi <= 150) return { bg: "#ea580c", text: "Unhealthy (Sensitive)" };
@@ -54,6 +55,10 @@ function buildAlertEmail({
   );
 
   const alertBadges = [];
+  if (alerts.aqiUnavailable)
+    alertBadges.push(
+      `<span style="background:#475569;color:#fff;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;margin:3px;display:inline-block;">ℹ️ AQI Data: Unavailable</span>`,
+    );
   if (alerts.aqi && aqi > 150)
     alertBadges.push(
       `<span style="background:#dc2626;color:#fff;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;margin:3px;display:inline-block;">🏭 AQI Alert: ${aqi}</span>`,
@@ -115,7 +120,7 @@ function buildAlertEmail({
         </td>
         <td width="50%" style="padding:4px;">
           <div style="background:${aqiInfo.bg};border-radius:12px;padding:16px;text-align:center;">
-            <div style="font-size:28px;font-weight:900;color:#fff;">${aqi}</div>
+            <div style="font-size:28px;font-weight:900;color:#fff;">${Number.isFinite(aqi) ? aqi : "N/A"}</div>
             <div style="font-size:11px;color:rgba(255,255,255,0.8);text-transform:uppercase;letter-spacing:1px;">AQI</div>
             <div style="font-size:12px;font-weight:700;color:#fff;margin-top:2px;">${aqiInfo.text}</div>
           </div>
@@ -163,10 +168,15 @@ function buildAlertEmail({
     </div>`
         : ""
     }
+    ${
+      !Number.isFinite(aqi)
+        ? `<div style="background:#f8fafc;border-radius:12px;padding:14px;border:1px solid #cbd5e1;margin-bottom:24px;"><div style="font-size:12px;font-weight:700;color:#334155;margin-bottom:6px;">ℹ️ AQI Transparency Notice</div><p style="font-size:12px;color:#475569;line-height:1.7;margin:0;">AQI data is unavailable for this location right now. This alert is based on available weather signals: temperature, wind, rainfall, and snowfall.</p></div>`
+        : ""
+    }
     <div style="background:#fefce8;border-radius:12px;padding:16px;border:1px solid #fde047;margin-bottom:24px;">
       <div style="font-size:12px;font-weight:700;color:#854d0e;margin-bottom:8px;">⚡ Safety Tips</div>
       <ul style="margin:0;padding-left:18px;font-size:12px;color:#713f12;line-height:1.8;">
-        ${aqi > 150 ? "<li>Wear N95 mask when outdoors</li>" : ""}
+        ${Number.isFinite(aqi) && aqi > 150 ? "<li>Wear N95 mask when outdoors</li>" : ""}
         ${parseFloat(weather.rainfall || 0) > 5 ? "<li>Avoid river banks — landslide risk</li>" : ""}
         ${parseFloat(weather.snowfall || 0) > 0 ? "<li>Check road conditions before mountain travel</li>" : ""}
         <li>Stay updated via WeatherNepal for real-time conditions</li>
@@ -200,9 +210,12 @@ async function sendAlertEmail({
   const aqiInfo = aqiColor(aqi);
   const isDaily =
     !alerts.aqi && !alerts.rain && !alerts.wind && !alerts.snow && !alerts.temp;
+  const aqiLabel = Number.isFinite(aqi)
+    ? `AQI ${aqi} (${aqiInfo.text})`
+    : "AQI Unavailable";
   const subject = isDaily
     ? `🌅 WeatherNepal Daily Summary — ${location} — ${new Date().toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}`
-    : `⚠️ WeatherNepal Alert — ${location} — AQI ${aqi} (${aqiInfo.text})`;
+    : `⚠️ WeatherNepal Alert — ${location} — ${aqiLabel}`;
 
   const html = buildAlertEmail({
     name,
