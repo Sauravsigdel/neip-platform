@@ -168,7 +168,12 @@ const OFFICIAL_AQI_STATIONS = [
   { station: "Sauraha", city: "Bharatpur", aqi: null },
   { station: "Simara", city: "Birgunj", aqi: null },
 ];
-let adminAqiDraft = OFFICIAL_AQI_STATIONS.map((r) => ({ ...r }));
+let adminAqiDraft = OFFICIAL_AQI_STATIONS.map((r) => ({
+  ...r,
+  pm25: null,
+  pm10: null,
+  pm1: null,
+}));
 
 function normalizeStationName(name) {
   return String(name || "")
@@ -176,30 +181,96 @@ function normalizeStationName(name) {
     .toLowerCase();
 }
 
+function adminAqiBand(aqi) {
+  if (!Number.isFinite(aqi)) {
+    return { label: "No Data", color: "#64748b" };
+  }
+  if (aqi <= 50) return { label: "Good", color: "#22c55e" };
+  if (aqi <= 100) return { label: "Moderate", color: "#eab308" };
+  if (aqi <= 150) return { label: "Unhealthy*", color: "#f97316" };
+  if (aqi <= 200) return { label: "Unhealthy", color: "#ef4444" };
+  if (aqi <= 300) return { label: "Very Unhealthy", color: "#a855f7" };
+  return { label: "Hazardous", color: "#7f1d1d" };
+}
+
+function refreshAdminAqiStats() {
+  const total = adminAqiDraft.length;
+  const filled = adminAqiDraft.filter(
+    (r) =>
+      Number.isFinite(r.aqi) ||
+      Number.isFinite(r.pm25) ||
+      Number.isFinite(r.pm10) ||
+      Number.isFinite(r.pm1),
+  ).length;
+  const pct = total ? Math.round((filled / total) * 100) : 0;
+  const totalEl = document.getElementById("adminAqiStationCount");
+  const filledEl = document.getElementById("adminAqiFilledCount");
+  const pctEl = document.getElementById("adminAqiCoveragePct");
+  if (totalEl) totalEl.textContent = String(total);
+  if (filledEl) filledEl.textContent = String(filled);
+  if (pctEl) pctEl.textContent = `${pct}%`;
+}
+
 function renderAdminAqiTable() {
   const body = document.getElementById("adminAqiTableBody");
   if (!body) return;
   body.innerHTML = adminAqiDraft
-    .map(
-      (row, i) => `
+    .map((row, i) => {
+      const band = adminAqiBand(row.aqi);
+      return `
           <tr>
             <td style="padding:6px 8px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text);font-weight:600;">${row.station}</td>
             <td style="padding:6px 8px;border-bottom:1px solid var(--border);font-size:11px;color:var(--sub);">${row.city}</td>
             <td style="padding:6px 8px;border-bottom:1px solid var(--border);">
-              <input type="number" min="0" max="500" step="1" value="${Number.isFinite(row.aqi) ? row.aqi : ""}" oninput="updateAdminAqiValue(${i}, this.value)" class="wn-fi" style="height:30px;padding:6px 8px;font-size:12px;" placeholder="-" />
+              <input type="number" min="0" max="500" step="1" value="${Number.isFinite(row.aqi) ? row.aqi : ""}" oninput="updateAdminAqiValue(${i}, this.value, this)" class="wn-fi" style="height:32px;padding:6px 8px;font-size:12px;" placeholder="-" />
             </td>
-          </tr>`,
-    )
+            <td style="padding:6px 8px;border-bottom:1px solid var(--border);">
+              <input type="number" min="0" max="500" step="0.1" value="${Number.isFinite(row.pm25) ? row.pm25 : ""}" oninput="updateAdminAqiField(${i}, 'pm25', this.value)" class="wn-fi" style="height:32px;padding:6px 8px;font-size:12px;" placeholder="-" />
+            </td>
+            <td style="padding:6px 8px;border-bottom:1px solid var(--border);">
+              <input type="number" min="0" max="500" step="0.1" value="${Number.isFinite(row.pm10) ? row.pm10 : ""}" oninput="updateAdminAqiField(${i}, 'pm10', this.value)" class="wn-fi" style="height:32px;padding:6px 8px;font-size:12px;" placeholder="-" />
+            </td>
+            <td style="padding:6px 8px;border-bottom:1px solid var(--border);">
+              <input type="number" min="0" max="500" step="0.1" value="${Number.isFinite(row.pm1) ? row.pm1 : ""}" oninput="updateAdminAqiField(${i}, 'pm1', this.value)" class="wn-fi" style="height:32px;padding:6px 8px;font-size:12px;" placeholder="-" />
+            </td>
+            <td style="padding:6px 8px;border-bottom:1px solid var(--border);font-size:10px;">
+              <span data-aqi-band style="display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;background:${band.color}1f;color:${band.color};font-weight:700;">${band.label}</span>
+            </td>
+          </tr>`;
+    })
     .join("");
+  refreshAdminAqiStats();
 }
 
-function updateAdminAqiValue(index, value) {
-  const n = Number(value);
-  adminAqiDraft[index].aqi = Number.isFinite(n) ? Math.round(n) : null;
+function updateAdminAqiValue(index, value, inputEl) {
+  const clean = String(value ?? "").trim();
+  const n = Number(clean);
+  adminAqiDraft[index].aqi =
+    clean !== "" && Number.isFinite(n) ? Math.round(n) : null;
+  const rowBand = inputEl?.closest("tr")?.querySelector("[data-aqi-band]");
+  if (rowBand) {
+    const band = adminAqiBand(adminAqiDraft[index].aqi);
+    rowBand.textContent = band.label;
+    rowBand.style.color = band.color;
+    rowBand.style.background = `${band.color}1f`;
+  }
+  refreshAdminAqiStats();
+}
+
+function updateAdminAqiField(index, field, value) {
+  const clean = String(value ?? "").trim();
+  const n = Number(clean);
+  adminAqiDraft[index][field] = clean !== "" && Number.isFinite(n) ? n : null;
+  refreshAdminAqiStats();
 }
 
 async function hydrateAdminAqiDraftFromServer() {
-  adminAqiDraft = OFFICIAL_AQI_STATIONS.map((r) => ({ ...r }));
+  adminAqiDraft = OFFICIAL_AQI_STATIONS.map((r) => ({
+    ...r,
+    pm25: null,
+    pm10: null,
+    pm1: null,
+  }));
   try {
     const res = await fetch(`${CFG.API}/map/official-aqi-latest`);
     if (!res.ok) return;
@@ -214,6 +285,9 @@ async function hydrateAdminAqiDraftFromServer() {
       return {
         ...row,
         aqi: Number.isFinite(found.aqi) ? Math.round(found.aqi) : null,
+        pm25: Number.isFinite(found.pm25) ? found.pm25 : null,
+        pm10: Number.isFinite(found.pm10) ? found.pm10 : null,
+        pm1: Number.isFinite(found.pm1) ? found.pm1 : null,
       };
     });
   } catch (_) {
@@ -241,10 +315,30 @@ async function loadAdminAqiHistory() {
     }
     box.innerHTML = data.data
       .slice(0, 40)
-      .map(
-        (r) =>
-          `<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px;"><span style="color:var(--text);font-weight:600;">${r.stationName}</span><span style="color:${Number.isFinite(r.aqi) ? "#f97316" : "var(--sub)"};">${Number.isFinite(r.aqi) ? r.aqi : "-"}</span><span style="color:var(--sub);">${new Date(r.timestamp).toLocaleString()}</span></div>`,
-      )
+      .map((r) => {
+        const dt = new Date(r.timestamp);
+        const day = dt.toLocaleString("en-US", {
+          day: "numeric",
+          timeZone: "Asia/Kathmandu",
+        });
+        const month = dt
+          .toLocaleString("en-US", {
+            month: "short",
+            timeZone: "Asia/Kathmandu",
+          })
+          .toLowerCase();
+        const hourRaw = Number(
+          dt.toLocaleString("en-US", {
+            hour: "numeric",
+            hour12: false,
+            timeZone: "Asia/Kathmandu",
+          }),
+        );
+        const ampm = hourRaw >= 12 ? "pm" : "am";
+        const hour = hourRaw % 12 || 12;
+        const compactTime = `${day} ${month}, ${hour}${ampm}`;
+        return `<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px;"><span style="color:var(--text);font-weight:600;">${r.stationName}</span><span style="color:${Number.isFinite(r.aqi) ? "#f97316" : "var(--sub)"};">${Number.isFinite(r.aqi) ? r.aqi : "-"}</span><span style="color:var(--sub);">${compactTime}</span></div>`;
+      })
       .join("");
   } catch (err) {
     box.innerHTML = `<div style="font-size:11px;color:#ef4444;">${err.message || "History load failed."}</div>`;
@@ -270,24 +364,58 @@ function openAdminAqiModal() {
 async function openAdminPasswordReset() {
   if (!authToken || !currentUser || currentUser.role !== "admin") return;
   closeUserMenu();
+  const modal = document.getElementById("adminPassModal");
+  const status = document.getElementById("apStatus");
+  if (status) {
+    status.textContent = "Use a unique password you don't use elsewhere.";
+    status.style.color = "var(--sub)";
+  }
+  ["apCurrent", "apNew", "apConfirm"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
+  });
+  if (modal) modal.style.display = "block";
+}
 
-  const currentPassword = prompt("Enter current admin password:");
-  if (!currentPassword) return;
+function closeAdminPasswordModal() {
+  const modal = document.getElementById("adminPassModal");
+  if (modal) modal.style.display = "none";
+}
 
-  const newPassword = prompt("Enter new admin password (min 6 chars):");
-  if (!newPassword) return;
-  if (newPassword.length < 6) {
-    alert("New password must be at least 6 characters.");
+async function submitAdminPasswordChange() {
+  if (!authToken || !currentUser || currentUser.role !== "admin") return;
+  const currentPassword = document.getElementById("apCurrent")?.value || "";
+  const newPassword = document.getElementById("apNew")?.value || "";
+  const confirmPassword = document.getElementById("apConfirm")?.value || "";
+  const status = document.getElementById("apStatus");
+
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    if (status) {
+      status.textContent = "Fill in all password fields.";
+      status.style.color = "#ef4444";
+    }
     return;
   }
-
-  const confirmPassword = prompt("Confirm new admin password:");
-  if (confirmPassword !== newPassword) {
-    alert("New password and confirmation do not match.");
+  if (newPassword.length < 6) {
+    if (status) {
+      status.textContent = "New password must be at least 6 characters.";
+      status.style.color = "#ef4444";
+    }
+    return;
+  }
+  if (newPassword !== confirmPassword) {
+    if (status) {
+      status.textContent = "New password and confirmation do not match.";
+      status.style.color = "#ef4444";
+    }
     return;
   }
 
   try {
+    if (status) {
+      status.textContent = "Updating password...";
+      status.style.color = "var(--sub)";
+    }
     const res = await fetch(`${API}/auth/change-password`, {
       method: "PUT",
       headers: {
@@ -300,9 +428,90 @@ async function openAdminPasswordReset() {
     if (!res.ok || !data?.success) {
       throw new Error(data?.error || "Password update failed");
     }
-    alert("Admin password updated successfully.");
+    if (status) {
+      status.textContent = "Password updated successfully.";
+      status.style.color = "#22c55e";
+    }
+    setTimeout(() => closeAdminPasswordModal(), 700);
   } catch (err) {
-    alert(err.message || "Password update failed.");
+    if (status) {
+      status.textContent = err.message || "Password update failed.";
+      status.style.color = "#ef4444";
+    }
+  }
+}
+
+function openAvatarPicker() {
+  if (!authToken || !currentUser) return;
+  closeUserMenu();
+  const modal = document.getElementById("avatarPickerModal");
+  const status = document.getElementById("avatarPickerStatus");
+  if (!Number.isInteger(selectedAvatarIndex) || selectedAvatarIndex < 1) {
+    selectedAvatarIndex = currentUser.avatarIndex || 1;
+  }
+  if (status) {
+    status.textContent = "Choose an avatar and save.";
+    status.style.color = "var(--sub)";
+  }
+  renderAvatarPickerGrid();
+  if (modal) modal.style.display = "block";
+}
+
+function renderAvatarPickerGrid() {
+  const grid = document.getElementById("avatarPickerGrid");
+  if (grid) {
+    grid.innerHTML = AVATAR_IMAGES.map((src, i) => {
+      const idx = i + 1;
+      const active = idx === selectedAvatarIndex;
+      return `<button onclick="selectPickerAvatar(${idx})" style="height:88px;border-radius:12px;border:${active ? "2px solid var(--accent)" : "1px solid var(--border)"};background:var(--cell);cursor:pointer;display:grid;place-items:center;padding:6px;">
+          <img src="${src}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;" />
+        </button>`;
+    }).join("");
+  }
+}
+
+function selectPickerAvatar(index) {
+  selectedAvatarIndex = index;
+  renderAvatarPickerGrid();
+}
+
+function closeAvatarPicker() {
+  const modal = document.getElementById("avatarPickerModal");
+  if (modal) modal.style.display = "none";
+}
+
+async function saveAvatarSelection() {
+  if (!authToken || !currentUser) return;
+  const status = document.getElementById("avatarPickerStatus");
+  try {
+    if (status) {
+      status.textContent = "Saving avatar...";
+      status.style.color = "var(--sub)";
+    }
+    const res = await fetch(`${API}/auth/avatar`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify({ avatarIndex: selectedAvatarIndex }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data?.success) {
+      throw new Error(data?.error || "Failed to save avatar");
+    }
+    currentUser.avatarIndex = data.user?.avatarIndex || selectedAvatarIndex;
+    setLoggedIn(currentUser);
+    if (status) {
+      status.textContent = "Avatar updated.";
+      status.style.color = "#22c55e";
+    }
+    setTimeout(() => closeAvatarPicker(), 600);
+  } catch (err) {
+    if (status) {
+      status.textContent = err.message || "Failed to save avatar.";
+      status.style.color = "#ef4444";
+    }
   }
 }
 
@@ -319,6 +528,9 @@ async function submitAdminAqiUpload() {
     stationName: row.station,
     city: row.city,
     aqi: Number.isFinite(row.aqi) ? row.aqi : null,
+    pm25: Number.isFinite(row.pm25) ? row.pm25 : null,
+    pm10: Number.isFinite(row.pm10) ? row.pm10 : null,
+    pm1: Number.isFinite(row.pm1) ? row.pm1 : null,
   }));
 
   try {
@@ -421,11 +633,19 @@ function setLoggedIn(user) {
   document.getElementById("umEmail").textContent = user.email;
   const adminItem = document.getElementById("adminAqiMenuItem");
   const adminPasswordItem = document.getElementById("adminPasswordMenuItem");
+  const alertSettingsItem = document.getElementById("alertSettingsMenuItem");
+  const avatarItem = document.getElementById("avatarMenuItem");
   if (adminItem) {
     adminItem.style.display = user.role === "admin" ? "block" : "none";
   }
   if (adminPasswordItem) {
     adminPasswordItem.style.display = user.role === "admin" ? "block" : "none";
+  }
+  if (alertSettingsItem) {
+    alertSettingsItem.style.display = user.role === "admin" ? "none" : "block";
+  }
+  if (avatarItem) {
+    avatarItem.style.display = "block";
   }
   // Auto-fix missing coordinates by matching location name to CITIES
   if ((!user.lat || !user.lon) && user.location) {
@@ -478,8 +698,6 @@ function setLoggedIn(user) {
   const userBtn = document.getElementById("alertBtnUser");
   if (guestBtn) guestBtn.style.display = "none";
   if (userBtn) userBtn.style.display = "flex";
-  // Generate location-based notification on login
-  setTimeout(() => generateLoginNotification(user), 3000);
 }
 
 // LOGOUT
@@ -489,18 +707,23 @@ function logout() {
   localStorage.removeItem("wn_token");
   document.getElementById("authBtns").style.display = "flex";
   document.getElementById("userAvatarWrap").style.display = "none";
-  document.getElementById("notifWrap").style.display = "none";
+  document.getElementById("notifWrap").style.display = "flex";
   document.getElementById("notifBadge").classList.remove("show");
   const adminItem = document.getElementById("adminAqiMenuItem");
   const adminPasswordItem = document.getElementById("adminPasswordMenuItem");
+  const alertSettingsItem = document.getElementById("alertSettingsMenuItem");
+  const avatarItem = document.getElementById("avatarMenuItem");
   if (adminItem) adminItem.style.display = "none";
   if (adminPasswordItem) adminPasswordItem.style.display = "none";
+  if (alertSettingsItem) alertSettingsItem.style.display = "block";
+  if (avatarItem) avatarItem.style.display = "none";
   // Restore guest alert button
   const guestBtn = document.getElementById("alertBtnGuest");
   const userBtn = document.getElementById("alertBtnUser");
   if (guestBtn) guestBtn.style.display = "flex";
   if (userBtn) userBtn.style.display = "none";
   closeUserMenu();
+  loadNotifications();
 }
 
 // TOGGLE USER MENU
@@ -528,7 +751,19 @@ const NOTIF_ICONS = {
   temp: "🥶",
   daily: "🌅",
   system: "🔔",
+  news: "📰",
 };
+let cachedNotifications = [];
+
+function escapeHtml(text) {
+  return String(text || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
 function timeAgo(date) {
   const s = Math.floor((Date.now() - new Date(date)) / 1000);
   if (s < 60) return "just now";
@@ -538,34 +773,65 @@ function timeAgo(date) {
 }
 
 async function loadNotifications() {
-  if (!authToken) return;
   try {
-    const res = await fetch(`${API}/notifications`, {
-      headers: { Authorization: `Bearer ${authToken}` },
-    });
-    if (!res.ok) return;
-    const data = await res.json();
+    const publicRes = await fetch(`${API}/notifications/public`);
+    const publicData = publicRes.ok
+      ? await publicRes.json()
+      : { notifications: [] };
+
+    let personalData = { notifications: [], unreadCount: 0 };
+    if (authToken) {
+      const res = await fetch(`${API}/notifications`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      if (res.ok) {
+        personalData = await res.json();
+      }
+    }
+
+    const merged = [
+      ...(publicData.notifications || []).map((n) => ({
+        ...n,
+        read: true,
+        isPublic: true,
+      })),
+      ...(personalData.notifications || []).map((n) => ({
+        ...n,
+        isPublic: false,
+      })),
+    ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    cachedNotifications = merged;
+
+    const readAllBtn = document.querySelector(".nd-readall");
+    if (readAllBtn) {
+      readAllBtn.style.display = authToken ? "inline-flex" : "none";
+    }
+
     const badge = document.getElementById("notifBadge");
-    if (data.unreadCount > 0) {
-      badge.textContent = data.unreadCount > 9 ? "9+" : data.unreadCount;
+    if ((personalData.unreadCount || 0) > 0) {
+      badge.textContent =
+        personalData.unreadCount > 9 ? "9+" : personalData.unreadCount;
       badge.classList.add("show");
     } else badge.classList.remove("show");
+
     const list = document.getElementById("ndList");
-    if (!data.notifications.length) {
-      list.innerHTML = '<div class="nd-empty">No notifications yet 🎉</div>';
+    if (!merged.length) {
+      list.innerHTML =
+        '<div class="nd-empty">No news yet. Check back soon.</div>';
       return;
     }
-    list.innerHTML = data.notifications
+
+    list.innerHTML = merged
       .map(
-        (n) => `
-          <div class="nd-item${n.read ? "" : " unread"}" onclick="markRead('${n._id}',this)">
+        (n, i) => `
+          <div class="nd-item${n.read ? "" : " unread"}" onclick="openNotificationDetail(${i})">
             <div class="nd-ico ${n.severity}">${NOTIF_ICONS[n.type] || "🔔"}</div>
             <div class="nd-body">
-              <div class="nd-ntitle">${n.title}</div>
-              <div class="nd-msg">${n.message}</div>
+              <div class="nd-ntitle">${escapeHtml(n.title)}</div>
+              <div class="nd-msg">${escapeHtml(n.message)}</div>
               <div class="nd-time">${timeAgo(n.createdAt)}</div>
             </div>
-            ${n.read ? "" : '<div class="nd-dot"></div>'}
+            ${n.isPublic ? '<div style="font-size:9px;color:var(--sub);font-weight:700;align-self:flex-start;">PUBLIC</div>' : n.read ? "" : '<div class="nd-dot"></div>'}
           </div>`,
       )
       .join("");
@@ -574,15 +840,38 @@ async function loadNotifications() {
   }
 }
 
-async function markRead(id, el) {
-  if (!authToken) return;
-  el.classList.remove("unread");
-  el.querySelector(".nd-dot")?.remove();
-  await fetch(`${API}/notifications/${id}/read`, {
-    method: "PUT",
-    headers: { Authorization: `Bearer ${authToken}` },
-  });
-  loadNotifications();
+async function openNotificationDetail(index) {
+  const n = cachedNotifications[index];
+  if (!n) return;
+
+  if (authToken && !n.isPublic && !n.read) {
+    await fetch(`${API}/notifications/${n._id}/read`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+  }
+
+  const existing = document.getElementById("notifDetailModal");
+  if (existing) existing.remove();
+  const details = n.details || n.message;
+  const advisory = n.advisory || "No suggestion generated yet.";
+  const html = `
+    <div id="notifDetailModal" style="position:fixed;inset:0;z-index:5100;display:flex;align-items:center;justify-content:center;padding:16px;">
+      <div style="position:absolute;inset:0;background:rgba(2,6,23,0.75);backdrop-filter:blur(8px);" onclick="document.getElementById('notifDetailModal').remove();loadNotifications();"></div>
+      <div style="position:relative;z-index:1;width:min(560px,96vw);max-height:86vh;overflow:auto;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;">
+        <button onclick="document.getElementById('notifDetailModal').remove();loadNotifications();" style="position:absolute;top:10px;right:10px;border:none;background:rgba(148,163,184,0.2);color:var(--text);width:28px;height:28px;border-radius:50%;cursor:pointer;">✕</button>
+        <div style="font-size:11px;color:var(--sub);font-weight:700;letter-spacing:1px;text-transform:uppercase;">${n.isPublic ? "Public News" : "Personal Alert"}</div>
+        <div style="font-size:18px;font-weight:800;color:var(--text);margin-top:6px;">${escapeHtml(n.title)}</div>
+        <div style="font-size:11px;color:var(--sub);margin-top:4px;">${timeAgo(n.createdAt)}${n.location ? ` • ${escapeHtml(n.location)}` : ""}</div>
+        <div style="margin-top:14px;padding:12px;border-radius:10px;background:var(--cell);border:1px solid var(--border);font-size:13px;color:var(--text);line-height:1.6;">${escapeHtml(details)}</div>
+        <div style="margin-top:12px;padding:12px;border-radius:10px;background:rgba(37,99,235,0.12);border:1px solid rgba(59,130,246,0.3);">
+          <div style="font-size:10px;color:#93c5fd;text-transform:uppercase;letter-spacing:1px;font-weight:700;">AI Suggestion</div>
+          <div style="font-size:13px;color:var(--text);margin-top:6px;line-height:1.6;">${escapeHtml(advisory)}</div>
+        </div>
+      </div>
+    </div>`;
+  document.body.insertAdjacentHTML("beforeend", html);
+  await loadNotifications();
 }
 
 async function markAllRead() {
@@ -742,6 +1031,16 @@ function openProfile() {
       nearest = CITIES.find((c) => c.city === "Kathmandu") || CITIES[0];
   }
   const lv = nearest ? gl(nearest.aqi) : null;
+  const actions =
+    currentUser.role === "admin"
+      ? `
+      <button onclick="document.getElementById('profileModal').remove();openAvatarPicker();" style="flex:1;padding:10px;border-radius:10px;background:var(--cell);border:1px solid var(--border);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">🖼️ Change Avatar</button>
+      <button onclick="document.getElementById('profileModal').remove();flyToUserLocation();" style="flex:1;padding:10px;border-radius:10px;background:var(--accent);border:none;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">📍 My Location</button>
+    `
+      : `
+      <button onclick="document.getElementById('profileModal').remove();openAlertSettings();" style="flex:1;padding:10px;border-radius:10px;background:var(--cell);border:1px solid var(--border);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">⚙️ Alert Settings</button>
+      <button onclick="document.getElementById('profileModal').remove();flyToUserLocation();" style="flex:1;padding:10px;border-radius:10px;background:var(--accent);border:none;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">📍 My Location</button>
+    `;
 
   const html = `
       <div style="position:fixed;inset:0;z-index:5000;display:flex;align-items:center;justify-content:center;padding:16px;" id="profileModal">
@@ -799,8 +1098,7 @@ function openProfile() {
             </div>
             <!-- Quick action buttons -->
             <div style="display:flex;gap:8px;">
-              <button onclick="document.getElementById('profileModal').remove();openAlertSettings();" style="flex:1;padding:10px;border-radius:10px;background:var(--cell);border:1px solid var(--border);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">⚙️ Alert Settings</button>
-              <button onclick="document.getElementById('profileModal').remove();flyToUserLocation();" style="flex:1;padding:10px;border-radius:10px;background:var(--accent);border:none;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">📍 My Location</button>
+              ${actions}
             </div>
           </div>
         </div>
@@ -820,6 +1118,7 @@ function flyToUserLocation() {
 function openAlertSettings() {
   closeUserMenu();
   if (!currentUser) return;
+  if (currentUser.role === "admin") return;
   const alerts = currentUser.alerts || {
     aqi: true,
     rain: true,
@@ -889,3 +1188,123 @@ async function saveAlertSettings() {
     console.error("Save alerts error:", e);
   }
 }
+
+// ── PUBLIC ALERT MODAL (for non-logged-in users) ─────────────────
+function openAlert() {
+  const modal = document.getElementById("alrtModal");
+  if (modal) {
+    modal.style.display = "flex";
+    // Set location from active city if available
+    if (activeCity) {
+      const amSub = document.getElementById("amSub");
+      if (amSub)
+        amSub.textContent = `Stay informed about ${activeCity.city} conditions`;
+    }
+  }
+}
+
+function closeAlert() {
+  const modal = document.getElementById("alrtModal");
+  if (modal) modal.style.display = "none";
+}
+
+async function submitAlert() {
+  const name = (document.getElementById("aName")?.value || "").trim();
+  const email = (document.getElementById("aEmail")?.value || "").trim();
+
+  if (!name || !email) {
+    alert("Please fill in your name and email.");
+    return;
+  }
+
+  if (!email.includes("@")) {
+    alert("Please enter a valid email address.");
+    return;
+  }
+
+  if (!activeCity) {
+    alert("Please select a location on the map first.");
+    return;
+  }
+
+  const btn = document.querySelector("#alrtModal .f-submit");
+  if (!btn) return;
+
+  const origText = btn.textContent;
+  btn.textContent = "⏳ Setting up...";
+  btn.disabled = true;
+
+  try {
+    // Send to public endpoint with alert preferences
+    const message = `Weather alert preferences set for ${activeCity.city}: ${
+      document.getElementById("cAqi")?.checked ? "AQI, " : ""
+    }${document.getElementById("cRain")?.checked ? "Rain, " : ""}${
+      document.getElementById("cWind")?.checked ? "Wind, " : ""
+    }${document.getElementById("cSnow")?.checked ? "Snow, " : ""}${
+      document.getElementById("cTemp")?.checked ? "Temperature, " : ""
+    }${document.getElementById("cDaily")?.checked ? "Daily Summary" : ""}`;
+
+    const res = await fetch(`${API}/auth/send-alert-email`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email,
+        name,
+        location: activeCity.city,
+        message,
+        severity: "moderate",
+        weather: {
+          temp: activeCity.wx?.temp,
+          feelsLike: activeCity.wx?.feelsLike,
+          humidity: activeCity.wx?.humidity,
+          wind: activeCity.wx?.wind,
+          rain: activeCity.wx?.rain,
+          snow: activeCity.wx?.snow,
+        },
+        alertPrefs: {
+          aqi: Boolean(document.getElementById("cAqi")?.checked),
+          rain: Boolean(document.getElementById("cRain")?.checked),
+          wind: Boolean(document.getElementById("cWind")?.checked),
+          snow: Boolean(document.getElementById("cSnow")?.checked),
+          temp: Boolean(document.getElementById("cTemp")?.checked),
+          daily: Boolean(document.getElementById("cDaily")?.checked),
+        },
+      }),
+    });
+
+    if (!res.ok) {
+      const raw = await res.text();
+      let errMsg = "Failed to set up alert";
+      try {
+        const data = JSON.parse(raw || "{}");
+        errMsg = data.error || data.details || errMsg;
+      } catch {
+        if (raw) errMsg = raw;
+      }
+      throw new Error(errMsg);
+    }
+
+    // Show success state
+    const form = document.getElementById("amForm");
+    const okBox = document.getElementById("amOk");
+    const okTxt = document.getElementById("amOkTxt");
+
+    if (form && okBox) {
+      form.style.display = "none";
+      okBox.style.display = "block";
+      if (okTxt)
+        okTxt.textContent = `Alerts activated for ${activeCity.city}. You'll receive updates at ${email}.`;
+
+      // Auto-close after 3 seconds
+      setTimeout(() => closeAlert(), 3000);
+    }
+  } catch (err) {
+    alert("Alert setup failed: " + err.message);
+    btn.textContent = origText;
+    btn.disabled = false;
+  }
+}
+
+const avatarMenuItem = document.getElementById("avatarMenuItem");
+if (avatarMenuItem) avatarMenuItem.style.display = "none";
+loadNotifications();

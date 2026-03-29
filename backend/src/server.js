@@ -3,8 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const connectDB = require("./config/db");
 const initDataSync = require("./services/dataSync");
-const initAlertScheduler = require("./services/alertScheduler");
-const initNotificationScheduler = require("./services/notificationScheduler");
+const adminMiddleware = require("./routes/adminMiddleware");
 
 // Route imports
 const aqiRoutes = require("./routes/aqiRoutes");
@@ -20,16 +19,35 @@ const owmProxy = require("./routes/owmProxy");
 
 const app = express();
 
-app.use(cors());
-app.use(express.json());
+const allowedOrigins = (
+  process.env.CORS_ORIGINS ||
+  "http://localhost:5173,http://localhost:5174,http://localhost:5175"
+)
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error("CORS origin not allowed"));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
+app.use(express.json({ limit: "1mb" }));
 
 connectDB();
 
 // Background services
 initDataSync();
-// Subscription-based scheduler paused for now.
-// initAlertScheduler();
-initNotificationScheduler();
+// Legacy user-email scheduler removed.
 
 // Routes
 app.use("/api/aqi", aqiRoutes);
@@ -48,18 +66,21 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", time: new Date().toISOString() });
 });
 
-// Test email
-app.post("/api/test-email", async (req, res) => {
-  const { email } = req.body;
-  if (!email) return res.status(400).json({ error: "email is required" });
+// Test email (admin-only)
+app.post("/api/test-email", adminMiddleware, async (req, res) => {
+  const email = String(req.body?.email || "")
+    .trim()
+    .toLowerCase();
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!email || !emailPattern.test(email)) {
+    return res.status(400).json({ error: "A valid email is required" });
+  }
   try {
     const { sendTestEmail } = require("./services/emailService");
     await sendTestEmail(email);
     res.json({ success: true, message: `Test email sent to ${email}` });
-  } catch (err) {
-    res
-      .status(500)
-      .json({ error: "Failed to send test email", details: err.message });
+  } catch {
+    res.status(500).json({ error: "Failed to send test email" });
   }
 });
 

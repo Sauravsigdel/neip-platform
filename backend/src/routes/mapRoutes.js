@@ -465,7 +465,7 @@ router.get("/admin/official-aqi-history", adminMiddleware, async (req, res) => {
     const rows = await AirQuality.find({ data_source: "nepal-gov-manual" })
       .sort({ timestamp: -1 })
       .limit(120)
-      .select("station_name city district aqi timestamp");
+      .select("station_name city district aqi pm25 pm10 pm1 timestamp");
 
     res.json({
       success: true,
@@ -475,6 +475,9 @@ router.get("/admin/official-aqi-history", adminMiddleware, async (req, res) => {
         city: r.city,
         district: r.district,
         aqi: Number.isFinite(r.aqi) ? r.aqi : null,
+        pm25: Number.isFinite(r.pm25) ? r.pm25 : null,
+        pm10: Number.isFinite(r.pm10) ? r.pm10 : null,
+        pm1: Number.isFinite(r.pm1) ? r.pm1 : null,
         timestamp: r.timestamp,
       })),
     });

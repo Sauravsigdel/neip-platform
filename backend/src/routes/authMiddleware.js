@@ -1,5 +1,9 @@
 const jwt = require("jsonwebtoken");
-const JWT_SECRET = process.env.JWT_SECRET || "weathernepal_secret_2026";
+
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error("Missing JWT_SECRET environment variable");
+}
 
 function authMiddleware(req, res, next) {
   const token = req.headers.authorization?.split(" ")[1];

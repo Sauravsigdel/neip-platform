@@ -4,16 +4,79 @@ require("dotenv").config({
 const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
-const crypto = require("crypto");
 const User = require("../models/User");
 const OTP = require("../models/OTP");
 const Notification = require("../models/Notification");
 const axios = require("axios");
 const nodemailer = require("nodemailer");
+const { sendAlertEmail } = require("../services/emailService");
 
-const JWT_SECRET = process.env.JWT_SECRET || "weathernepal_secret_2026";
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error("Missing JWT_SECRET environment variable");
+}
 const OPEN_METEO = "https://api.open-meteo.com/v1/forecast";
 const ALLOW_PUBLIC_SIGNUP = process.env.ALLOW_PUBLIC_SIGNUP === "true";
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function isValidLatLon(lat, lon) {
+  if (lat == null || lon == null) return true;
+  const nLat = Number(lat);
+  const nLon = Number(lon);
+  return (
+    Number.isFinite(nLat) &&
+    Number.isFinite(nLon) &&
+    nLat >= -90 &&
+    nLat <= 90 &&
+    nLon >= -180 &&
+    nLon <= 180
+  );
+}
+
+function createRateLimiter({ keyPrefix, windowMs, max }) {
+  const store = new Map();
+  return (req, res, next) => {
+    const ip = req.ip || req.headers["x-forwarded-for"] || "unknown";
+    const key = `${keyPrefix}:${ip}`;
+    const now = Date.now();
+    const row = store.get(key);
+    if (!row || now > row.expiresAt) {
+      store.set(key, { count: 1, expiresAt: now + windowMs });
+      return next();
+    }
+    row.count += 1;
+    if (row.count > max) {
+      const retryAfter = Math.ceil((row.expiresAt - now) / 1000);
+      res.set("Retry-After", String(retryAfter));
+      return res
+        .status(429)
+        .json({ error: "Too many requests. Try again later." });
+    }
+    return next();
+  };
+}
+
+const signupLimiter = createRateLimiter({
+  keyPrefix: "auth-signup",
+  windowMs: 60 * 60 * 1000,
+  max: 8,
+});
+const loginLimiter = createRateLimiter({
+  keyPrefix: "auth-login",
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+});
+const otpLimiter = createRateLimiter({
+  keyPrefix: "auth-otp",
+  windowMs: 10 * 60 * 1000,
+  max: 12,
+});
+const resendOtpLimiter = createRateLimiter({
+  keyPrefix: "auth-resend-otp",
+  windowMs: 30 * 60 * 1000,
+  max: 8,
+});
 
 // ── Send welcome + AI report notifications after signup ──────────
 async function sendWelcomeNotifications(user) {
@@ -172,7 +235,7 @@ function otpEmailHTML(name, otp) {
 }
 
 // ── POST /api/auth/signup ────────────────────────────────────────
-router.post("/signup", async (req, res) => {
+router.post("/signup", signupLimiter, async (req, res) => {
   if (!ALLOW_PUBLIC_SIGNUP) {
     return res.status(403).json({
       error: "Public signup is disabled. Admin login only.",
@@ -180,17 +243,26 @@ router.post("/signup", async (req, res) => {
     });
   }
   const { name, email, password, location, district, lat, lon } = req.body;
-  if (!name || !email || !password || !location)
+  const safeEmail = String(email || "")
+    .trim()
+    .toLowerCase();
+  if (!name || !safeEmail || !password || !location)
     return res
       .status(400)
       .json({ error: "name, email, password and location are required" });
-  if (password.length < 6)
+  if (!EMAIL_PATTERN.test(safeEmail)) {
+    return res.status(400).json({ error: "Invalid email format" });
+  }
+  if (String(password).length < 6)
     return res
       .status(400)
       .json({ error: "Password must be at least 6 characters" });
+  if (!isValidLatLon(lat, lon)) {
+    return res.status(400).json({ error: "Invalid latitude/longitude" });
+  }
 
   try {
-    const existing = await User.findOne({ email: email.toLowerCase() });
+    const existing = await User.findOne({ email: safeEmail });
     if (existing && existing.isVerified)
       return res.status(409).json({ error: "Email already registered" });
 
@@ -211,7 +283,7 @@ router.post("/signup", async (req, res) => {
       existing ||
       new User({
         name,
-        email,
+        email: safeEmail,
         password,
         location,
         district,
@@ -232,19 +304,22 @@ router.post("/signup", async (req, res) => {
     await user.save();
 
     // Generate and save OTP
-    await OTP.deleteMany({ email: email.toLowerCase() });
+    await OTP.deleteMany({ email: safeEmail });
     const otp = generateOTP();
-    await OTP.create({ email: email.toLowerCase(), otp, type: "verify" });
+    await OTP.create({ email: safeEmail, otp, type: "verify" });
 
     // Send OTP email
     await getTransporter().sendMail({
       from: `"WeatherNepal" <${process.env.GMAIL_USER}>`,
-      to: email,
+      to: safeEmail,
       subject: `${otp} — Your WeatherNepal Verification Code`,
       html: otpEmailHTML(name, otp),
     });
 
-    res.json({ success: true, message: `Verification code sent to ${email}` });
+    res.json({
+      success: true,
+      message: `Verification code sent to ${safeEmail}`,
+    });
   } catch (err) {
     console.error("[Auth] Signup error:", err.message);
     res.status(500).json({ error: "Signup failed", details: err.message });
@@ -252,7 +327,7 @@ router.post("/signup", async (req, res) => {
 });
 
 // ── POST /api/auth/verify-otp ────────────────────────────────────
-router.post("/verify-otp", async (req, res) => {
+router.post("/verify-otp", otpLimiter, async (req, res) => {
   if (!ALLOW_PUBLIC_SIGNUP) {
     return res.status(403).json({
       error: "OTP verification is disabled. Admin login only.",
@@ -260,14 +335,20 @@ router.post("/verify-otp", async (req, res) => {
     });
   }
   const { email, otp } = req.body;
-  if (!email || !otp)
+  const safeEmail = String(email || "")
+    .trim()
+    .toLowerCase();
+  if (!safeEmail || !otp)
     return res.status(400).json({ error: "email and otp are required" });
+  if (!EMAIL_PATTERN.test(safeEmail)) {
+    return res.status(400).json({ error: "Invalid email format" });
+  }
 
   try {
     // Atomically increment attempts and get the updated record
     // If attempts was already >= 5, the query won't match and returns null
     const otpRecord = await OTP.findOneAndUpdate(
-      { email: email.toLowerCase(), type: "verify", attempts: { $lt: 5 } },
+      { email: safeEmail, type: "verify", attempts: { $lt: 5 } },
       { $inc: { attempts: 1 } },
       { new: true },
     );
@@ -285,7 +366,7 @@ router.post("/verify-otp", async (req, res) => {
 
     // Verify user
     const user = await User.findOneAndUpdate(
-      { email: email.toLowerCase() },
+      { email: safeEmail },
       { isVerified: true },
       { new: true },
     );
@@ -323,19 +404,34 @@ router.post("/verify-otp", async (req, res) => {
 });
 
 // ── POST /api/auth/login ─────────────────────────────────────────
-router.post("/login", async (req, res) => {
+router.post("/login", loginLimiter, async (req, res) => {
   const { email, password } = req.body;
-  if (!email || !password)
+  const safeEmail = String(email || "")
+    .trim()
+    .toLowerCase();
+  if (!safeEmail || !password)
     return res.status(400).json({ error: "email and password are required" });
+  if (!EMAIL_PATTERN.test(safeEmail)) {
+    return res.status(400).json({ error: "Invalid email format" });
+  }
 
   try {
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const user = await User.findOne({ email: safeEmail });
     if (!user)
       return res
         .status(401)
         .json({ error: "No account found with this email" });
     if (!user.isVerified)
       return res.status(401).json({ error: "Please verify your email first" });
+
+    // Admin-only login restriction
+    if (user.role !== "admin") {
+      return res.status(403).json({
+        error:
+          "Admin login only. Regular users can send alerts via the alert button.",
+        code: "NOT_ADMIN",
+      });
+    }
 
     const match = await user.comparePassword(password);
     if (!match) return res.status(401).json({ error: "Incorrect password" });
@@ -427,8 +523,38 @@ router.put("/change-password", authMiddleware, async (req, res) => {
   }
 });
 
+// ── PUT /api/auth/avatar ────────────────────────────────────────
+router.put("/avatar", authMiddleware, async (req, res) => {
+  const avatarIndex = Number(req.body?.avatarIndex);
+  if (!Number.isInteger(avatarIndex) || avatarIndex < 1 || avatarIndex > 9) {
+    return res
+      .status(400)
+      .json({ error: "avatarIndex must be between 1 and 9" });
+  }
+
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.userId,
+      { avatarIndex },
+      { new: true },
+    ).select(
+      "name email avatarIndex avatarColor role location district lat lon",
+    );
+    if (!user) return res.status(404).json({ error: "User not found" });
+    res.json({
+      success: true,
+      user: {
+        ...user.toObject(),
+        initials: user.getInitials(),
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── POST /api/auth/resend-otp ────────────────────────────────────
-router.post("/resend-otp", async (req, res) => {
+router.post("/resend-otp", resendOtpLimiter, async (req, res) => {
   if (!ALLOW_PUBLIC_SIGNUP) {
     return res.status(403).json({
       error: "OTP resend is disabled. Admin login only.",
@@ -436,19 +562,25 @@ router.post("/resend-otp", async (req, res) => {
     });
   }
   const { email } = req.body;
-  if (!email) return res.status(400).json({ error: "email is required" });
+  const safeEmail = String(email || "")
+    .trim()
+    .toLowerCase();
+  if (!safeEmail) return res.status(400).json({ error: "email is required" });
+  if (!EMAIL_PATTERN.test(safeEmail)) {
+    return res.status(400).json({ error: "Invalid email format" });
+  }
   try {
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const user = await User.findOne({ email: safeEmail });
     if (!user)
       return res
         .status(404)
         .json({ error: "No account found with this email" });
-    await OTP.deleteMany({ email: email.toLowerCase() });
+    await OTP.deleteMany({ email: safeEmail });
     const otp = generateOTP();
-    await OTP.create({ email: email.toLowerCase(), otp, type: "verify" });
+    await OTP.create({ email: safeEmail, otp, type: "verify" });
     await getTransporter().sendMail({
       from: `"WeatherNepal" <${process.env.GMAIL_USER}>`,
-      to: email,
+      to: safeEmail,
       subject: `${otp} — Your WeatherNepal Verification Code`,
       html: otpEmailHTML(user.name, otp),
     });
@@ -462,6 +594,9 @@ router.post("/resend-otp", async (req, res) => {
 // Updates user's lat/lon from their location string
 router.put("/update-location", authMiddleware, async (req, res) => {
   const { location, district, lat, lon } = req.body;
+  if (!isValidLatLon(lat, lon)) {
+    return res.status(400).json({ error: "Invalid latitude/longitude" });
+  }
   try {
     const user = await User.findByIdAndUpdate(
       req.userId,
@@ -479,6 +614,241 @@ router.put("/update-location", authMiddleware, async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Helper: Generate AI Weather Advisory ──
+function generateWeatherAdvisory(weather, location) {
+  const advisories = [];
+
+  // Temperature assessment
+  if (weather.temp < 0) {
+    advisories.push(
+      `❄️ Freezing conditions in ${location}: ${weather.temp}°C. Stay indoors if possible. If traveling, wear heavy winter gear and check road conditions.`,
+    );
+  } else if (weather.temp < 5) {
+    advisories.push(
+      `🥶 Cold weather alert for ${location}: ${weather.temp}°C. Keep warm and limit outdoor exposure. At-risk groups should stay indoors.`,
+    );
+  } else if (weather.temp > 35) {
+    advisories.push(
+      `🔥 Heat advisory for ${location}: ${weather.temp}°C feels like ${weather.feelsLike}°C. Stay hydrated, avoid prolonged sun exposure, and check on vulnerable individuals.`,
+    );
+  }
+
+  // Wind assessment
+  if (weather.wind > 50) {
+    advisories.push(
+      `💨 Severe wind warning for ${location}: ${weather.wind} km/h. Secure loose objects, avoid outdoor activities, and exercise caution while driving.`,
+    );
+  } else if (weather.wind > 40) {
+    advisories.push(
+      `🌪️ Strong wind advisory for ${location}: ${weather.wind} km/h. Use extra caution outdoors and avoid exposed areas.`,
+    );
+  }
+
+  // Humidity assessment
+  if (weather.humidity > 80) {
+    advisories.push(
+      `💧 High humidity in ${location}: ${weather.humidity}%. Heat combined with high humidity increases health risks. Stay cool and hydrated.`,
+    );
+  } else if (weather.humidity < 30) {
+    advisories.push(
+      `🏜️ Low humidity in ${location}: ${weather.humidity}%. Increased wildfire risk. Avoid burning and be cautious with dry vegetation.`,
+    );
+  }
+
+  // Rainfall assessment
+  if (weather.rain > 20) {
+    advisories.push(
+      `🌧️ Heavy rainfall warning for ${location}: ${weather.rain}mm expected. Risk of landslides and flooding. Avoid river banks and low-lying areas.`,
+    );
+  } else if (weather.rain > 5) {
+    advisories.push(
+      `🌧️ Moderate rain in ${location}: ${weather.rain}mm. Exercise caution on mountain roads; landslide risk increases in hilly areas.`,
+    );
+  }
+
+  // Snowfall assessment
+  if (weather.snow > 10) {
+    advisories.push(
+      `❄️ Heavy snow warning for ${location}: ${weather.snow}cm. Travel is not recommended. If necessary, check avalanche forecasts and use winter tires.`,
+    );
+  } else if (weather.snow > 0) {
+    advisories.push(
+      `❄️ Snowfall expected in ${location}: ${weather.snow}cm. Roads may become slippery. Use winter tires and reduce speed.`,
+    );
+  }
+
+  // Return advisory
+  if (advisories.length === 0) {
+    return `🌤️ Generally stable weather conditions in ${location}. Temperature: ${weather.temp}°C, Humidity: ${weather.humidity}%, Wind: ${weather.wind} km/h. Stay updated with WeatherNepal for real-time changes.`;
+  }
+
+  return (
+    advisories.join(" ") ||
+    `Weather update for ${location}: Monitor conditions closely.`
+  );
+}
+
+// ── POST /api/auth/send-alert-email (PUBLIC - no auth required) ──
+// Allows any user to send themselves an alert email without logging in
+const alertEmailRateLimiter = createRateLimiter({
+  keyPrefix: "alert-email",
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10, // Max 10 alert emails per hour per IP
+});
+
+function alertEmailHTML(name, location, message, severity) {
+  const colors = {
+    critical: "#ef4444",
+    high: "#f97316",
+    moderate: "#eab308",
+    low: "#22c55e",
+  };
+  const color = colors[severity] || colors.moderate;
+
+  return `<!DOCTYPE html>
+<html>
+<body style="margin:0;padding:0;background:#f0f4f8;font-family:'Helvetica Neue',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="padding:24px 0;">
+<tr><td align="center">
+<table width="480" cellpadding="0" cellspacing="0" style="max-width:480px;">
+  <tr><td style="background:linear-gradient(135deg,#0f172a,#1e3a8a);border-radius:16px 16px 0 0;padding:28px 32px;text-align:center;">
+    <div style="font-size:28px;margin-bottom:8px;">🌏</div>
+    <div style="font-size:22px;font-weight:800;color:#fff;">Weather<span style="color:#38bdf8;">Nepal</span></div>
+    <div style="font-size:10px;color:rgba(255,255,255,0.5);letter-spacing:2px;text-transform:uppercase;margin-top:3px;">Nepal Weather Intelligence Platform</div>
+  </td></tr>
+  <tr><td style="background:#fff;padding:32px;border-radius:0 0 16px 16px;">
+    <div style="display:inline-block;background:${color};color:#fff;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:700;margin-bottom:16px;">${severity.toUpperCase()} ALERT</div>
+    <p style="font-size:18px;color:#1e293b;margin:0 0 8px;font-weight:700;">📍 Alert for ${location}</p>
+    <div style="background:#f8fafc;border-left:4px solid ${color};border-radius:4px;padding:16px;margin:16px 0;">
+      <p style="font-size:14px;color:#475569;line-height:1.6;margin:0;">${message}</p>
+    </div>
+    <p style="font-size:12px;color:#94a3b8;margin:16px 0 0;text-align:center;">Sent at ${new Date().toLocaleString("en", { timeZone: "Asia/Kathmandu" })} (Nepal Time)</p>
+  </td></tr>
+  <tr><td style="text-align:center;padding:16px;">
+    <p style="font-size:11px;color:#94a3b8;margin:0;">WeatherNepal - Nepal Environmental Intelligence Platform</p>
+  </td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+}
+
+router.post("/send-alert-email", alertEmailRateLimiter, async (req, res) => {
+  const { email, name, location, message, severity, weather, alertPrefs } =
+    req.body || {};
+  const safeEmail = String(email || "")
+    .trim()
+    .toLowerCase();
+  const safeName = String(name || "User").trim();
+  const safeLocation = String(location || "Nepal").trim();
+  const safeMessage = String(message || "Alert from WeatherNepal").trim();
+  const safeSeverity = ["critical", "high", "moderate", "low"].includes(
+    String(severity || "").toLowerCase(),
+  )
+    ? String(severity).toLowerCase()
+    : "moderate";
+
+  // Validation
+  if (!safeEmail) {
+    return res.status(400).json({ error: "email is required" });
+  }
+  if (!EMAIL_PATTERN.test(safeEmail)) {
+    return res.status(400).json({ error: "Invalid email format" });
+  }
+  if (safeMessage.length < 5) {
+    return res
+      .status(400)
+      .json({ error: "Message must be at least 5 characters" });
+  }
+
+  try {
+    const fallbackWeather = {
+      temp: 20,
+      feelsLike: 20,
+      humidity: 60,
+      wind: 10,
+      rain: 0,
+      snow: 0,
+    };
+    const safeWeather = {
+      temp: Number.isFinite(Number(weather?.temp))
+        ? Number(weather.temp)
+        : fallbackWeather.temp,
+      feelsLike: Number.isFinite(Number(weather?.feelsLike))
+        ? Number(weather.feelsLike)
+        : fallbackWeather.feelsLike,
+      humidity: Number.isFinite(Number(weather?.humidity))
+        ? Number(weather.humidity)
+        : fallbackWeather.humidity,
+      wind: Number.isFinite(Number(weather?.wind))
+        ? Number(weather.wind)
+        : fallbackWeather.wind,
+      rain: Number.isFinite(Number(weather?.rain))
+        ? Number(weather.rain)
+        : fallbackWeather.rain,
+      snow: Number.isFinite(Number(weather?.snow))
+        ? Number(weather.snow)
+        : fallbackWeather.snow,
+    };
+
+    const prefs = {
+      aqi: Boolean(alertPrefs?.aqi),
+      rain: Boolean(alertPrefs?.rain),
+      wind: Boolean(alertPrefs?.wind),
+      snow: Boolean(alertPrefs?.snow),
+      temp: Boolean(alertPrefs?.temp),
+      daily: Boolean(alertPrefs?.daily),
+      aqiUnavailable: true,
+    };
+
+    // Generate AI Advisory based on weather conditions
+    const aiAdvisory = generateWeatherAdvisory(safeWeather, safeLocation);
+
+    const emailPayload = {
+      to: safeEmail,
+      name: safeName,
+      location: safeLocation,
+      district: safeLocation,
+      weather: {
+        temperature: safeWeather.temp,
+        feelsLike: safeWeather.feelsLike,
+        humidity: safeWeather.humidity,
+        windSpeed: safeWeather.wind,
+        rainfall: safeWeather.rain,
+        snowfall: safeWeather.snow,
+      },
+      aqi: null,
+      alerts: prefs,
+      advisory: aiAdvisory,
+    };
+
+    // Do not block HTTP response on SMTP latency.
+    setImmediate(async () => {
+      try {
+        await sendAlertEmail(emailPayload);
+      } catch (sendErr) {
+        console.error(
+          "[Auth] Background send alert email error:",
+          sendErr.message,
+        );
+      }
+    });
+
+    res.status(202).json({
+      success: true,
+      queued: true,
+      message: `Alert queued for ${safeEmail}. Delivery may take up to 1 minute.`,
+    });
+  } catch (err) {
+    console.error("[Auth] Send alert email error:", err.message);
+    res.status(500).json({
+      error: "Failed to send alert email",
+      details: err.message,
+    });
   }
 });
 

@@ -7,6 +7,12 @@ function getTransporter() {
   if (!_transporter) {
     _transporter = nodemailer.createTransport({
       service: "gmail",
+      pool: true,
+      maxConnections: 3,
+      maxMessages: 100,
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 20000,
       auth: {
         user: process.env.GMAIL_USER,
         pass: process.env.GMAIL_APP_PASSWORD,

@@ -118,7 +118,7 @@ function simAQI(zone, i) {
     aqi: Math.round(p2a(pm)),
     pm25: +pm.toFixed(1),
     pm10: +(pm * (1.45 + r * 0.5)).toFixed(1),
-    no2: +(7 + r * 34).toFixed(1),
+    pm1: +(pm * 0.6).toFixed(1),
   };
 }
 function simWX(zone, lat, i) {
@@ -232,7 +232,7 @@ const CITIES = RAW.filter((c) => {
     aqi: null,
     pm25: null,
     pm10: null,
-    no2: null,
+    pm1: null,
     co: null,
     o3: null,
     wx,
@@ -1111,6 +1111,143 @@ let rainEventMarkers = [];
 let snowEventMarkers = [];
 let tempPinMarkers = [];
 
+const LEGEND_FILTER_STATE = {
+  pins: null,
+  tempPins: null,
+  rainPins: null,
+  snowPins: null,
+};
+
+const TEMP_SCALE_BANDS = [
+  {
+    label: "Freezing (↓ 0°C)",
+    color: "#3b82f6",
+    match: (t) => Number.isFinite(t) && t <= 0,
+  },
+  {
+    label: "Cold (1-10°C)",
+    color: "#2563eb",
+    match: (t) => Number.isFinite(t) && t >= 1 && t <= 10,
+  },
+  {
+    label: "Mild (11-20°C)",
+    color: "#22c55e",
+    match: (t) => Number.isFinite(t) && t >= 11 && t <= 20,
+  },
+  {
+    label: "Warm (21-30°C)",
+    color: "#f97316",
+    match: (t) => Number.isFinite(t) && t >= 21 && t <= 30,
+  },
+  {
+    label: "Hot (↑ 30°C)",
+    color: "#ef4444",
+    match: (t) => Number.isFinite(t) && t > 30,
+  },
+];
+
+const RAIN_SCALE_BANDS = [
+  {
+    label: "Light (0.8-2 mm)",
+    color: "#38bdf8",
+    match: (r) => Number.isFinite(r) && r >= RAIN_DETECTION_MM && r < 2,
+  },
+  {
+    label: "Moderate (2-5 mm)",
+    color: "#0ea5e9",
+    match: (r) => Number.isFinite(r) && r >= 2 && r < 5,
+  },
+  {
+    label: "Heavy (5-10 mm)",
+    color: "#0284c7",
+    match: (r) => Number.isFinite(r) && r >= 5 && r < 10,
+  },
+  {
+    label: "Extreme (↑ 10 mm)",
+    color: "#1e3a8a",
+    match: (r) => Number.isFinite(r) && r >= 10,
+  },
+];
+
+const SNOW_SCALE_BANDS = [
+  {
+    label: "Light (0.1-2 cm)",
+    color: "#e0f2fe",
+    match: (s) => Number.isFinite(s) && s > 0 && s <= 2,
+  },
+  {
+    label: "Moderate (2-5 cm)",
+    color: "#bae6fd",
+    match: (s) => Number.isFinite(s) && s > 2 && s <= 5,
+  },
+  {
+    label: "Heavy (↑ 5 cm)",
+    color: "#7dd3fc",
+    match: (s) => Number.isFinite(s) && s > 5,
+  },
+];
+
+function inLegendBand(layerId, idx, city) {
+  if (!Number.isInteger(idx)) return true;
+  if (!city) return false;
+
+  if (layerId === "pins") {
+    const aqi = getCityAqiOrNull(city);
+    if (aqi === null) return false;
+    const min = idx === 0 ? 0 : LEVELS[idx - 1].max + 1;
+    const max = LEVELS[idx]?.max ?? 500;
+    return aqi >= min && aqi <= max;
+  }
+
+  if (layerId === "tempPins") {
+    return TEMP_SCALE_BANDS[idx]?.match(Number(city?.wx?.temp)) || false;
+  }
+
+  if (layerId === "rainPins") {
+    return (
+      RAIN_SCALE_BANDS[idx]?.match(parseFloat(city?.wx?.rain || 0)) || false
+    );
+  }
+
+  if (layerId === "snowPins") {
+    return (
+      SNOW_SCALE_BANDS[idx]?.match(parseFloat(city?.wx?.snow || 0)) || false
+    );
+  }
+
+  return true;
+}
+
+function getPrimaryLegendLayerId() {
+  const active = LAYER_DEFS.find((x) => x.id !== "velocity" && x.on);
+  return active?.id || "pins";
+}
+
+function applyLegendFilter(layerId, idx) {
+  if (!(layerId in LEGEND_FILTER_STATE)) return;
+  LEGEND_FILTER_STATE[layerId] =
+    LEGEND_FILTER_STATE[layerId] === idx ? null : idx;
+
+  if (layerId === "pins") applyPinVisibility();
+  if (layerId === "tempPins") renderTempPins();
+  if (layerId === "rainPins") renderEventMarkers("rain");
+  if (layerId === "snowPins") renderEventMarkers("snow");
+
+  refreshLegendForActiveLayers();
+}
+
+function clearLegendFilter(layerId) {
+  if (!(layerId in LEGEND_FILTER_STATE)) return;
+  LEGEND_FILTER_STATE[layerId] = null;
+
+  if (layerId === "pins") applyPinVisibility();
+  if (layerId === "tempPins") renderTempPins();
+  if (layerId === "rainPins") renderEventMarkers("rain");
+  if (layerId === "snowPins") renderEventMarkers("snow");
+
+  refreshLegendForActiveLayers();
+}
+
 function clearEventMarkers(type) {
   const list = type === "rain" ? rainEventMarkers : snowEventMarkers;
   list.forEach((m) => map.removeLayer(m));
@@ -1133,8 +1270,13 @@ function renderEventMarkers(type) {
       ? c.realData === true && parseFloat(c.wx.rain || 0) >= RAIN_DETECTION_MM
       : parseFloat(c.wx.snow || 0) > 0,
   );
+  const layerId = type === "rain" ? "rainPins" : "snowPins";
+  const selectedBand = LEGEND_FILTER_STATE[layerId];
+  const filteredByLegend = filtered.filter((c) =>
+    inLegendBand(layerId, selectedBand, c),
+  );
   const target = type === "rain" ? rainEventMarkers : snowEventMarkers;
-  filtered.forEach((c) => {
+  filteredByLegend.forEach((c) => {
     const icon = L.divIcon({
       className: "",
       iconSize: [30, 30],
@@ -1178,9 +1320,17 @@ function renderTempPins() {
       ? CITIES
       : CITIES.filter((c) => c.province === activeProvince);
 
+  const selectedBand = LEGEND_FILTER_STATE.tempPins;
+
   inScope.forEach((c) => {
+    if (
+      Number.isInteger(searchFocusCityIndex) &&
+      CITIES[searchFocusCityIndex] !== c
+    )
+      return;
     const tempVal = Number.isFinite(c?.wx?.temp) ? Math.round(c.wx.temp) : null;
     if (tempVal === null) return;
+    if (!inLegendBand("tempPins", selectedBand, c)) return;
     const pinColor =
       tempVal <= 0
         ? "#3b82f6"
@@ -1237,7 +1387,7 @@ const LAYER_DEFS = [
   {
     id: "pins",
     ico: "📍",
-    name: "City Pins",
+    name: "Air AQI Pins",
     lyr: null,
     on: true,
     type: "pins",
@@ -1330,51 +1480,106 @@ LAYER_DEFS.filter((l) => l.type === "owm").forEach((l) => {
 });
 
 const LEGENDS = {
+  pins: {
+    t: "AQI Scale",
+    rows: LEVELS.map((l) => [
+      l.c,
+      l.lbl.replace("Unhealthy (Sens.)", "Unhealthy*"),
+    ]),
+  },
   tempPins: {
     t: "Temperature Scale",
+    rows: TEMP_SCALE_BANDS.map((r) => [r.color, r.label]),
+  },
+  rainPins: {
+    t: "Rainfall Scale",
+    rows: RAIN_SCALE_BANDS.map((r) => [r.color, r.label]),
+  },
+  snowPins: {
+    t: "Snowfall Scale",
+    rows: SNOW_SCALE_BANDS.map((r) => [r.color, r.label]),
+  },
+  fire: {
+    t: "Fire Risk Scale",
     rows: [
-      ["#3b82f6", "Freezing (↓ 0°C)"],
-      ["#2563eb", "Cold (1-10°C)"],
-      ["#22c55e", "Mild (11-20°C)"],
-      ["#f97316", "Warm (21-30°C)"],
-      ["#ef4444", "Hot (↑ 30°C)"],
+      ["#f59e0b", "Low Confidence"],
+      ["#f97316", "Moderate Confidence"],
+      ["#ef4444", "High Confidence"],
+      ["#b91c1c", "Extreme Confidence"],
+    ],
+  },
+  owmCl: {
+    t: "Cloud Cover Scale",
+    rows: [
+      ["#dbeafe", "0-10% Clear"],
+      ["#93c5fd", "10-40% Light Clouds"],
+      ["#60a5fa", "40-70% Cloudy"],
+      ["#1d4ed8", "70-100% Overcast"],
+    ],
+  },
+  owmRn: {
+    t: "Precipitation Scale",
+    rows: [
+      ["#7dd3fc", "Light Rain"],
+      ["#38bdf8", "Moderate Rain"],
+      ["#0ea5e9", "Heavy Rain"],
+      ["#0369a1", "Intense Rain"],
+    ],
+  },
+  owmWn: {
+    t: "Wind Intensity Scale",
+    rows: [
+      ["#bae6fd", "Calm"],
+      ["#7dd3fc", "Breezy"],
+      ["#38bdf8", "Windy"],
+      ["#0284c7", "Strong Wind"],
+    ],
+  },
+  owmTm: {
+    t: "Temperature Band",
+    rows: [
+      ["#3b82f6", "Very Cold"],
+      ["#22c55e", "Mild"],
+      ["#facc15", "Warm"],
+      ["#ef4444", "Hot"],
     ],
   },
 };
-const AQI_LEGEND_HTML = LEVELS.map(
-  (l) =>
-    `<div class="lg-row"><div class="lg-dot" style="background:${l.c}"></div><div class="lg-lbl">${l.lbl.replace("Unhealthy (Sens.)", "Unhealthy*")}</div></div>`,
-).join("");
 
-function renderLegendRows(rows) {
+function isFilterableLegendLayer(layerId) {
+  return layerId in LEGEND_FILTER_STATE;
+}
+
+function renderLegendRows(layerId, rows) {
+  const filterable = isFilterableLegendLayer(layerId);
   return rows
-    .map(
-      ([c, t]) =>
-        `<div class="lg-row"><div class="lg-dot" style="background:${c};border:1px solid rgba(255,255,255,0.15)"></div><div class="lg-lbl">${t}</div></div>`,
+    .map(([c, t], idx) =>
+      filterable
+        ? `<button class="lg-row${LEGEND_FILTER_STATE[layerId] === idx ? " active" : ""}" onclick="applyLegendFilter('${layerId}',${idx})" title="Filter by ${t}"><span class="lg-dot" style="background:${c};border:1px solid rgba(255,255,255,0.15)"></span><span class="lg-lbl">${t}</span></button>`
+        : `<div class="lg-row" title="${t}"><span class="lg-dot" style="background:${c};border:1px solid rgba(255,255,255,0.15)"></span><span class="lg-lbl">${t}</span></div>`,
     )
     .join("");
 }
 
 function refreshLegendForActiveLayers() {
-  const tempPinsOn = LAYER_DEFS.find((x) => x.id === "tempPins")?.on;
-  if (tempPinsOn && LEGENDS.tempPins) {
-    document.getElementById("lgTitle").textContent = LEGENDS.tempPins.t;
-    document.getElementById("lgContent").innerHTML = renderLegendRows(
-      LEGENDS.tempPins.rows,
-    );
+  if (searchLegendDisabled) {
+    document.getElementById("lgTitle").innerHTML =
+      '<span class="lg-title-text">Scale Unavailable</span>';
+    document.getElementById("lgContent").innerHTML =
+      '<div class="lg-row"><span class="lg-dot" style="background:#64748b;border:1px solid rgba(255,255,255,0.15)"></span><span class="lg-lbl">No AQI or temperature data for this location</span></div>';
     return;
   }
-
-  const activeLegendLayer = LAYER_DEFS.find((x) => x.on && LEGENDS[x.id]);
-  if (activeLegendLayer) {
-    const lg = LEGENDS[activeLegendLayer.id];
-    document.getElementById("lgTitle").textContent = lg.t;
-    document.getElementById("lgContent").innerHTML = renderLegendRows(lg.rows);
-    return;
-  }
-
-  document.getElementById("lgTitle").textContent = "AQI Scale";
-  document.getElementById("lgContent").innerHTML = AQI_LEGEND_HTML;
+  const layerId = getPrimaryLegendLayerId();
+  const lg = LEGENDS[layerId] || LEGENDS.pins;
+  const selected = LEGEND_FILTER_STATE[layerId];
+  const filterable = isFilterableLegendLayer(layerId);
+  const hasSelection = Number.isInteger(selected);
+  const titleEl = document.getElementById("lgTitle");
+  titleEl.innerHTML = `<span class="lg-title-text">${lg.t}</span>${filterable ? `<button class="lg-clear-top${hasSelection ? "" : " disabled"}" onclick="clearLegendFilter('${layerId}')" title="Clear filter" ${hasSelection ? "" : "disabled"}>Clear filter</button>` : ""}`;
+  document.getElementById("lgContent").innerHTML = renderLegendRows(
+    layerId,
+    lg.rows,
+  );
 }
 
 function ensurePrimaryPinsVisibility() {
@@ -1532,46 +1737,13 @@ function toggleLayer(id) {
     return;
   }
 
-  // City Pins and Temperature Pins are mutually exclusive.
-  if (l.id === "pins") {
-    const newState = !l.on;
-    setLayerOn(l, newState);
-    if (newState) {
-      const tempLayer = LAYER_DEFS.find((x) => x.id === "tempPins");
-      if (tempLayer?.on) setLayerOn(tempLayer, false);
-    }
-    ensurePrimaryPinsVisibility();
-    refreshLegendForActiveLayers();
-    return;
-  }
-
-  if (l.id === "tempPins") {
-    const newState = !l.on;
-    if (newState) {
-      const pinLayer = LAYER_DEFS.find((x) => x.id === "pins");
-      if (pinLayer?.on) setLayerOn(pinLayer, false);
-    }
-    setLayerOn(l, newState);
-    ensurePrimaryPinsVisibility();
-    refreshLegendForActiveLayers();
-    return;
-  }
-
   const newState = !l.on;
 
-  // Exclusive behavior: When turning ON any data layer, turn OFF all other non-independent layers
+  // All non-velocity layers are mutually exclusive.
   if (newState) {
-    // If rain/snow view is enabled, hide city pins for clarity.
-    if (
-      (id === "rainPins" || id === "snowPins") &&
-      LAYER_DEFS.find((x) => x.id === "pins")?.on
-    ) {
-      const pins = LAYER_DEFS.find((x) => x.id === "pins");
-      if (pins) setLayerOn(pins, false);
-    }
-    // Turn off all data layers EXCEPT this one and the independent layers (pins, velocity)
+    // Keep wind particles independent while forcing a single active non-wind layer.
     LAYER_DEFS.filter(
-      (x) => x.id !== id && x.id !== "pins" && x.id !== "velocity" && x.on,
+      (x) => x.id !== id && x.id !== "velocity" && x.on,
     ).forEach((x) => setLayerOn(x, false));
   }
 
@@ -1625,6 +1797,8 @@ function mkPin(aqi, sel = false) {
 let activeCity = null,
   allMarkers = [],
   dp24ch = null;
+let searchFocusCityIndex = null;
+let searchLegendDisabled = false;
 
 function hasCityHomeData(city) {
   return hasValidAqiValue(city?.aqi);
@@ -1633,6 +1807,13 @@ function hasCityHomeData(city) {
 function shouldShowCityPin(city) {
   if (!city) return false;
   if (!hasCityHomeData(city)) return false;
+  if (
+    Number.isInteger(searchFocusCityIndex) &&
+    CITIES[searchFocusCityIndex] !== city
+  )
+    return false;
+  const selectedAqiBand = LEGEND_FILTER_STATE.pins;
+  if (!inLegendBand("pins", selectedAqiBand, city)) return false;
   return activeProvince === 0 || city.province === activeProvince;
 }
 
@@ -1722,7 +1903,7 @@ function openDetail(c) {
   document.getElementById("dCond").textContent = W.icon;
   document.getElementById("dPm25").textContent = c.pm25 ?? "N/A";
   document.getElementById("dPm10").textContent = c.pm10 ?? "N/A";
-  document.getElementById("dNo2").textContent = c.no2 ?? "N/A";
+  document.getElementById("dPm1").textContent = c.pm1 ?? "N/A";
 
   // 24hr chart
   if (dp24ch) dp24ch.destroy();
@@ -1905,6 +2086,8 @@ function localAdvisory(c) {
 // SEARCH
 // ══════════════════════════════════════════
 function resetMapFiltersForSearch() {
+  searchFocusCityIndex = null;
+  searchLegendDisabled = false;
   filterProvince(0);
   LAYER_DEFS.forEach((layer) => {
     if (layer.id !== "pins" && layer.on) {
@@ -1915,6 +2098,44 @@ function resetMapFiltersForSearch() {
   if (pinLayer && !pinLayer.on) {
     setLayerOn(pinLayer, true);
   }
+  refreshLegendForActiveLayers();
+}
+
+function applySearchSelection(city) {
+  searchFocusCityIndex = CITIES.indexOf(city);
+  searchLegendDisabled = false;
+
+  filterProvince(0);
+  Object.keys(LEGEND_FILTER_STATE).forEach((key) => {
+    LEGEND_FILTER_STATE[key] = null;
+  });
+
+  const hasAqi = hasCityHomeData(city);
+  const hasTemp = Number.isFinite(city?.wx?.temp);
+
+  // Keep velocity independent; turn off all other layers then enable only target layer.
+  LAYER_DEFS.forEach((layer) => {
+    if (layer.id !== "velocity" && layer.on) {
+      setLayerOn(layer, false);
+    }
+  });
+
+  if (hasAqi) {
+    const pinLayer = LAYER_DEFS.find((layer) => layer.id === "pins");
+    if (pinLayer && !pinLayer.on) {
+      setLayerOn(pinLayer, true);
+    }
+    applyPinVisibility();
+  } else if (hasTemp) {
+    const tempLayer = LAYER_DEFS.find((layer) => layer.id === "tempPins");
+    if (tempLayer && !tempLayer.on) {
+      setLayerOn(tempLayer, true);
+    }
+    renderTempPins();
+  } else {
+    searchLegendDisabled = true;
+  }
+
   refreshLegendForActiveLayers();
 }
 
@@ -1958,9 +2179,9 @@ srchIn.addEventListener("input", () => {
       const city = CITIES.find((c) => c.city === el.dataset.city);
       if (city) {
         srchDrop.style.display = "none";
-        srchClr.style.display = "none";
-        srchIn.value = "";
-        resetMapFiltersForSearch();
+        srchIn.value = city.city;
+        srchClr.style.display = "block";
+        applySearchSelection(city);
         openDetail(city);
       }
     };
@@ -1970,6 +2191,7 @@ srchClr.onclick = () => {
   srchIn.value = "";
   srchDrop.style.display = "none";
   srchClr.style.display = "none";
+  resetMapFiltersForSearch();
 };
 document.addEventListener("click", (e) => {
   if (!e.target.closest("#srchWrap")) srchDrop.style.display = "none";
@@ -2168,9 +2390,9 @@ function refreshProvinceBoundaryStyles() {
     layer.setStyle({
       fillColor: selected ? color : isLight ? "#475569" : "#1e3a5f",
       fillOpacity: selected ? (isLight ? 0.22 : 0.26) : isLight ? 0.08 : 0.08,
-      color: selected ? color : isLight ? "#1e293b" : "#60a5fa",
-      weight: selected ? (isLight ? 2.4 : 2.6) : isLight ? 2.2 : 1.4,
-      opacity: selected ? 0.96 : isLight ? 0.85 : 0.42,
+      color: selected ? color : isLight ? "#60a5fa" : "#60a5fa",
+      weight: selected ? (isLight ? 2.4 : 2.6) : isLight ? 1.6 : 1.4,
+      opacity: selected ? 0.96 : isLight ? 0.58 : 0.42,
     });
     if (selected) layer.bringToFront();
   });
@@ -2216,13 +2438,13 @@ function refreshDistrictBoundaryStyles() {
       fillOpacity: 0,
       color: selected
         ? isLight
-          ? "#0f172a"
+          ? "#2563eb"
           : "#f8fafc"
         : isLight
-          ? "#1e293b"
+          ? "#60a5fa"
           : "#cbd5e1",
-      weight: selected ? (isLight ? 2.2 : 1.6) : isLight ? 1.8 : 0.9,
-      opacity: selected ? (isLight ? 0.92 : 0.7) : isLight ? 0.7 : 0.3,
+      weight: selected ? (isLight ? 2.1 : 1.6) : isLight ? 1.2 : 0.9,
+      opacity: selected ? (isLight ? 0.9 : 0.7) : isLight ? 0.45 : 0.3,
     });
     if (selected) layer.bringToFront();
   });
@@ -2250,7 +2472,7 @@ function syncSelectedProvinceOverlay() {
     style: {
       fillColor: color,
       fillOpacity: isLight ? 0.14 : 0.2,
-      color: isLight ? "#0f172a" : color,
+      color: isLight ? "#2563eb" : color,
       weight: isLight ? 3.2 : 2.8,
       opacity: isLight ? 0.9 : 0.96,
     },

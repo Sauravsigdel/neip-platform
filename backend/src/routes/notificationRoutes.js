@@ -3,6 +3,40 @@ const router = express.Router();
 const Notification = require("../models/Notification");
 const authMiddleware = require("./authMiddleware");
 
+// ── GET /api/notifications/public ───────────────────────────────
+// Public weather news feed for all visitors
+router.get("/public", async (req, res) => {
+  try {
+    const notifications = await Notification.find({ isPublic: true })
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .select(
+        "title message details advisory type severity location source createdAt",
+      );
+    res.json({ notifications });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── GET /api/notifications/public/:id ───────────────────────────
+router.get("/public/:id", async (req, res) => {
+  try {
+    const notification = await Notification.findOne({
+      _id: req.params.id,
+      isPublic: true,
+    }).select(
+      "title message details advisory type severity location source createdAt",
+    );
+    if (!notification) {
+      return res.status(404).json({ error: "Notification not found" });
+    }
+    res.json({ notification });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── GET /api/notifications ───────────────────────────────────────
 // Get all notifications for logged-in user
 router.get("/", authMiddleware, async (req, res) => {

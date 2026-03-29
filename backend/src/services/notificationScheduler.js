@@ -6,6 +6,7 @@ const axios = require("axios");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
 const AirQuality = require("../models/AirQuality");
+const WeatherData = require("../models/WeatherData");
 const { sendAlertEmail } = require("./emailService");
 const { generateQuickAdvisory } = require("../routes/advisoryRoutes");
 
@@ -129,6 +130,81 @@ function buildNotification(user, weather, aqi) {
   return alerts;
 }
 
+async function createPublicNewsNotification() {
+  try {
+    const latestAqi = await AirQuality.findOne()
+      .sort({ timestamp: -1, aqi: -1 })
+      .select("city district aqi timestamp");
+    const latestWeather = await WeatherData.findOne()
+      .sort({ timestamp: -1, rainfall: -1, snowfall: -1, wind_speed: -1 })
+      .select(
+        "district rainfall snowfall temperature wind_speed humidity timestamp",
+      );
+
+    if (!latestAqi && !latestWeather) return;
+
+    const location = latestWeather?.district || latestAqi?.district || "Nepal";
+    const aqi = Number.isFinite(latestAqi?.aqi) ? latestAqi.aqi : null;
+    const rain = Number(latestWeather?.rainfall || 0);
+    const snow = Number(latestWeather?.snowfall || 0);
+    const temp = Number(latestWeather?.temperature || 0);
+    const wind = Number(latestWeather?.wind_speed || 0);
+    const humidity = Number(latestWeather?.humidity || 0);
+
+    const headlineParts = [];
+    if (Number.isFinite(aqi)) headlineParts.push(`AQI ${aqi}`);
+    if (rain > 0) headlineParts.push(`Rain ${rain}mm`);
+    if (snow > 0) headlineParts.push(`Snow ${snow}cm`);
+    if (wind > 0) headlineParts.push(`Wind ${wind}km/h`);
+    if (!headlineParts.length) headlineParts.push("Conditions stable");
+
+    const title = `📰 Public Weather News — ${location}`;
+    const message = `${location}: ${headlineParts.join(" • ")}`;
+
+    const advisory = generateQuickAdvisory({
+      city: location,
+      aqi,
+      weather: { temp, rain, snow, wind },
+    });
+
+    const details = [
+      `Regional conditions in ${location} were updated at ${new Date().toLocaleString("en-US", { timeZone: "Asia/Kathmandu" })}.`,
+      Number.isFinite(aqi)
+        ? `Latest air quality estimate is AQI ${aqi}.`
+        : "Latest air quality estimate is currently unavailable.",
+      `Weather snapshot: temperature ${temp}°C, humidity ${humidity}%, rainfall ${rain}mm, snowfall ${snow}cm, wind ${wind}km/h.`,
+      `Suggestion: ${advisory}`,
+    ].join(" ");
+
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+    const existing = await Notification.findOne({
+      isPublic: true,
+      title,
+      createdAt: { $gte: thirtyMinutesAgo },
+    }).select("_id");
+    if (existing) return;
+
+    await Notification.create({
+      isPublic: true,
+      title,
+      message,
+      details,
+      advisory,
+      type: "news",
+      severity: Number.isFinite(aqi) && aqi > 150 ? "warning" : "info",
+      location,
+      source: "local-ai-engine",
+      aqi: Number.isFinite(aqi) ? aqi : undefined,
+      read: true,
+    });
+  } catch (err) {
+    console.error(
+      "[NotifScheduler] Public news generation failed:",
+      err.message,
+    );
+  }
+}
+
 // ── Process one user ─────────────────────────────────────────────
 async function processUser(user) {
   try {
@@ -237,6 +313,7 @@ function initNotificationScheduler() {
   cron.schedule("0 * * * *", async () => {
     console.log("[NotifScheduler] Hourly check running...");
     try {
+      await createPublicNewsNotification();
       const users = await User.find({ isVerified: true });
       console.log(`[NotifScheduler] Checking ${users.length} users...`);
       for (let i = 0; i < users.length; i += 5) {

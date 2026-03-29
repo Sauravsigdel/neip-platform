@@ -50,8 +50,8 @@
         <div class="live-dot"></div>
         <span class="live-lbl">LIVE</span>
       </div>
-      <!-- Notification Bell (shown when logged in) -->
-      <div id="notifWrap" style="display: none; position: relative">
+      <!-- Notification Bell (public + logged in) -->
+      <div id="notifWrap" style="display: flex; position: relative">
         <button
           class="notif-btn"
           onclick="toggleNotifDrop()"
@@ -514,9 +514,9 @@
             <div class="dp-clbl">PM10</div>
           </div>
           <div class="dp-cell">
-            <div class="dp-cico">⚗️</div>
-            <div class="dp-cval" id="dNo2" style="color: #a855f7">—</div>
-            <div class="dp-clbl">NO₂</div>
+            <div class="dp-cico">💨</div>
+            <div class="dp-cval" id="dPm1" style="color: #a855f7">—</div>
+            <div class="dp-clbl">PM1</div>
           </div>
         </div>
       </div>
@@ -537,7 +537,7 @@
       <div class="ai-wrap">
         <div class="ai-hdr">
           <span style="font-size: 14px">🤖</span>
-          <span class="ai-badge">Claude AI</span>
+          <span class="ai-badge">AI Advisory</span>
         </div>
         <div class="ai-body" id="aiBody">
           <div class="ai-spin">
@@ -670,7 +670,16 @@
         <div class="um-email" id="umEmail">—</div>
       </div>
       <div class="um-item" onclick="openProfile()">👤 My Profile</div>
-      <div class="um-item" onclick="openAlertSettings()">⚙️ Alert Settings</div>
+      <div
+        class="um-item"
+        id="alertSettingsMenuItem"
+        onclick="openAlertSettings()"
+      >
+        ⚙️ Alert Settings
+      </div>
+      <div class="um-item" id="avatarMenuItem" onclick="openAvatarPicker()">
+        🖼️ Change Avatar
+      </div>
       <div
         class="um-item"
         id="adminAqiMenuItem"
@@ -736,95 +745,246 @@
     <!-- ── ADMIN AQI MODAL ── -->
     <div class="wn-modal" id="adminAqiModal" style="display: none">
       <div class="wn-modal-bg" onclick="closeAdminAqiModal()"></div>
-      <div class="wn-modal-box" style="max-width: min(760px, 96vw)">
+      <div
+        class="wn-modal-box"
+        style="
+          width: min(1200px, calc(100vw - 28px));
+          max-width: min(1200px, calc(100vw - 28px));
+          max-height: 90vh;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        "
+      >
         <button class="wn-modal-close" onclick="closeAdminAqiModal()">✕</button>
         <div class="wn-modal-hdr">
           <div class="wn-modal-logo">🛠️</div>
-          <div class="wn-modal-title">Official AQI Upload</div>
+          <div class="wn-modal-title">Official AQI Update Desk</div>
           <div class="wn-modal-sub">
-            Nepal government station values (manual priority source)
+            Nepal government station values with live quality bands and cleaner
+            editing workflow
           </div>
         </div>
-        <div class="wn-modal-body" style="display: grid; gap: 10px">
-          <div class="wn-fg">
-            <label class="wn-fl">Stations (AQI Hourly) - Fixed List</label>
+        <div
+          class="wn-modal-body"
+          style="
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow-y: auto;
+            flex: 1;
+            min-height: 0;
+            padding: 16px;
+            align-items: stretch;
+            width: 100%;
+            max-width: 100%;
+          "
+        >
+          <!-- Stats Cards -->
+          <div
+            style="
+              display: grid;
+              grid-template-columns: repeat(3, minmax(0, 1fr));
+              gap: 8px;
+              margin-bottom: 8px;
+            "
+          >
             <div
               style="
-                max-height: 320px;
-                overflow: auto;
                 border: 1px solid var(--border);
                 border-radius: 10px;
-                background: var(--card);
+                padding: 8px;
+                background: var(--cell);
               "
             >
-              <table style="width: 100%; border-collapse: collapse">
-                <thead>
-                  <tr>
-                    <th
-                      style="
-                        text-align: left;
-                        padding: 8px;
-                        border-bottom: 1px solid var(--border);
-                        font-size: 10px;
-                        color: var(--sub);
-                        text-transform: uppercase;
-                        letter-spacing: 0.7px;
-                      "
-                    >
-                      Station
-                    </th>
-                    <th
-                      style="
-                        text-align: left;
-                        padding: 8px;
-                        border-bottom: 1px solid var(--border);
-                        font-size: 10px;
-                        color: var(--sub);
-                        text-transform: uppercase;
-                        letter-spacing: 0.7px;
-                      "
-                    >
-                      Mapped City
-                    </th>
-                    <th
-                      style="
-                        text-align: left;
-                        padding: 8px;
-                        border-bottom: 1px solid var(--border);
-                        font-size: 10px;
-                        color: var(--sub);
-                        text-transform: uppercase;
-                        letter-spacing: 0.7px;
-                      "
-                    >
-                      AQI
-                    </th>
-                  </tr>
-                </thead>
-                <tbody id="adminAqiTableBody"></tbody>
-              </table>
+              <div style="font-size: 10px; color: var(--sub)">Stations</div>
+              <div
+                id="adminAqiStationCount"
+                style="font-size: 16px; font-weight: 800; color: var(--text)"
+              >
+                0
+              </div>
             </div>
-          </div>
-          <div class="wn-fg">
-            <label class="wn-fl">Recent Upload History</label>
             <div
-              id="adminAqiHistory"
               style="
-                max-height: 180px;
-                overflow: auto;
                 border: 1px solid var(--border);
                 border-radius: 10px;
-                background: var(--cell);
                 padding: 8px;
+                background: var(--cell);
               "
-            ></div>
+            >
+              <div style="font-size: 10px; color: var(--sub)">
+                Filled Values
+              </div>
+              <div
+                id="adminAqiFilledCount"
+                style="font-size: 16px; font-weight: 800; color: var(--text)"
+              >
+                0
+              </div>
+            </div>
+            <div
+              style="
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 8px;
+                background: var(--cell);
+              "
+            >
+              <div style="font-size: 10px; color: var(--sub)">Coverage</div>
+              <div
+                id="adminAqiCoveragePct"
+                style="font-size: 16px; font-weight: 800; color: var(--text)"
+              ></div>
+            </div>
+          </div>
+          <!-- Two-column layout: Table (left) + History (right) -->
+          <div
+            style="
+              display: grid;
+              grid-template-columns: 1fr 300px;
+              gap: 12px;
+              min-width: 0;
+              max-width: 100%;
+              width: 100%;
+            "
+          >
+            <!-- LEFT: Station Table -->
+            <div class="wn-fg">
+              <label class="wn-fl">Stations (AQI Hourly) - Fixed List</label>
+              <div
+                style="
+                  max-height: 400px;
+                  overflow: auto;
+                  border: 1px solid var(--border);
+                  border-radius: 10px;
+                  background: var(--card);
+                "
+              >
+                <table style="width: 100%; border-collapse: collapse">
+                  <thead>
+                    <tr>
+                      <th
+                        style="
+                          text-align: left;
+                          padding: 8px;
+                          border-bottom: 1px solid var(--border);
+                          font-size: 10px;
+                          color: var(--sub);
+                          text-transform: uppercase;
+                          letter-spacing: 0.7px;
+                        "
+                      >
+                        Station
+                      </th>
+                      <th
+                        style="
+                          text-align: left;
+                          padding: 8px;
+                          border-bottom: 1px solid var(--border);
+                          font-size: 10px;
+                          color: var(--sub);
+                          text-transform: uppercase;
+                          letter-spacing: 0.7px;
+                        "
+                      >
+                        Mapped City
+                      </th>
+                      <th
+                        style="
+                          text-align: left;
+                          padding: 8px;
+                          border-bottom: 1px solid var(--border);
+                          font-size: 10px;
+                          color: var(--sub);
+                          text-transform: uppercase;
+                          letter-spacing: 0.7px;
+                        "
+                      >
+                        AQI
+                      </th>
+                      <th
+                        style="
+                          text-align: left;
+                          padding: 8px;
+                          border-bottom: 1px solid var(--border);
+                          font-size: 10px;
+                          color: var(--sub);
+                          text-transform: uppercase;
+                          letter-spacing: 0.7px;
+                        "
+                      >
+                        PM2.5
+                      </th>
+                      <th
+                        style="
+                          text-align: left;
+                          padding: 8px;
+                          border-bottom: 1px solid var(--border);
+                          font-size: 10px;
+                          color: var(--sub);
+                          text-transform: uppercase;
+                          letter-spacing: 0.7px;
+                        "
+                      >
+                        PM10
+                      </th>
+                      <th
+                        style="
+                          text-align: left;
+                          padding: 8px;
+                          border-bottom: 1px solid var(--border);
+                          font-size: 10px;
+                          color: var(--sub);
+                          text-transform: uppercase;
+                          letter-spacing: 0.7px;
+                        "
+                      >
+                        PM1
+                      </th>
+                      <th
+                        style="
+                          text-align: left;
+                          padding: 8px;
+                          border-bottom: 1px solid var(--border);
+                          font-size: 10px;
+                          color: var(--sub);
+                          text-transform: uppercase;
+                          letter-spacing: 0.7px;
+                        "
+                      >
+                        Band
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody id="adminAqiTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- RIGHT: Upload History -->
+            <div class="wn-fg">
+              <label class="wn-fl">Recent Uploads</label>
+              <div
+                id="adminAqiHistory"
+                style="
+                  max-height: 400px;
+                  overflow: auto;
+                  border: 1px solid var(--border);
+                  border-radius: 10px;
+                  background: var(--cell);
+                  padding: 10px;
+                  font-size: 11px;
+                "
+              ></div>
+            </div>
           </div>
           <div
             class="wn-switch"
             id="adminAqiStatus"
             style="text-align: center; font-weight: 700"
           >
-            Edit AQI values and update changes.
+            Review and publish the latest AQI values.
           </div>
           <div style="display: flex; justify-content: center; margin-top: 6px">
             <button
@@ -837,9 +997,94 @@
               "
               onclick="submitAdminAqiUpload()"
             >
-              Update Changes ↑
+              Publish AQI Update ↑
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ADMIN PASSWORD MODAL ── -->
+    <div class="wn-modal" id="adminPassModal" style="display: none">
+      <div class="wn-modal-bg" onclick="closeAdminPasswordModal()"></div>
+      <div class="wn-modal-box" style="max-width: min(460px, 94vw)">
+        <button class="wn-modal-close" onclick="closeAdminPasswordModal()">
+          ✕
+        </button>
+        <div class="wn-modal-hdr">
+          <div class="wn-modal-logo">🔐</div>
+          <div class="wn-modal-title">Admin Password Security</div>
+          <div class="wn-modal-sub">
+            Set a strong new password for your admin account
+          </div>
+        </div>
+        <div class="wn-modal-body" style="display: grid; gap: 10px">
+          <div class="wn-fg">
+            <label class="wn-fl">Current Password</label>
+            <input
+              class="wn-fi"
+              id="apCurrent"
+              type="password"
+              placeholder="Enter current password"
+            />
+          </div>
+          <div class="wn-fg">
+            <label class="wn-fl">New Password</label>
+            <input
+              class="wn-fi"
+              id="apNew"
+              type="password"
+              placeholder="At least 6 characters"
+            />
+          </div>
+          <div class="wn-fg">
+            <label class="wn-fl">Confirm New Password</label>
+            <input
+              class="wn-fi"
+              id="apConfirm"
+              type="password"
+              placeholder="Re-enter new password"
+            />
+          </div>
+          <div id="apStatus" class="wn-switch" style="text-align: center">
+            Use a unique password you don't use elsewhere.
+          </div>
+          <button class="wn-submit" onclick="submitAdminPasswordChange()">
+            Update Password
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── AVATAR PICKER MODAL ── -->
+    <div class="wn-modal" id="avatarPickerModal" style="display: none">
+      <div class="wn-modal-bg" onclick="closeAvatarPicker()"></div>
+      <div class="wn-modal-box" style="max-width: min(480px, 94vw)">
+        <button class="wn-modal-close" onclick="closeAvatarPicker()">✕</button>
+        <div class="wn-modal-hdr">
+          <div class="wn-modal-logo">🖼️</div>
+          <div class="wn-modal-title">Choose Avatar</div>
+          <div class="wn-modal-sub">Pick your profile avatar</div>
+        </div>
+        <div class="wn-modal-body" style="display: grid; gap: 12px">
+          <div
+            id="avatarPickerGrid"
+            style="
+              display: grid;
+              grid-template-columns: repeat(3, minmax(0, 1fr));
+              gap: 10px;
+            "
+          ></div>
+          <div
+            id="avatarPickerStatus"
+            class="wn-switch"
+            style="text-align: center"
+          >
+            Choose an avatar and save.
+          </div>
+          <button class="wn-submit" onclick="saveAvatarSelection()">
+            Save Avatar
+          </button>
         </div>
       </div>
     </div>
