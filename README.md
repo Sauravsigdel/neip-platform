@@ -137,6 +137,8 @@ VITE_API_BASE_URL=http://localhost:5000/api
 
 Note: the map page at frontend/public/weathernepal_map.html currently contains a CFG object with API endpoints and OWM key fallback. Keep those values aligned with your backend URL and key strategy.
 
+Admin AQI upload is available inside the existing user profile menu on the map page under "Admin AQI Upload" (no separate admin upload page required).
+
 ## Run Commands
 
 Backend:
@@ -144,6 +146,7 @@ Backend:
 ```bash
 cd backend
 npm run dev
+npm test
 ```
 
 Frontend:
