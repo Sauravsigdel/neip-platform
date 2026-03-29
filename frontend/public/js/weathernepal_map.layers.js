@@ -70,7 +70,7 @@ function gl(a) {
   return LEVELS.find((l) => a <= l.max) || LEVELS[5];
 }
 function hasValidAqiValue(aqi) {
-  return Number.isFinite(aqi) && aqi >= 0;
+  return Number.isFinite(aqi) && aqi > 0;
 }
 function getCityAqiOrNull(city) {
   return hasValidAqiValue(city?.aqi) ? city.aqi : null;
@@ -247,6 +247,10 @@ const CITIES = RAW.filter((c) => {
 
 // ── REAL DATA FETCH SYSTEM ──────────────────────────────────────
 const OPEN_METEO = "https://api.open-meteo.com/v1/forecast";
+const WEATHER_CACHE_TTL_MS = 10 * 60 * 1000;
+const WEATHER_BACKOFF_MS = 3 * 60 * 1000;
+let weatherBackoffUntil = 0;
+const weatherCache = new Map();
 
 // WMO code → condition string
 function wmoToStr(code) {
@@ -288,10 +292,26 @@ function wmoToStr(code) {
 // Fetch real weather for one city from Open-Meteo
 async function fetchRealWeather(city) {
   try {
+    const cacheKey = `${city.lat},${city.lon}`;
+    const cached = weatherCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts < WEATHER_CACHE_TTL_MS) {
+      return cached.data;
+    }
+    if (Date.now() < weatherBackoffUntil) {
+      return cached?.data || null;
+    }
+
     const r = await fetch(
       `${OPEN_METEO}?latitude=${city.lat}&longitude=${city.lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,snowfall,wind_speed_10m,wind_direction_10m,cloud_cover,surface_pressure,uv_index,weather_code,visibility&hourly=temperature_2m,precipitation_probability,precipitation,snowfall,uv_index&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,snowfall_sum,wind_speed_10m_max,uv_index_max,weather_code&timezone=Asia%2FKathmandu&forecast_days=7`,
       { signal: AbortSignal.timeout(8000) },
     );
+    if (r.status === 429) {
+      weatherBackoffUntil = Math.max(
+        weatherBackoffUntil,
+        Date.now() + WEATHER_BACKOFF_MS,
+      );
+      return cached?.data || null;
+    }
     if (!r.ok) return null;
     const d = await r.json();
     const c = d.current;
@@ -315,7 +335,7 @@ async function fetchRealWeather(city) {
     ];
     const windDir = dirs[Math.round((c.wind_direction_10m || 0) / 22.5) % 16];
     const wmo = wmoToStr(c.weather_code);
-    return {
+    const wx = {
       temp: Math.round(c.temperature_2m),
       feelsLike: Math.round(c.apparent_temperature),
       humidity: c.relative_humidity_2m,
@@ -353,6 +373,8 @@ async function fetchRealWeather(city) {
           })
         : [],
     };
+    weatherCache.set(cacheKey, { data: wx, ts: Date.now() });
+    return wx;
   } catch (e) {
     return null;
   }
@@ -415,13 +437,18 @@ function rebuildHeatLayers() {
 
 // Fetch real data in batches of 10 to avoid rate limiting
 async function loadRealData() {
-  const BATCH = 10;
+  const BATCH = 3;
   for (let i = 0; i < CITIES.length; i += BATCH) {
+    if (Date.now() < weatherBackoffUntil) break;
     const batch = CITIES.slice(i, i + BATCH);
-    const results = await Promise.all(batch.map((c) => fetchRealWeather(c)));
-    results.forEach((wx, j) => applyRealData(i + j, wx));
+    for (let j = 0; j < batch.length; j++) {
+      if (Date.now() < weatherBackoffUntil) break;
+      const wx = await fetchRealWeather(batch[j]);
+      applyRealData(i + j, wx);
+      await new Promise((r) => setTimeout(r, 250));
+    }
     // Small delay between batches
-    if (i + BATCH < CITIES.length) await new Promise((r) => setTimeout(r, 500));
+    if (i + BATCH < CITIES.length) await new Promise((r) => setTimeout(r, 900));
   }
   rebuildHeatLayers();
 }
@@ -437,7 +464,6 @@ function updateStats() {
     activeProvince === 0
       ? CITIES
       : CITIES.filter((c) => c.province === activeProvince);
-  const scopedAvailable = scoped.filter((c) => hasCityHomeData(c));
   const aqis = scoped.map((c) => getCityAqiOrNull(c)).filter((a) => a !== null);
   const avg = aqis.length
     ? Math.round(aqis.reduce((a, b) => a + b, 0) / aqis.length)
@@ -454,22 +480,18 @@ function updateStats() {
   document.getElementById("sbAvgAqi").style.color =
     avg === null ? "#94a3b8" : gl(avg).c;
   document.getElementById("sbAvgTemp").textContent = avgT + "°C";
-  document.getElementById("sbRaining").textContent =
-    raining === 0 ? "Zero" : String(raining);
-  document.getElementById("sbDistricts").textContent = String(
-    activeProvince === 0 ? scopedAvailable.length : scopedAvailable.length,
-  );
+  document.getElementById("sbRaining").textContent = String(raining);
   document.getElementById("sbGood").textContent = aqis.filter(
     (a) => a <= 50,
   ).length;
   document.getElementById("sbMod").textContent = aqis.filter(
     (a) => a > 50 && a <= 100,
   ).length;
-  document.getElementById("sbUnh").textContent = aqis.filter(
-    (a) => a > 150 && a <= 300,
+  document.getElementById("sbSens").textContent = aqis.filter(
+    (a) => a > 100 && a <= 150,
   ).length;
-  document.getElementById("sbHaz").textContent = aqis.filter(
-    (a) => a > 300,
+  document.getElementById("sbUnh").textContent = aqis.filter(
+    (a) => a > 150 && a <= 200,
   ).length;
   document.getElementById("sbSnow").textContent = snowing;
   const now = new Date();
@@ -477,7 +499,6 @@ function updateStats() {
     "en-US",
     { hour: "2-digit", minute: "2-digit" },
   );
-  updateSyncDebug(scoped, raining);
   updateNewsFeed(scoped);
 }
 
@@ -495,19 +516,7 @@ var syncDebugState = {
 };
 
 function updateSyncDebug(scopedCities, rainingCount) {
-  const dbgItem = document.getElementById("sbDebugItem");
-  const dbg = document.getElementById("sbDebug");
-  if (!dbgItem || !dbg) return;
-  dbgItem.style.display = "block";
-  const fireCount = Number.isFinite(fireHotspotCount) ? fireHotspotCount : 0;
-  const part = activeProvince === 0 ? "All" : `P${activeProvince}`;
-  const debugState = syncDebugState || {
-    rainyCities: 0,
-    snowyCities: 0,
-    windyCities: 0,
-    highAqiCities: 0,
-  };
-  dbg.textContent = `${part} | rain:${rainingCount} fire:${fireCount} highAQI:${debugState.highAqiCities} wind:${debugState.windyCities}`;
+  // Sync debug panel removed from UI.
 }
 
 // Run initial stats only after syncDebugState is initialized.
@@ -709,9 +718,18 @@ setTimeout(() => map.invalidateSize(), 80);
 // ══════════════════════════════════════════
 // OWM tile layers
 function owm(l) {
+  const isLight = document.body.classList.contains("light");
+  let lightOpacity = 0.9;
+  if (l === "clouds_new") lightOpacity = 1.0;
+  if (l === "wind_new") lightOpacity = 1.0;
   return L.tileLayer(
     `${CFG.API.replace("/api", "")}/api/owm-tile/${l}/{z}/{x}/{y}.png`,
-    { opacity: 0.7, maxZoom: 19, attribution: "© OWM" },
+    {
+      opacity: isLight ? lightOpacity : 0.7,
+      maxZoom: 19,
+      attribution: "© OWM",
+      className: `owm-tile owm-${l}`,
+    },
   );
 }
 
@@ -957,6 +975,9 @@ async function loadVelocityLayer() {
       // Batch requests so browser/API isn't flooded at Asia scale.
       const results = [];
       for (let i = 0; i < points.length; i += batchSize) {
+        if (Date.now() < velocityBackoffUntil) {
+          break;
+        }
         const batch = points.slice(i, i + batchSize);
         const batchResults = await Promise.all(
           batch.map(({ lat, lon }) =>
@@ -1050,6 +1071,7 @@ async function loadVelocityLayer() {
       return;
     }
 
+    const isLightTheme = document.body.classList.contains("light");
     const nextLayer = L.velocityLayer({
       displayValues: true,
       displayOptions: {
@@ -1062,7 +1084,9 @@ async function loadVelocityLayer() {
       },
       data: dataset,
       maxVelocity: 10,
-      colorScale: ["#ffffcc", "#a1dab4", "#41b6c4", "#2c7fb8", "#253494"],
+      colorScale: isLightTheme
+        ? ["#0f172a", "#1e3a8a", "#1d4ed8", "#0284c7", "#0b3a78"]
+        : ["#ffffcc", "#a1dab4", "#41b6c4", "#2c7fb8", "#253494"],
     });
 
     const getVelocityEl = (layer) =>
@@ -1082,6 +1106,13 @@ async function loadVelocityLayer() {
     nextLayer.addTo(map);
     const nextEl = getVelocityEl(nextLayer);
     if (nextEl) {
+      if (isLightTheme) {
+        nextEl.style.mixBlendMode = "multiply";
+        nextEl.style.filter = "contrast(1.45) saturate(1.35) brightness(0.88)";
+      } else {
+        nextEl.style.mixBlendMode = "screen";
+        nextEl.style.filter = "contrast(1.05) saturate(1.05)";
+      }
       nextEl.style.opacity = "0";
       nextEl.style.transition = "opacity 260ms ease";
       requestAnimationFrame(() => {
@@ -1117,6 +1148,7 @@ const LEGEND_FILTER_STATE = {
   rainPins: null,
   snowPins: null,
 };
+window.__aqiLegendBandIndex = null;
 
 const TEMP_SCALE_BANDS = [
   {
@@ -1227,6 +1259,12 @@ function applyLegendFilter(layerId, idx) {
   if (!(layerId in LEGEND_FILTER_STATE)) return;
   LEGEND_FILTER_STATE[layerId] =
     LEGEND_FILTER_STATE[layerId] === idx ? null : idx;
+  if (layerId === "pins") {
+    window.__aqiLegendBandIndex = LEGEND_FILTER_STATE[layerId];
+    if (typeof window.__onAqiLegendFilterChange === "function") {
+      window.__onAqiLegendFilterChange(LEGEND_FILTER_STATE[layerId]);
+    }
+  }
 
   if (layerId === "pins") applyPinVisibility();
   if (layerId === "tempPins") renderTempPins();
@@ -1239,6 +1277,12 @@ function applyLegendFilter(layerId, idx) {
 function clearLegendFilter(layerId) {
   if (!(layerId in LEGEND_FILTER_STATE)) return;
   LEGEND_FILTER_STATE[layerId] = null;
+  if (layerId === "pins") {
+    window.__aqiLegendBandIndex = null;
+    if (typeof window.__onAqiLegendFilterChange === "function") {
+      window.__onAqiLegendFilterChange(null);
+    }
+  }
 
   if (layerId === "pins") applyPinVisibility();
   if (layerId === "tempPins") renderTempPins();
@@ -1484,7 +1528,7 @@ const LEGENDS = {
     t: "AQI Scale",
     rows: LEVELS.map((l) => [
       l.c,
-      l.lbl.replace("Unhealthy (Sens.)", "Unhealthy*"),
+      l.lbl.replace("Unhealthy (Sens.)", "Sensitive"),
     ]),
   },
   tempPins: {
@@ -1562,6 +1606,16 @@ function renderLegendRows(layerId, rows) {
 }
 
 function refreshLegendForActiveLayers() {
+  const legendEl = document.getElementById("legend");
+  const layerId = getPrimaryLegendLayerId();
+
+  if (["owmCl", "owmRn", "owmWn", "owmTm"].includes(layerId)) {
+    if (legendEl) legendEl.style.display = "none";
+    return;
+  }
+
+  if (legendEl) legendEl.style.display = "block";
+
   if (searchLegendDisabled) {
     document.getElementById("lgTitle").innerHTML =
       '<span class="lg-title-text">Scale Unavailable</span>';
@@ -1569,7 +1623,6 @@ function refreshLegendForActiveLayers() {
       '<div class="lg-row"><span class="lg-dot" style="background:#64748b;border:1px solid rgba(255,255,255,0.15)"></span><span class="lg-lbl">No AQI or temperature data for this location</span></div>';
     return;
   }
-  const layerId = getPrimaryLegendLayerId();
   const lg = LEGENDS[layerId] || LEGENDS.pins;
   const selected = LEGEND_FILTER_STATE[layerId];
   const filterable = isFilterableLegendLayer(layerId);
@@ -1819,9 +1872,10 @@ function shouldShowCityPin(city) {
 
 function applyPinVisibility() {
   const pinsOn = LAYER_DEFS.find((l) => l.id === "pins")?.on;
+  const useOfficialStationPins = Boolean(window.__useOfficialStationPins);
   allMarkers.forEach((m, i) => {
     const city = CITIES[i];
-    const show = pinsOn && shouldShowCityPin(city);
+    const show = pinsOn && !useOfficialStationPins && shouldShowCityPin(city);
     if (show && !map.hasLayer(m)) m.addTo(map);
     if (!show && map.hasLayer(m)) map.removeLayer(m);
   });
@@ -2109,6 +2163,7 @@ function applySearchSelection(city) {
   Object.keys(LEGEND_FILTER_STATE).forEach((key) => {
     LEGEND_FILTER_STATE[key] = null;
   });
+  window.__aqiLegendBandIndex = null;
 
   const hasAqi = hasCityHomeData(city);
   const hasTemp = Number.isFinite(city?.wx?.temp);
@@ -2282,6 +2337,20 @@ function toggleTheme() {
       if (map.hasLayer(lightTile)) map.removeLayer(lightTile);
       if (!map.hasLayer(darkTile)) darkTile.addTo(map);
     }
+
+    // Rebuild active OWM overlays so theme-specific tile opacity/classes apply.
+    LAYER_DEFS.filter((l) => l.type === "owm" && l.on).forEach((l) => {
+      if (l.lyr && map.hasLayer(l.lyr)) map.removeLayer(l.lyr);
+      l.lyr = owm(l.owmName);
+      l.lyr.addTo(map);
+    });
+
+    // Rebuild velocity layer so particle contrast/colors adapt to theme.
+    const velocityLayer = LAYER_DEFS.find((l) => l.id === "velocity");
+    if (velocityLayer?.on) {
+      loadVelocityLayer();
+    }
+
     if (mapEl) mapEl.style.opacity = "1";
   }, 150);
 }
@@ -2527,6 +2596,9 @@ function syncSelectedProvinceOverlay() {
     refreshProvinceBoundaryStyles();
   } catch {}
 })();
+
+// Initialize legend on page load
+refreshLegendForActiveLayers();
 
 (async () => {
   try {

@@ -132,7 +132,7 @@ async function doLogin() {
 }
 
 const OFFICIAL_AQI_STATIONS = [
-  { station: "Shankapark", city: "Kathmandu", aqi: 155 },
+  { station: "Shankhapark", city: "Kathmandu", aqi: 155 },
   { station: "Ratnapark", city: "Kathmandu", aqi: 152 },
   { station: "Bhaisipati", city: "Lalitpur", aqi: 138 },
   { station: "Bhaktapur", city: "Bhaktapur", aqi: 123 },
@@ -143,7 +143,7 @@ const OFFICIAL_AQI_STATIONS = [
   { station: "Surkhet", city: "Birendranagar", aqi: 79 },
   { station: "Deukhuri, Dang", city: "Ghorahi", aqi: 76 },
   { station: "Mustang", city: "Jomsom", aqi: 49 },
-  { station: "Achaam", city: "Sanfebagar", aqi: null },
+  { station: "Achham", city: "Sanfebagar", aqi: null },
   { station: "Bharatpur", city: "Bharatpur", aqi: null },
   {
     station: "Bhimdatta (Mahendranagar)",

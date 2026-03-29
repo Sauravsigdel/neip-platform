@@ -243,32 +243,7 @@
     <!-- LEGEND -->
     <div id="legend">
       <div id="lgTitle">AQI Scale</div>
-      <div id="lgContent">
-        <div class="lg-row">
-          <div class="lg-dot" style="background: #22c55e"></div>
-          <div class="lg-lbl">0–50 Good</div>
-        </div>
-        <div class="lg-row">
-          <div class="lg-dot" style="background: #eab308"></div>
-          <div class="lg-lbl">51–100 Moderate</div>
-        </div>
-        <div class="lg-row">
-          <div class="lg-dot" style="background: #f97316"></div>
-          <div class="lg-lbl">101–150 Sensitive</div>
-        </div>
-        <div class="lg-row">
-          <div class="lg-dot" style="background: #ef4444"></div>
-          <div class="lg-lbl">151–200 Unhealthy</div>
-        </div>
-        <div class="lg-row">
-          <div class="lg-dot" style="background: #a855f7"></div>
-          <div class="lg-lbl">201–300 V.Unhealthy</div>
-        </div>
-        <div class="lg-row">
-          <div class="lg-dot" style="background: #7f1d1d"></div>
-          <div class="lg-lbl">300+ Hazardous</div>
-        </div>
-      </div>
+      <div id="lgContent"></div>
     </div>
 
     <!-- PROVINCE FAB -->
@@ -358,10 +333,6 @@
     <!-- STATS BAR -->
     <div id="statsBar">
       <div class="sb-item">
-        <div class="sb-val" id="sbDistricts" style="color: #93c5fd">0</div>
-        <div class="sb-lbl">Places</div>
-      </div>
-      <div class="sb-item">
         <div class="sb-val" id="sbAvgAqi" style="color: #f97316">—</div>
         <div class="sb-lbl">Avg AQI</div>
       </div>
@@ -382,12 +353,12 @@
         <div class="sb-lbl">Moderate</div>
       </div>
       <div class="sb-item">
-        <div class="sb-val" id="sbUnh" style="color: #ef4444">—</div>
-        <div class="sb-lbl">Unhealthy</div>
+        <div class="sb-val" id="sbSens" style="color: #f97316">—</div>
+        <div class="sb-lbl">Sensitive</div>
       </div>
       <div class="sb-item">
-        <div class="sb-val" id="sbHaz" style="color: #7f1d1d">—</div>
-        <div class="sb-lbl">Hazardous</div>
+        <div class="sb-val" id="sbUnh" style="color: #ef4444">—</div>
+        <div class="sb-lbl">Unhealthy</div>
       </div>
       <div class="sb-item">
         <div class="sb-val" id="sbSnow" style="color: #bae6fd">—</div>
@@ -402,16 +373,6 @@
           —
         </div>
         <div class="sb-lbl">Updated</div>
-      </div>
-      <div class="sb-item" id="sbDebugItem" style="display: none">
-        <div
-          class="sb-val"
-          id="sbDebug"
-          style="font-size: 9px; color: var(--sub); max-width: 240px"
-        >
-          —
-        </div>
-        <div class="sb-lbl">Sync Debug</div>
       </div>
     </div>
 

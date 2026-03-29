@@ -1261,6 +1261,28 @@ body.light .leaflet-control-attribution {
   border-bottom: 0 !important;
   border-right: 0 !important;
 }
+
+/* Improve overlay readability on light basemap. */
+body.light .owm-tile {
+  filter: contrast(1.42) saturate(1.35) brightness(0.9);
+  mix-blend-mode: multiply;
+}
+
+body.light .owm-clouds_new {
+  filter: contrast(1.9) saturate(0.85) brightness(0.72);
+  mix-blend-mode: multiply;
+}
+
+body.light .owm-wind_new {
+  filter: contrast(2.25) saturate(1.7) brightness(0.56) hue-rotate(205deg);
+  mix-blend-mode: multiply;
+}
+
+body.light canvas.velocity-overlay,
+body.light .velocity-overlay {
+  filter: contrast(1.5) saturate(1.35) brightness(0.88);
+  mix-blend-mode: multiply;
+}
 ::-webkit-scrollbar {
   width: 3px;
 }

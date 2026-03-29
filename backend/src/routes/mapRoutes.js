@@ -27,60 +27,106 @@ function coerceOptionalNumber(value) {
 }
 
 const OFFICIAL_AQI_STATIONS = [
-  { stationName: "Shankapark", city: "Kathmandu" },
-  { stationName: "Ratnapark", city: "Kathmandu" },
-  { stationName: "Bhaisipati", city: "Lalitpur" },
-  { stationName: "Bhaktapur", city: "Bhaktapur" },
-  { stationName: "Khumaltar", city: "Lalitpur" },
-  { stationName: "TU Kirtipur", city: "Kathmandu" },
-  { stationName: "Dhankuta", city: "Dhankuta" },
-  { stationName: "Dhulikhel", city: "Dhulikhel" },
-  { stationName: "Surkhet", city: "Birendranagar" },
-  { stationName: "Deukhuri, Dang", city: "Ghorahi" },
-  { stationName: "Mustang", city: "Jomsom" },
-  { stationName: "Achaam", city: "Sanfebagar" },
-  { stationName: "Bharatpur", city: "Bharatpur" },
-  { stationName: "Bhimdatta (Mahendranagar)", city: "Mahendranagar" },
-  { stationName: "Biratnagar", city: "Biratnagar" },
-  { stationName: "DHM, Pkr", city: "Pokhara" },
-  { stationName: "Damak", city: "Birtamod" },
-  { stationName: "Dang", city: "Ghorahi" },
-  { stationName: "Dhangadhi", city: "Dhangadhi" },
-  { stationName: "GBS, Pkr", city: "Pokhara" },
-  { stationName: "Hetauda", city: "Hetauda" },
-  { stationName: "Ilam", city: "Ilam" },
-  { stationName: "Janakpur", city: "Janakpur" },
-  { stationName: "Jhumka", city: "Itahari" },
-  { stationName: "Lumbini", city: "Bhairahawa" },
-  { stationName: "Nepalgunj", city: "Nepalgunj" },
-  { stationName: "PU Pkr", city: "Pokhara" },
-  { stationName: "Pulchowk", city: "Lalitpur" },
-  { stationName: "Rara", city: "Gamgadhi" },
-  { stationName: "Sauraha", city: "Bharatpur" },
-  { stationName: "Simara", city: "Birgunj" },
+  { stationName: "Bhaisipati", city: "Lalitpur", lat: 27.6544, lon: 85.3048 },
+  { stationName: "Bhaktapur", city: "Bhaktapur", lat: 27.671, lon: 85.4298 },
+  { stationName: "Shankhapark", city: "Kathmandu", lat: 27.7302, lon: 85.3444 },
+  { stationName: "Khumaltar", city: "Lalitpur", lat: 27.6552, lon: 85.3265 },
+  { stationName: "Dhulikhel", city: "Dhulikhel", lat: 27.6221, lon: 85.5404 },
+  { stationName: "TU Kirtipur", city: "Kathmandu", lat: 27.6811, lon: 85.2831 },
+  { stationName: "Surkhet", city: "Birendranagar", lat: 28.599, lon: 81.6353 },
+  {
+    stationName: "Deukhuri, Dang",
+    city: "Ghorahi",
+    lat: 27.8547,
+    lon: 82.6806,
+  },
+  { stationName: "Mustang", city: "Jomsom", lat: 28.7847, lon: 83.7441 },
+  { stationName: "Achham", city: "Sanfebagar", lat: 29.1147, lon: 81.2659 },
+  { stationName: "Bharatpur", city: "Bharatpur", lat: 27.6833, lon: 84.4333 },
+  {
+    stationName: "Bhimdatta (Mahendranagar)",
+    city: "Mahendranagar",
+    lat: 28.9667,
+    lon: 80.1667,
+  },
+  { stationName: "Biratnagar", city: "Biratnagar", lat: 26.4525, lon: 87.2717 },
+  { stationName: "DHM, Pkr", city: "Pokhara", lat: 28.2, lon: 83.9833 },
+  { stationName: "Damak", city: "Birtamod", lat: 26.6667, lon: 87.6833 },
+  { stationName: "Dang", city: "Ghorahi", lat: 28.0519, lon: 82.4901 },
+  { stationName: "Dhangadhi", city: "Dhangadhi", lat: 28.6853, lon: 80.5921 },
+  { stationName: "Dhankuta", city: "Dhankuta", lat: 26.9833, lon: 87.3333 },
+  { stationName: "GBS, Pkr", city: "Pokhara", lat: 28.212, lon: 83.9902 },
+  { stationName: "Hetauda", city: "Hetauda", lat: 27.4261, lon: 85.0326 },
+  { stationName: "Ilam", city: "Ilam", lat: 26.911, lon: 87.9234 },
+  { stationName: "Janakpur", city: "Janakpur", lat: 26.7275, lon: 85.9231 },
+  { stationName: "Jhumka", city: "Itahari", lat: 26.6978, lon: 87.1705 },
+  { stationName: "PU Pkr", city: "Pokhara", lat: 28.1884, lon: 84.0321 },
+  { stationName: "Nepalgunj", city: "Nepalgunj", lat: 28.05, lon: 81.6167 },
+  { stationName: "Lumbini", city: "Bhairahawa", lat: 27.4833, lon: 83.2833 },
+  { stationName: "Pulchowk", city: "Lalitpur", lat: 27.6775, lon: 85.3172 },
+  { stationName: "Rara", city: "Gamgadhi", lat: 29.8732, lon: 82.0864 },
+  { stationName: "Ratnapark", city: "Kathmandu", lat: 27.7058, lon: 85.3149 },
+  { stationName: "Simara", city: "Birgunj", lat: 27.1633, lon: 84.9788 },
+  { stationName: "Sauraha", city: "Bharatpur", lat: 27.5833, lon: 84.4833 },
 ];
 
 function normalizeStationName(name) {
   return String(name || "")
     .trim()
-    .toLowerCase();
+    .toLowerCase()
+    .replace(/[.,()/-]/g, " ")
+    .replace(/\s+/g, " ");
 }
 
-const OFFICIAL_STATION_BY_KEY = new Map(
-  OFFICIAL_AQI_STATIONS.map((s) => [normalizeStationName(s.stationName), s]),
+const OFFICIAL_STATION_BY_KEY = new Map();
+OFFICIAL_AQI_STATIONS.forEach((s) => {
+  OFFICIAL_STATION_BY_KEY.set(normalizeStationName(s.stationName), s);
+});
+// Common spelling aliases from data providers / operator input.
+OFFICIAL_STATION_BY_KEY.set(
+  "shankapark",
+  OFFICIAL_STATION_BY_KEY.get("shankhapark"),
 );
+OFFICIAL_STATION_BY_KEY.set("achaam", OFFICIAL_STATION_BY_KEY.get("achham"));
 
-async function getLatestOfficialManualRecords() {
+async function getLatestOfficialStationRecords() {
   const docs = await AirQuality.aggregate([
-    {
-      $match: {
-        data_source: "nepal-gov-manual",
-      },
-    },
+    { $match: { data_source: "nepal-gov-manual" } },
     { $sort: { timestamp: -1 } },
     { $group: { _id: "$station_name", doc: { $first: "$$ROOT" } } },
     { $replaceRoot: { newRoot: "$doc" } },
   ]);
+
+  return docs.map((d) => {
+    const stationCfg = OFFICIAL_STATION_BY_KEY.get(
+      normalizeStationName(d.station_name || d.city),
+    );
+    return {
+      city: stationCfg?.city || d.city,
+      district: d.district,
+      lat: Number.isFinite(Number(stationCfg?.lat))
+        ? Number(stationCfg.lat)
+        : d.lat,
+      lon: Number.isFinite(Number(stationCfg?.lon))
+        ? Number(stationCfg.lon)
+        : d.lon,
+      aqi: Number.isFinite(d.aqi) ? d.aqi : null,
+      pm1: Number.isFinite(d.pm1) ? d.pm1 : null,
+      pm25: Number.isFinite(d.pm25) ? d.pm25 : null,
+      pm10: Number.isFinite(d.pm10) ? d.pm10 : null,
+      no2: Number.isFinite(d.no2) ? d.no2 : null,
+      co: Number.isFinite(d.co) ? d.co : null,
+      o3: Number.isFinite(d.o3) ? d.o3 : null,
+      hasAqi: Number.isFinite(d.aqi),
+      source: "nepal-gov-manual",
+      stationName: stationCfg?.stationName || d.station_name || d.city,
+      time: d.timestamp,
+    };
+  });
+}
+
+async function getLatestOfficialManualRecords() {
+  const docs = await getLatestOfficialStationRecords();
 
   // Reduce to one value per city for map pins; pick worst AQI among active stations.
   const byCity = new Map();
@@ -99,23 +145,7 @@ async function getLatestOfficialManualRecords() {
     }
   });
 
-  return Array.from(byCity.values()).map((d) => ({
-    city: d.city,
-    district: d.district,
-    lat: d.lat,
-    lon: d.lon,
-    aqi: Number.isFinite(d.aqi) ? d.aqi : null,
-    pm1: Number.isFinite(d.pm1) ? d.pm1 : null,
-    pm25: Number.isFinite(d.pm25) ? d.pm25 : null,
-    pm10: Number.isFinite(d.pm10) ? d.pm10 : null,
-    no2: Number.isFinite(d.no2) ? d.no2 : null,
-    co: Number.isFinite(d.co) ? d.co : null,
-    o3: Number.isFinite(d.o3) ? d.o3 : null,
-    hasAqi: Number.isFinite(d.aqi),
-    source: "nepal-gov-manual",
-    stationName: d.station_name || d.city,
-    time: d.timestamp,
-  }));
+  return Array.from(byCity.values());
 }
 
 function mergeByPriority(primaryRecords, fallbackRecords) {
@@ -367,6 +397,22 @@ router.get("/official-aqi-latest", async (req, res) => {
   }
 });
 
+// GET /api/map/official-aqi-stations-latest - latest official/manual AQI values per station
+router.get("/official-aqi-stations-latest", async (req, res) => {
+  try {
+    const data = await getLatestOfficialStationRecords();
+    res.json({
+      success: true,
+      source: "nepal-gov-manual",
+      count: data.length,
+      data,
+      fetchedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // POST /api/map/admin/official-aqi-manual - admin bulk upsert of official AQI records
 router.post("/admin/official-aqi-manual", adminMiddleware, async (req, res) => {
   try {
@@ -418,8 +464,16 @@ router.post("/admin/official-aqi-manual", adminMiddleware, async (req, res) => {
                 no2: coerceOptionalNumber(r.no2),
                 co: coerceOptionalNumber(r.co),
                 o3: coerceOptionalNumber(r.o3),
-                lat: Number.isFinite(Number(r.lat)) ? Number(r.lat) : meta?.lat,
-                lon: Number.isFinite(Number(r.lon)) ? Number(r.lon) : meta?.lon,
+                lat: Number.isFinite(Number(r.lat))
+                  ? Number(r.lat)
+                  : Number.isFinite(Number(stationCfg.lat))
+                    ? Number(stationCfg.lat)
+                    : meta?.lat,
+                lon: Number.isFinite(Number(r.lon))
+                  ? Number(r.lon)
+                  : Number.isFinite(Number(stationCfg.lon))
+                    ? Number(stationCfg.lon)
+                    : meta?.lon,
                 data_source: "nepal-gov-manual",
                 timestamp: new Date(),
               },
