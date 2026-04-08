@@ -25,12 +25,14 @@ The workspace includes three runtime services:
 
 Key capabilities:
 
-- Live AQI and weather data for Nepal districts and cities
-- Real-time fire hotspot tracking from NASA FIRMS
-- Nepal map layers (AQI, weather, fire hotspots)
-- Animated wind particles on Leaflet map using Open-Meteo + leaflet-velocity
-- Admin authentication and direct alert emailing
-- Weather and AQI advisory generation
+- **Live weather data** from Open-Meteo API (temperature, wind, rainfall, AQI)
+- **Real-time AQI** from MongoDB (internal database or manual uploads)
+- **Notifications system** with persistent storage, alert type classification, and severity levels
+- **News ticker** with backend-first architecture and local fallback
+- **Real-time fire hotspot tracking** from NASA FIRMS
+- **Interactive Nepal map** with AQI, weather, fire hotspot layers, and animated wind particles
+- **Admin authentication** and direct alert emailing with automatic notification persistence
+- **Weather and AQI advisory generation** with severity-based public alerts
 
 ## Project Structure
 
@@ -121,7 +123,7 @@ Frontend .env values:
 VITE_API_BASE_URL=http://localhost:5000/api
 ```
 
-Note: the map page at frontend/public/weathernepal_map.html currently contains a CFG object with API endpoints and OWM key fallback. Keep those values aligned with your backend URL and key strategy.
+Note: the map page at `frontend/public/weathernepal_map.html` contains a CFG object with API endpoints. Keep the backend URL aligned with your deployment. All data sources are now configured through the backend API.
 
 Admin AQI upload is available inside the existing user profile menu on the map page under "Admin AQI Upload" (no separate admin upload page required).
 
@@ -190,8 +192,19 @@ Advisory:
 
 Alerts:
 
-- POST /api/alerts/send-direct (admin only)
+- POST /api/alerts/send-direct (admin only) - Send weather alert, creates notification persistently
 - POST /api/auth/send-alert-email (public, rate-limited)
+
+Notifications:
+
+- GET /api/notifications (authenticated) - Get user's personal notifications
+- GET /api/notifications/public (public) - Get system-wide public alerts
+- PUT /api/notifications/:id/read (authenticated) - Mark notification as read
+- DELETE /api/notifications/:id (authenticated) - Delete a notification
+
+News:
+
+- GET /api/map/live-news - Get news headlines from stored weather/AQI data (backend-first source)
 
 Auth:
 
@@ -200,6 +213,49 @@ Auth:
 - PUT /api/auth/change-password
 - PUT /api/auth/avatar
 - PUT /api/auth/update-location
+
+## Data Architecture (Hybrid Model)
+
+WeatherNepal uses a hybrid architecture that prioritizes different data sources based on type and availability:
+
+### Weather Data
+- **Source**: Live Open-Meteo API (primary)
+- **Flow**: Frontend calls Open-Meteo directly via CORS proxy
+- **Components**: Temperature pins, 24-hour chart, detail panel
+- **Strategy**: Always live (not cached in MongoDB)
+
+### Air Quality (AQI) Data
+- **Sources**: 
+  - `nepal-gov-manual` (priority if available)
+  - `internal-db` (fallback from database or Open-Meteo)
+- **Storage**: MongoDB `AirQuality` collection
+- **Read Path**: Backend endpoint `/api/map/waqi-live-cities` provides city AQI values
+- **Sync**: Backend syncs every 5 minutes via `dataSync.js`
+- **Display**: City markers show AQI with color scale; forecast does NOT populate AQI
+
+### News Ticker
+- **Primary Source**: Backend endpoint `/api/map/live-news` generates headlines from stored weather/AQI
+- **Fallback Source**: Frontend local generation if backend unavailable
+- **Deduplication**: Promise-based to prevent duplicate requests
+- **Priority Rule**: Backend-first (code enforces via orchestration)
+
+### Notifications
+- **Storage**: MongoDB `Notification` collection with 3-day TTL
+- **Types**: `alert`, `aqi`, `rain`, `wind`, `snow`, `temp`, `daily`, `system`, `news`
+- **Severity Levels**: `high`, `warning`, `danger`, `info`
+- **Write Paths**:
+  1. Admin sends direct alert → private + public (if severe)
+  2. Weather sync detects severe conditions → creates public alert
+- **Read Endpoints**: 
+  - `/api/notifications` (user-specific)
+  - `/api/notifications/public` (system-wide)
+- **Deduplication**: 1-hour window for public weather alerts
+
+### Data Source Priority Rule
+Enforced throughout the codebase:
+1. **Backend API** (primary): Always try backend endpoint first
+2. **Fallback/Local** (secondary): Use local computation only if backend fails or times out
+3. **Live API** (special): Keep weather always live, never cache
 
 ## Wind Animation Notes
 
@@ -224,7 +280,7 @@ If map layers do not load:
 
 - Confirm backend is running on port 5000
 - Confirm MongoDB is running and reachable
-- Verify OWM key if using OpenWeatherMap tile layers
+- Verify backend has internet access to Open-Meteo and NASA FIRMS APIs
 
 If wind particles are missing:
 
