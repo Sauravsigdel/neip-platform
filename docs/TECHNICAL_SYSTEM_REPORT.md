@@ -1,83 +1,54 @@
-# WeatherNepal Technical System Report
+# ⚠️ DEPRECATED - See FINAL_ARCHITECTURE.md
 
-## 1. Purpose and Scope
+**This file is obsolete** and describes the pre-refactoring system architecture with outdated components.
 
-This document summarizes the current implementation of WeatherNepal across:
+This document referenced:
+- ❌ ML service (Flask + scikit-learn) - Not implemented
+- ❌ Disaster risk scoring - Not implemented  
+- ❌ Legacy alert scheduler - Replaced by event-driven
+- ❌ Legacy notification scheduler - Replaced by event-driven
+- ❌ OWM integration - Removed from active code
 
-- overall architecture
-- backend and frontend responsibilities
-- database schema and data lifecycles
-- API endpoint inventory
-- email and notification flows
-- AI/ML flow and model usage
-- recent cleanup outcomes reflected in the current code
+---
 
-The report is based on direct inspection of the active workspace code.
+## Current System Documentation
 
-## 2. High-Level Architecture
+For complete, up-to-date system specification, see:
 
-### 2.1 Runtime Services
+**[FINAL_ARCHITECTURE.md](FINAL_ARCHITECTURE.md)** (Primary Reference)
+- Complete system overview
+- Data flow architecture with diagrams
+- Backend services
+- Frontend architecture
+- Database schema (current)
+- API endpoints (current)
+- Data source priority rules
+- Notification system details
+- Deployment checklist
 
-1. Frontend (Vite + React)
+**Additional Resources:**
+- [README.md](../README.md) - Quick start and API reference
+- [TROUBLESHOOTING_SETUP.md](TROUBLESHOOTING_SETUP.md) - Setup and debugging
+- [ADMIN_ONLY_CHANGES.md](../ADMIN_ONLY_CHANGES.md) - Admin features
+- [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) - Refactoring details
+- [CHANGELOG.md](CHANGELOG.md) - What has changed
 
-- App shell and authenticated pages under frontend/src
-- Public map runtime under frontend/public (Leaflet-based)
+---
 
-2. Backend API (Node.js + Express + MongoDB)
+### Quick Architecture Summary (Current)
 
-- Entry point: backend/src/server.js
-- Route namespace mounted at /api/\*
-- Background schedulers started at boot for weather/AQI/fire sync and notifications
+**Hybrid Model:**
+- Weather: Always live from Open-Meteo
+- AQI: Database-backed (internal-db source)
+- News: Backend-first with local fallback
+- Notifications: Fully persistent (MongoDB)
+- Alerts: Email + database storage with private/public routing
 
-3. ML Service (Flask + scikit-learn)
-
-- Entry point: ml-service/app.py
-- Exposes inference endpoints for AQI forecast, disaster risk, clustering, anomaly detection
-
-### 2.2 Core Data Providers
-
-- Open-Meteo: weather/current conditions
-- OpenWeather (air pollution endpoint): AQI proxy components when enabled
-- WAQI: live city AQI feed for map layer
-- NASA FIRMS: fire hotspot feed
-
-### 2.3 Execution Flow
-
-1. Backend boots, connects MongoDB, starts schedulers
-2. Data sync jobs ingest weather/AQI/fire records into MongoDB
-3. API routes aggregate latest values for map/UI and user workflows
-4. Notification scheduler and alert scheduler evaluate user/user-alert preferences
-5. Emails and in-app notifications are generated when criteria are met
-6. ML service is called from backend for AQI predictions and disaster risk scoring
-
-## 3. Backend Application Structure
-
-### 3.1 Server Composition
-
-Main API mounts in backend/src/server.js:
-
-- /api/aqi
-- /api/weather
-- /api/risk
-- /api/map
-- /api/advisory
-- /api/alerts
-- /api/auth
-- /api/notifications
-- /api/fire
-- /api/owm-tile
-- /api/health
-- /api/test-email
-
-Global middleware:
-
-- cors
-- express.json
-
-Background services initialized on startup:
-
-- initDataSync()
-- initAlertScheduler()
+**No longer includes:**
+- Disaster risk system
+- ML predictions
+- Legacy schedulers
+- OWM tile layers
 - initNotificationScheduler()
 
 ### 3.2 Auth and Access Control

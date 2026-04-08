@@ -68,7 +68,7 @@ Backend dataSync Service
     ├─ Validates and transforms
     ├─ Checks data_source priority
     └─ Stores in MongoDB
-    
+
 MongoDB AirQuality Collection
     ↓
 Backend /api/map/waqi-live-cities
@@ -171,6 +171,7 @@ Frontend map layer
 ### Core Services
 
 **backend/src/server.js**
+
 - Express API entry point
 - CORS middleware configured
 - Routes mounted at `/api/*`
@@ -178,12 +179,14 @@ Frontend map layer
 - Database connection on port 27017 (MongoDB)
 
 **backend/src/services/dataSync.js**
+
 - Runs on startup and via cron every 5 minutes (weather) and 3 hours (fire)
 - `fetchWeatherData()` → calls Open-Meteo, stores in MongoDB, triggers notification check
 - `maybeCreatePublicWeatherNotification()` → creates alerts for severe weather
 - Does NOT use ML service (removed in refactoring)
 
 **backend/src/routes/alertRoutes.js**
+
 - `POST /api/alerts/send-direct` → Admin-only weather alert endpoint
 - Creates both private user notifications and public (if severe)
 - Severity evaluated via `getAlertSeverity()` function
@@ -212,12 +215,14 @@ Frontend map layer
 ### Vanilla JS Public Map (frontend/public/weathernepal_map.html)
 
 **Key Modules:**
+
 - `weathernepal_map.js` - Core map initialization and layer management
 - `weathernepal_map.layers.js` - Layer rendering (temperature, news, forecast, AQI)
 - `weathernepal_map.auth.js` - Authentication, notifications panel, user profile
 - `weathernepal_map.data-services.js` - API data fetching and local computation
 
 **News Loading Flow (weathernepal_map.layers.js):**
+
 ```javascript
 function requestNewsFeed(sourceCities) {
   if (newsFromBackendLoaded) {
@@ -225,22 +230,25 @@ function requestNewsFeed(sourceCities) {
     if (tickerItems.length) rotateTicker(tickerItems);
     return;
   }
-  
+
   // Prevent concurrent requests via Promise deduplication
   if (newsLoadPromise) return newsLoadPromise;
-  
+
   newsLoadPromise = loadLiveNewsFromBackend()
     .then((loaded) => {
-      if (!loaded) updateNewsFeed(sourceCities);  // Fallback to local
+      if (!loaded) updateNewsFeed(sourceCities); // Fallback to local
       return loaded;
     })
-    .finally(() => { newsLoadPromise = null; });
-  
+    .finally(() => {
+      newsLoadPromise = null;
+    });
+
   return newsLoadPromise;
 }
 ```
 
 **AQI Handling:**
+
 - Forecast AQI set to `null` (not `0`) - no attempt to populate for future dates
 - City marker AQI populated from `/api/map/waqi-live-cities`
 - Null values rendered gracefully (gray bar, "AQI unavailable" tooltip)
@@ -248,6 +256,7 @@ function requestNewsFeed(sourceCities) {
 ### React App (frontend/src)
 
 **Components:**
+
 - `pages/MapPage.jsx` - Map viewer
 - `pages/NotFoundPage.jsx` - 404 handler
 - Main app shell with routing and authentication
@@ -259,6 +268,7 @@ function requestNewsFeed(sourceCities) {
 ### Active Collections
 
 **AirQuality**
+
 ```javascript
 {
   _id: ObjectId,
@@ -274,9 +284,11 @@ function requestNewsFeed(sourceCities) {
   createdAt: Date
 }
 ```
+
 **Note**: `data_source` default is now `"internal-db"` (formerly "simulated")
 
 **WeatherData**
+
 ```javascript
 {
   _id: ObjectId,
@@ -293,6 +305,7 @@ function requestNewsFeed(sourceCities) {
 ```
 
 **Notification** (Enhanced)
+
 ```javascript
 {
   _id: ObjectId,
@@ -311,10 +324,12 @@ function requestNewsFeed(sourceCities) {
   expiresAt: Date (TTL: 3 days)
 }
 ```
+
 **Indexes**: `{ userId, createdAt }`, `{ userId, read }`, `{ isPublic, createdAt }`  
 **New Fields**: `type: "alert"`, `severity: "high"`, `details` field for alert metadata
 
 **FireHotspot**
+
 ```javascript
 {
   _id: ObjectId,
@@ -333,6 +348,7 @@ function requestNewsFeed(sourceCities) {
 ```
 
 **User**
+
 ```javascript
 {
   _id: ObjectId,
@@ -360,6 +376,7 @@ function requestNewsFeed(sourceCities) {
 ```
 
 **AQIPrediction**
+
 ```javascript
 {
   _id: ObjectId,
@@ -383,22 +400,27 @@ function requestNewsFeed(sourceCities) {
 ## API Endpoints
 
 ### Base URL
+
 `http://localhost:5000/api`
 
 ### Health
+
 - `GET /api/health` - Server status
 
 ### AQI
+
 - `GET /api/aqi/latest` - Latest AQI for all cities
 - `GET /api/aqi/history/:district` - Historical AQI data
 
 ### Weather
+
 - `GET /api/weather/current` - Current weather (query: lat, lon, city, district)
 - `GET /api/weather/forecast` - 7-day forecast (query: lat, lon)
 - `GET /api/weather/latest` - Latest weather for all districts
 - `GET /api/weather/all-districts` - Weather data aggregated by district
 
 ### Map
+
 - `GET /api/map/all-cities` - All city metadata and coordinates
 - `GET /api/map/city/:cityName` - Specific city data
 - `GET /api/map/summary` - Overview of weather and AQI
@@ -406,21 +428,25 @@ function requestNewsFeed(sourceCities) {
 - `GET /api/map/live-news` - **PRIMARY** source for news ticker
 
 ### Fire
+
 - `GET /api/fire/hotspots` - Active fire locations
 - `GET /api/fire/stats` - Fire statistics
 - `POST /api/fire/refresh` - Force refresh hotspots
 
 ### Alerts
+
 - `POST /api/alerts/send-direct` - **Admin only** - Send weather alert with notification persistence
 - `POST /api/auth/send-alert-email` - Public rate-limited alert signup
 
 ### Notifications (NEW ENDPOINTS)
+
 - `GET /api/notifications` - Get user's personal notifications (authenticated)
 - `GET /api/notifications/public` - Get system-wide public alerts (public)
 - `PUT /api/notifications/:id/read` - Mark notification as read (authenticated)
 - `DELETE /api/notifications/:id` - Delete a notification (authenticated)
 
 ### Authentication
+
 - `POST /api/auth/login` - User login
 - `POST /api/auth/send-alert-email` - Subscribe for email alerts
 - `PUT /api/auth/change-password` - Change password (authenticated)
@@ -428,6 +454,7 @@ function requestNewsFeed(sourceCities) {
 - `PUT /api/auth/update-location` - Update location (authenticated)
 
 ### Advisory
+
 - `POST /api/advisory/generate` - **Admin only** - Generate weather advisory
 - `POST /api/advisory/quick` - **Admin only** - Quick advisory
 
@@ -436,12 +463,15 @@ function requestNewsFeed(sourceCities) {
 ## Data Source Priority Rules
 
 ### Rule 1: Backend-First for Aggregated Data
+
 When frontend needs data like news, AQI, or notifications:
+
 1. Call backend endpoint first (e.g., `/api/map/live-news`)
 2. If backend succeeds, use that data
 3. If backend times out or errors, fall back to local computation
 
 **Code Example (News)**:
+
 ```javascript
 async function requestNewsFeed(sourceCities) {
   try {
@@ -458,18 +488,23 @@ async function requestNewsFeed(sourceCities) {
 ```
 
 ### Rule 2: Live API for Weather
+
 Weather data is ALWAYS live:
+
 - Never cache weather in MongoDB for display
 - Always call Open-Meteo at request time
 - Backend can sync weather for reference/logging, but frontend gets live data
 
 ### Rule 3: Persistent Storage for Alerts and Notifications
+
 Every alert or notification event creates a permanent MongoDB record:
+
 - Admin direct alert → creates Notification(s)
 - Severe weather detected → creates public Notification
 - All records have timestamps and can be queried historically
 
 ### Rule 4: Deduplication and Rate Limiting
+
 - News loading uses Promise deduplication to prevent duplicate calls
 - Public weather alerts dedup within 1-hour windows
 - Email alerts are rate-limited per subscriber
@@ -481,41 +516,45 @@ Every alert or notification event creates a permanent MongoDB record:
 ### Quick Reference
 
 **Write Triggers:**
+
 1. Admin sends direct alert → private + public (if severe)
 2. Weather sync detects severity → public alert
 
 **Read Endpoints:**
+
 - `/api/notifications` (user-specific, authenticated)
 - `/api/notifications/public` (system-wide, public)
 
 **Delete Endpoint:**
+
 - `DELETE /api/notifications/:id` (authenticated)
 
 **Mark as Read:**
+
 - `PUT /api/notifications/:id/read` (authenticated)
 
 ### Notification Types
 
-| Type | Source | Example |
-|------|--------|---------|
-| `alert` | Admin or auto | Weather alert, severe condition |
-| `aqi` | System | AQI reaches unhealthy level |
-| `rain` | System | Heavy rainfall detected |
-| `wind` | System | High wind speed |
-| `snow` | System | Snowfall detected |
-| `temp` | System | Temperature extreme |
-| `daily` | System | Daily digest |
-| `system` | System | System announcements |
-| `news` | System | News updates |
+| Type     | Source        | Example                         |
+| -------- | ------------- | ------------------------------- |
+| `alert`  | Admin or auto | Weather alert, severe condition |
+| `aqi`    | System        | AQI reaches unhealthy level     |
+| `rain`   | System        | Heavy rainfall detected         |
+| `wind`   | System        | High wind speed                 |
+| `snow`   | System        | Snowfall detected               |
+| `temp`   | System        | Temperature extreme             |
+| `daily`  | System        | Daily digest                    |
+| `system` | System        | System announcements            |
+| `news`   | System        | News updates                    |
 
 ### Notification Severity
 
-| Level | Use Case | Persistence |
-|-------|----------|-------------|
-| `high` | Critical alerts (severe weather) | Public + User |
-| `warning` | Important alerts | Usually private |
-| `danger` | Critical condition | Both paths |
-| `info` | General info | Private only |
+| Level     | Use Case                         | Persistence     |
+| --------- | -------------------------------- | --------------- |
+| `high`    | Critical alerts (severe weather) | Public + User   |
+| `warning` | Important alerts                 | Usually private |
+| `danger`  | Critical condition               | Both paths      |
+| `info`    | General info                     | Private only    |
 
 ### Notification UI Display
 
@@ -552,4 +591,4 @@ Every alert or notification event creates a permanent MongoDB record:
 
 **Document Status**: ✅ Complete  
 **Last Validation**: All tests passing, all files error-free  
-**Architecture Validation**: Hybrid model fully implemented  
+**Architecture Validation**: Hybrid model fully implemented

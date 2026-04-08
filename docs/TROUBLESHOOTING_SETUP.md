@@ -1,82 +1,446 @@
-# WeatherNepal Troubleshooting & Setup Guide
+# WeatherNepal - Setup & Troubleshooting Guide
 
-## Issue 1: Light Theme - Nepal Districts Overlay Not Visible
+**Last Updated**: April 8, 2026  
+**System Status**: ✅ Production Ready
 
-**FIXED** ✓ Updated layer styling for light theme visibility
+## Quick Start
 
-### What was wrong:
+### Prerequisites
 
-- Light theme boundaries had nearly-white fill color (#f8fafc) against light background
-- District borders were too thin/transparent
+- Node.js 20+
+- npm 10+
+- MongoDB on localhost:27017 (Docker or local)
+- Git
 
-### What was fixed:
+### 1. Start MongoDB
 
-- Changed light theme fill colors to darker shades (#475569)
-- Increased opacity and weight for visibility
-- Updated boundary stroke colors appropriately
+**Option A: Docker** (Recommended)
+```bash
+cd docker
+docker-compose up -d
+# MongoDB runs on port 27017
+```
 
-**No action needed** - the fix has been applied to `frontend/public/js/weathernepal_map.layers.js`
+**Option B: Local MongoDB**
+```bash
+# Ensure MongoDB service is running on port 27017
+mongod
+```
 
----
-
-## Issue 2: Create Admin User
-
-Since you deleted all user data, follow these steps:
-
-### Quick Start (Recommended):
+### 2. Start Backend
 
 ```bash
 cd backend
-npm install  # if not done yet
+npm install
+npm run dev
+# Backend runs on http://localhost:5000
+```
+
+### 3. Start Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+# Frontend runs on http://localhost:5173 (or 5174/5175 if in use)
+```
+
+### 4. Create Admin User
+
+```bash
+cd backend
 node scripts/seed-admin.js
 ```
 
-**Credentials created:**
-
+**Credentials created**:
 - Email: `sauravsigdel00000@gmail.com`
 - Password: `Admin@123456`
-- ⚠️ **IMPORTANT**: Change password after first login!
+- ⚠️ **Change password after first login!**
 
-### What the script does:
+---
 
-1. Connects to MongoDB (using MONGO_URI from .env)
-2. Checks if admin already exists (won't duplicate)
-3. Creates verified admin user with role="admin"
-4. Confirms creation with output
+## Environment Setup
 
-### If you need to create manually in MongoDB:
+### Backend Configuration (backend/.env)
 
-```javascript
-// Connection string: mongodb://127.0.0.1:27017/weathernepal
+```env
+# Server
+PORT=5000
+NODE_ENV=development
 
-// Document:
-{
-  "name": "Admin User",
-  "email": "sauravsigdel00000@gmail.com",
-  "password": "$2a$12$YOUR_BCRYPT_HASH",  // Use bcrypt.hash("Admin@123456", 12)
-  "location": "Kathmandu",
-  "district": "Kathmandu",
-  "lat": 27.7172,
-  "lon": 85.324,
-  "avatarIndex": 1,
-  "avatarColor": "#2563eb",
-  "isVerified": true,
-  "role": "admin",
-  "alerts": {
-    "aqi": true,
-    "rain": true,
-    "wind": false,
-    "snow": false,
-    "temp": false,
-    "daily": true
-  },
-  "createdAt": new Date()
-}
+# Database
+MONGO_URI=mongodb://localhost:27017/neip_db
+
+# Security
+JWT_SECRET=your-secret-key-min-32-chars-for-production
+
+# Email (Gmail SMTP)
+GMAIL_USER=your-email@gmail.com
+GMAIL_APP_PASSWORD=your-app-password
+
+# External APIs
+NASA_FIRMS_KEY=your_nasa_firms_key
+
+# Optional
+ALLOW_PUBLIC_SIGNUP=false
+WAQI_ONLY_AQI_MODE=false
+```
+
+**Gmail App Password Setup**:
+1. Enable 2-factor authentication on Gmail
+2. Go to https://myaccount.google.com/apppasswords
+3. Generate app-specific password
+4. Use in GMAIL_APP_PASSWORD field
+
+### Frontend Configuration (frontend/.env)
+
+```env
+VITE_API_BASE_URL=http://localhost:5000/api
 ```
 
 ---
 
-## Issue 3: OpenWeather (OWM) Map Overlays Not Showing
+## Common Issues & Solutions
+
+### Issue 1: Backend won't start - "Port 5000 in use"
+
+**Symptom**: `Error: listen EADDRINUSE :::5000`
+
+**Solution**:
+```bash
+# Windows: Find and kill process on port 5000
+netstat -ano | findstr :5000
+taskkill /PID <PID> /F
+
+# macOS/Linux:
+lsof -ti:5000 | xargs kill -9
+```
+
+### Issue 2: Frontend won't compile - "Module not found"
+
+**Symptom**: `Cannot find module '@vite/...'`
+
+**Solution**:
+```bash
+cd frontend
+rm -rf node_modules package-lock.json
+npm install
+npm run dev
+```
+
+### Issue 3: MongoDB connection fails - "ECONNREFUSED"
+
+**Symptom**: `MongoError: connect ECONNREFUSED 127.0.0.1:27017`
+
+**Solution**:
+
+**Check if MongoDB is running**:
+```bash
+# Docker
+docker ps | grep mongo
+docker logs <container_id>
+
+# Local
+mongosh  # This connects to local MongoDB
+```
+
+**Start MongoDB if needed**:
+```bash
+# Via Docker
+cd docker
+docker-compose up -d mongo
+
+# Via local service
+# macOS: brew services start mongodb-community
+# Linux: sudo systemctl start mongod
+# Windows: net start MongoDB
+```
+
+### Issue 4: Email alerts not sending
+
+**Symptom**: Alert endpoint returns 500 or emails not arriving
+
+**Solution**:
+1. Verify Gmail credentials in `.env`
+2. Check if 2FA is enabled and app password is correct
+3. Check if Gmail account has "Less secure apps" access enabled
+4. Review backend logs: `npm run dev`
+
+```bash
+# Test email directly
+curl -X POST http://localhost:5000/api/auth/send-alert-email \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test@example.com",
+    "name": "Test",
+    "location": "Kathmandu",
+    "message": "test message",
+    "severity": "high"
+  }'
+```
+
+### Issue 5: Map not loading / City pins disappearing
+
+**Symptom**: Map loads but no city pins or layers visible
+
+**Solution**:
+1. Check browser console (F12) for errors
+2. Verify backend is running: `curl http://localhost:5000/api/health`
+3. Check MongoDB has data: 
+   ```bash
+   mongosh
+   > use neip_db
+   > db.aircqualities.countDocuments()  # Should show data
+   ```
+4. Hard refresh browser: **Ctrl+Shift+R** (Windows) or **Cmd+Shift+R** (Mac)
+
+### Issue 6: News ticker empty / not loading
+
+**Symptom**: News ticker appears but has no headlines
+
+**Solution**:
+1. Frontend should load from backend `/api/map/live-news` (primary)
+2. If backend fails, falls back to local computation
+3. Verify endpoint exists: 
+   ```bash
+   curl http://localhost:5000/api/map/live-news
+   # Should return: { "headlines": [...] }
+   ```
+4. Check if WeatherData collection has records
+5. Open browser console to see if backend request succeeds or fails
+
+### Issue 7: Admin login fails - "Admin login only"
+
+**Symptom**: Non-admin user tries to login, gets: `"Admin login only"`
+
+**Solution**:
+- This is expected! Only admin users (role="admin") can login
+- Use public alert endpoint instead: `POST /api/auth/send-alert-email`
+- Or create a new admin user via `node scripts/seed-admin.js`
+
+### Issue 8: Notifications not appearing
+
+**Symptom**: Send alert via `/api/alerts/send-direct` but no notification appears
+
+**Solution**:
+1. Verify alert was sent successfully (check logs)
+2. Fetch notifications: 
+   ```bash
+   curl http://localhost:5000/api/notifications/public
+   # Should return array with alert
+   ```
+3. Check MongoDB:
+   ```bash
+   mongosh > db.notifications.find().pretty()
+   ```
+4. In UI, refresh `/api/notifications/public` or user's notifications
+
+---
+
+## Testing Endpoints
+
+### Health Check
+```bash
+curl http://localhost:5000/api/health
+# Expected: { "status": "ok" }
+```
+
+### Get All Cities
+```bash
+curl http://localhost:5000/api/map/all-cities?limit=10
+```
+
+### Get AQI Data
+```bash
+curl "http://localhost:5000/api/aqi/latest"
+```
+
+### Get Weather
+```bash
+curl "http://localhost:5000/api/weather/current?city=Kathmandu"
+```
+
+### Get News
+```bash
+curl http://localhost:5000/api/map/live-news
+```
+
+### Get Public Notifications
+```bash
+curl http://localhost:5000/api/notifications/public
+```
+
+### Send Public Alert Email
+```bash
+curl -X POST http://localhost:5000/api/auth/send-alert-email \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test@example.com",
+    "name": "Test User",
+    "location": "Kathmandu",
+    "message": "Heavy rain warning",
+    "severity": "high"
+  }'
+```
+
+### Admin Login
+```bash
+curl -X POST http://localhost:5000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "sauravsigdel00000@gmail.com",
+    "password": "Admin@123456"
+  }'
+# Returns JWT token
+```
+
+### Send Direct Alert (Admin Only)
+```bash
+# First get the token from login, then:
+curl -X POST http://localhost:5000/api/alerts/send-direct \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{
+    "recipients": ["user@example.com"],
+    "location": "Kathmandu",
+    "district": "Kathmandu",
+    "safeAqi": 160,
+    "currentWeather": {"temperature": 25}
+  }'
+```
+
+---
+
+## Database Management
+
+### View Database State
+```bash
+mongosh
+> use neip_db
+> show collections
+> db.aircqualities.countDocuments()
+> db.weatherdatas.countDocuments()
+> db.notifications.countDocuments()
+> db.users.countDocuments()
+```
+
+### Clean Up Test Data
+```bash
+# In backend folder:
+node scripts/cleanup-db.js
+# Removes old/test collections and expired notifications
+```
+
+### Reset Database Completely
+```bash
+mongosh
+> db.dropDatabase()
+# Then re-run: node scripts/seed-admin.js
+```
+
+---
+
+## Debugging Tips
+
+### Enable Verbose Logging
+
+**Backend**:
+```bash
+# Edit backend/.env
+DEBUG=*
+npm run dev
+```
+
+### Check Backend Logs
+```bash
+# Terminal where backend is running - logs appear here
+[Backend] Express server listening on port 5000
+[Backend] MongoDB connected
+[DataSync] Weather sync started
+```
+
+### Browser Developer Console (F12)
+
+**Check Network Tab**:
+- Click Network tab
+- Refresh page
+- Look for failed requests (red X)
+- Click on request to see response/error
+
+**Check Console Tab**:
+- Errors appear in red
+- Warnings in yellow
+- info messages in white
+- Click to expand error stack
+
+### Monitor Database Changes
+```bash
+# Watch MongoDB changes in real-time
+mongosh
+> use neip_db
+> db.notifications.watch()
+# New notifications will appear here in real-time
+```
+
+---
+
+## Performance Tips
+
+### Optimize Frontend
+1. Hard refresh (Ctrl+Shift+R) to clear cache
+2. Close other browser tabs to free memory
+3. Use Chrome DevTools Performance tab to profile
+
+### Optimize Backend
+1. Monitor database indexes: `db.collection.getIndexes()`
+2. Check query performance: Use MongoDB Compass GUI
+3. Monitor memory: Check `npm` process in Task Manager
+
+### Optimize Database
+1. Create indexes on frequently queried fields
+2. Archive old notifications (older than 3 days auto-delete via TTL)
+3. Monitor collection sizes
+
+---
+
+## Production Deployment
+
+**Before Deploying**:
+
+```bash
+# Verify tests pass
+cd backend && npm test
+cd ../frontend && npm run lint
+
+# Verify environment
+# - MongoDB production URL set
+# - JWT_SECRET is strong (32+ chars)
+# - Gmail credentials are correct
+# - API_BASE_URL points to production server
+# - MONGO_URI uses production database
+
+# Build frontend
+npm run build
+```
+
+**Deploy Checklist**:
+- [ ] MongoDB running and accessible
+- [ ] All environment variables set
+- [ ] Backend smoke test passing
+- [ ] Frontend linting passing
+- [ ] SSL/HTTPS configured (if production)
+- [ ] Rate limiting verified (admin login protected)
+- [ ] Email alerts tested end-to-end
+- [ ] Notification persistence verified
+
+---
+
+## Related Documentation
+
+- See [FINAL_ARCHITECTURE.md](FINAL_ARCHITECTURE.md) for complete system spec
+- See [README.md](../README.md) for API reference
+- See [ADMIN_ONLY_CHANGES.md](../ADMIN_ONLY_CHANGES.md) for authentication details
+- See [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) for refactoring details
 
 ### Root Cause:
 

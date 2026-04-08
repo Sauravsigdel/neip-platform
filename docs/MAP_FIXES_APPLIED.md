@@ -1,102 +1,23 @@
-# WeatherNepal Map Issues - Complete Fix Guide
+# ⚠️ DEPRECATED - See CHANGELOG.md
 
-## Issues Fixed in This Update
+**This file is obsolete** and documents UI fixes from earlier development phases that have been integrated into the current codebase.
 
-### 1. ✅ City Pins Now Show (Even Without AQI)
+The map improvements described here:
+- City pins visibility improvements
+- District boundary styling
+- Temperature pin interactivity
+- Light/dark theme contrast fixes
 
-**Problem:** City pins only appeared if they had valid AQI data, making the map look empty on startup while data was loading.
-
-**Fix Applied:** Modified `shouldShowCityPin()` function to show pins for all cities in the active province, regardless of AQI status. Pins update dynamically as real data arrives.
-
-**File:** [frontend/public/js/weathernepal_map.layers.js](frontend/public/js/weathernepal_map.layers.js#L1524)
-
----
-
-### 2. ✅ District Boundaries Now Visible
-
-**Problem:** District overlay lines were nearly invisible due to:
-
-- Wrong color (#cbd5e1 = too light gray)
-- Too thin weight (0.9)
-- Too low opacity (0.3)
-
-**Fixes Applied:**
-
-- Increased color to #e2e8f0 (slightly darker)
-- Increased weight to 1.2
-- Increased opacity to 0.5
-- Light theme: color #1e293b, weight 1.8, opacity 0.7
-
-**Files:** [frontend/public/js/weathernepal_map.layers.js](frontend/public/js/weathernepal_map.layers.js#L2110-L2130)
+...are now standard features of the map system and don't need separate documentation.
 
 ---
 
-### 3. ✅ Light Theme Province/District Overlays Enhanced
+## Current Documentation
 
-**Problem:** Light theme made overlays hard to distinguish from light map background.
-
-**Fixes Applied:**
-
-- Province boundaries: darker fill (#475569 → matching district approach) when not selected
-- Better contrast colors for both selected and unselected states
-- Increased weight and opacity for visibility
-
-**Files:** [frontend/public/js/weathernepal_map.layers.js](frontend/public/js/weathernepal_map.layers.js#L2053-L2075)
-
----
-
-### 4. ✅ Temperature Pins Now Interactive with Full Forecast
-
-**Problem:** Temperature pins were non-interactive (`interactive: false`) and couldn't show forecast details.
-
-**Fixes Applied:**
-
-- Changed `interactive: true`
-- Added click event listener to call `openDetail(city)` - same as AQI pins
-- Added cursor pointer to template
-- Added `riseOnHover` for visual feedback
-- Now displays same detailed forecast panel as AQI/City pins
-
-**Result:** Click any temperature pin to see:
-
-- 24-hour temperature chart
-- 7-day forecast
-- Current AQI & weather data
-- Advisory text
-
-**Files:** [frontend/public/js/weathernepal_map.layers.js](frontend/public/js/weathernepal_map.layers.js#L1150-L1187)
-
----
-
-## What You Need to Do Now
-
-### 1. Hard Refresh Browser
-
-- Windows: `Ctrl + Shift + R`
-- Mac: `Cmd + Shift + R`
-
-This clears cached JavaScript and ensures new pin logic loads.
-
-### 2. Wait for Data to Load
-
-- City pins should appear within ~5 seconds (unfilled/gray while awaiting AQI data)
-- Districts overlay should be visible in both themes
-- Watch the map status bar at bottom-right for "Real weather data loaded"
-
-### 3. Test Features
-
-**City Pins:**
-
-- ✓ Pins should be visible even before real data loads
-- ✓ Click any pin → sees full forecast + weather data
-- ✓ Pin color updates as real AQI data arrives
-
-**District Overlay:**
-
-- ✓ Dark theme: light blue lines on dark map
-- ✓ Light theme: dark gray lines on light map
-- ✓ Line weight is clearly visible
-- ✓ Province selection highlights correctly
+- **Frontend Architecture**: See [FINAL_ARCHITECTURE.md](FINAL_ARCHITECTURE.md#frontend-architecture)
+- **Map Layer Details**: See [FINAL_ARCHITECTURE.md](FINAL_ARCHITECTURE.md#weather-data-flow)
+- **Troubleshooting Map Issues**: See [TROUBLESHOOTING_SETUP.md](TROUBLESHOOTING_SETUP.md#issue-5-map-not-loading--city-pins-disappearing)
+- **What Has Changed**: See [CHANGELOG.md](CHANGELOG.md)
 
 **Temperature Pins:**
 
