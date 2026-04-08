@@ -219,13 +219,15 @@ Auth:
 WeatherNepal uses a hybrid architecture that prioritizes different data sources based on type and availability:
 
 ### Weather Data
+
 - **Source**: Live Open-Meteo API (primary)
 - **Flow**: Frontend calls Open-Meteo directly via CORS proxy
 - **Components**: Temperature pins, 24-hour chart, detail panel
 - **Strategy**: Always live (not cached in MongoDB)
 
 ### Air Quality (AQI) Data
-- **Sources**: 
+
+- **Sources**:
   - `nepal-gov-manual` (priority if available)
   - `internal-db` (fallback from database or Open-Meteo)
 - **Storage**: MongoDB `AirQuality` collection
@@ -234,25 +236,29 @@ WeatherNepal uses a hybrid architecture that prioritizes different data sources 
 - **Display**: City markers show AQI with color scale; forecast does NOT populate AQI
 
 ### News Ticker
+
 - **Primary Source**: Backend endpoint `/api/map/live-news` generates headlines from stored weather/AQI
 - **Fallback Source**: Frontend local generation if backend unavailable
 - **Deduplication**: Promise-based to prevent duplicate requests
 - **Priority Rule**: Backend-first (code enforces via orchestration)
 
 ### Notifications
+
 - **Storage**: MongoDB `Notification` collection with 3-day TTL
 - **Types**: `alert`, `aqi`, `rain`, `wind`, `snow`, `temp`, `daily`, `system`, `news`
 - **Severity Levels**: `high`, `warning`, `danger`, `info`
 - **Write Paths**:
   1. Admin sends direct alert → private + public (if severe)
   2. Weather sync detects severe conditions → creates public alert
-- **Read Endpoints**: 
+- **Read Endpoints**:
   - `/api/notifications` (user-specific)
   - `/api/notifications/public` (system-wide)
 - **Deduplication**: 1-hour window for public weather alerts
 
 ### Data Source Priority Rule
+
 Enforced throughout the codebase:
+
 1. **Backend API** (primary): Always try backend endpoint first
 2. **Fallback/Local** (secondary): Use local computation only if backend fails or times out
 3. **Live API** (special): Keep weather always live, never cache

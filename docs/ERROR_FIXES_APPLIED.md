@@ -3,6 +3,7 @@
 **This file is obsolete** and documents fixes from earlier development phases that have already been resolved.
 
 Current documentation:
+
 - **Setup & Troubleshooting**: See [TROUBLESHOOTING_SETUP.md](TROUBLESHOOTING_SETUP.md)
 - **System Architecture**: See [FINAL_ARCHITECTURE.md](FINAL_ARCHITECTURE.md)
 - **What Changed**: See [CHANGELOG.md](CHANGELOG.md)

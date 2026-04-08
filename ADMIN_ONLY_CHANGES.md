@@ -12,11 +12,13 @@ Administrative dashboard with role-based access, direct weather alerts, and auto
 ### Two-Tier Access Control
 
 **Admin Users** (role="admin"):
+
 - Access to admin dashboard (`/api/advisory`, `/api/alerts/send-direct`)
 - Direct alert sending with automatic notification persistence
 - JWT token based authentication
 
 **Public Users**:
+
 - Can subscribe for email alerts via public endpoint
 - No authentication required
 - Rate-limited to prevent abuse
@@ -36,6 +38,7 @@ Content-Type: application/json
 ```
 
 **Response (if admin)**:
+
 ```json
 {
   "success": true,
@@ -50,6 +53,7 @@ Content-Type: application/json
 ```
 
 **Response (if not admin)**:
+
 ```json
 {
   "success": false,
@@ -84,6 +88,7 @@ Content-Type: application/json
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -93,6 +98,7 @@ Content-Type: application/json
 ```
 
 **Behavior**:
+
 - Sends formatted HTML email to all recipients
 - Creates **private Notification** record for each user
 - Creates **public Notification** if severity is "high" or AQI > 150
@@ -146,6 +152,7 @@ Content-Type: application/json
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -154,6 +161,7 @@ Content-Type: application/json
 ```
 
 **Features**:
+
 - No authentication required
 - Rate-limited per IP to prevent spam
 - HTML-formatted email with color-coded severity
@@ -186,21 +194,25 @@ Content-Type: application/json
 ## Security Implementation
 
 ✅ **Authentication**:
+
 - JWT token validation on admin endpoints
 - Role-based authorization (admin role required)
 - Password hashing with bcrypt
 
 ✅ **Rate Limiting**:
+
 - Public endpoint: 10 requests/hour/IP
 - Prevents abuse of email system
 
 ✅ **Validation**:
+
 - Email format validation
 - Location verification against nepal_cities.js
 - Message length validation (min 5 chars, max 1000)
 - Severity enum validation (critical/high/moderate/low)
 
 ✅ **Data Protection**:
+
 - HTML email escaping (prevents injection)
 - Rate limit enforced per IP (using request IP detection)
 - Notifications auto-expire after 3 days (TTL index)

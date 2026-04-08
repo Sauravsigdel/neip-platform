@@ -18,6 +18,7 @@ This document tracks major changes to WeatherNepal throughout its development an
 **What Changed**:
 
 #### ✅ Added - New Features
+
 - Persistent notification storage (MongoDB)
 - Private + public notification routing based on severity
 - Backend-driven news system (backend-first priority)
@@ -25,6 +26,7 @@ This document tracks major changes to WeatherNepal throughout its development an
 - New API endpoints: `/api/notifications/*`
 
 #### ✅ Removed - Legacy Features
+
 - Legacy schedulers: `alertScheduler.js`, `notificationScheduler.js`
 - Unused models: `DisasterRisk.js`, `OTP.js`, `UserAlert.js`
 - Unused routes: `riskRoutes.js`
@@ -32,6 +34,7 @@ This document tracks major changes to WeatherNepal throughout its development an
 - Disaster risk scoring (not implemented)
 
 #### ✅ Updated - Architecture Clarity
+
 - AQI `data_source` default: "simulated" → "internal-db"
 - Forecast AQI: `0` placeholder → `null`
 - News loading: enforces backend-first with local fallback
@@ -39,7 +42,8 @@ This document tracks major changes to WeatherNepal throughout its development an
 
 **Impact**: 20 files changed, 478 insertions, 1,874 deletions (-1,396 net lines)
 
-**Tests**: 
+**Tests**:
+
 - Backend smoke test: ✅ 22/22 files passing
 - Frontend linting: ✅ 0 warnings
 
@@ -48,14 +52,17 @@ This document tracks major changes to WeatherNepal throughout its development an
 ## Obsolete Documentation
 
 ### ❌ ERROR_FIXES_APPLIED.md
+
 **Status**: Obsolete - describes fixes from earlier development phases
 
 **Was About**:
+
 - `loadRealAQI is not defined` error
 - `provinceBoundaryLayer` temporal dead zone
 - Network error handling
 
-**Why Obsolete**: 
+**Why Obsolete**:
+
 - Script loading issues have been resolved in current codebase
 - Temporal dead zone fixes are now standard practice
 - Error documentation only relevant to specific point-in-time bugs
@@ -65,15 +72,18 @@ This document tracks major changes to WeatherNepal throughout its development an
 ---
 
 ### ❌ MAP_FIXES_APPLIED.md
+
 **Status**: Partially Obsolete - describes UI fixes from earlier phases
 
 **Was About**:
+
 - City pins visibility improvements
 - District boundary styling fixes
 - Temperature pin interactivity
 - Light theme overlay enhancements
 
 **Why Partially Obsolete**:
+
 - Map layer fixes are now standard (not temporary patches)
 - UI improvements have been integrated into main code
 - No longer need separate documentation for applied fixes
@@ -83,16 +93,19 @@ This document tracks major changes to WeatherNepal throughout its development an
 ---
 
 ### ❌ TECHNICAL_SYSTEM_REPORT.md
+
 **Status**: Obsolete - describes pre-refactoring architecture
 
 **Was About**:
+
 - ML service integration (Flask + scikit-learn)
 - Disaster risk scoring system
 - Legacy alert scheduler
 - Legacy notification scheduler
 - OWM integration notes
 
-**Why Obsolete**: 
+**Why Obsolete**:
+
 - ML service and disaster risk system were not implemented
 - Alert/notification schedulers replaced by event-driven architecture
 - OWM references removed from active codebase
@@ -107,7 +120,9 @@ This document tracks major changes to WeatherNepal throughout its development an
 Where to find information:
 
 ### System Design & Architecture
+
 📄 **[FINAL_ARCHITECTURE.md](FINAL_ARCHITECTURE.md)**
+
 - Complete system specification
 - Data flow diagrams
 - API endpoints with examples
@@ -117,7 +132,9 @@ Where to find information:
 - Deployment checklist
 
 ### Quick Start & Setup
+
 📄 **[../README.md](../README.md)**
+
 - Project overview
 - Tech stack
 - Prerequisites
@@ -127,7 +144,9 @@ Where to find information:
 - Troubleshooting basics
 
 ### Setup & Troubleshooting
+
 📄 **[TROUBLESHOOTING_SETUP.md](TROUBLESHOOTING_SETUP.md)**
+
 - Detailed setup instructions
 - Common issues and solutions
 - Testing endpoints (curl examples)
@@ -137,7 +156,9 @@ Where to find information:
 - Production deployment checklist
 
 ### Admin Features
+
 📄 **[../ADMIN_ONLY_CHANGES.md](../ADMIN_ONLY_CHANGES.md)**
+
 - Admin authentication system
 - Alert endpoint documentation
 - Notification persistence flow
@@ -146,7 +167,9 @@ Where to find information:
 - Testing procedures
 
 ### Implementation Status
+
 📄 **[IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md)**
+
 - Current refactoring status
 - All implemented features
 - Validation results
@@ -161,16 +184,19 @@ Where to find information:
 ### If You Were Reading...
 
 **ERROR_FIXES_APPLIED.md**
+
 - Script loading issues? → See TROUBLESHOOTING_SETUP.md "Issue 2: Module not found"
 - JavaScript errors? → See TROUBLESHOOTING_SETUP.md "Debugging Tips"
 - Network errors? → See TROUBLESHOOTING_SETUP.md "Issue 5: Map not loading"
 
 **MAP_FIXES_APPLIED.md**
+
 - Map styling questions? → See FINAL_ARCHITECTURE.md "Frontend Architecture"
 - City pins not showing? → See TROUBLESHOOTING_SETUP.md "Issue 5: Map not loading"
 - District boundaries? → See README.md or interactive map documentation
 
 **TECHNICAL_SYSTEM_REPORT.md**
+
 - System architecture? → See FINAL_ARCHITECTURE.md (completely rewritten)
 - Data flow? → See FINAL_ARCHITECTURE.md "Data Flow Architecture"
 - Database schema? → See FINAL_ARCHITECTURE.md "Database Schema"
@@ -183,6 +209,7 @@ Where to find information:
 ### Data Model Evolution
 
 **Before** (Pre-Refactoring):
+
 ```
 Weather → Live API only, not stored
 AQI → Database stored with "simulated" label (misleading)
@@ -192,6 +219,7 @@ Alerts → Email only, no persistence
 ```
 
 **After** (Current):
+
 ```
 Weather → Always live, never cached from DB
 AQI → Database stored with "internal-db" label (clear)
@@ -202,13 +230,15 @@ Alerts → Email + MongoDB storage, private+public routing
 
 ### Architecture Philosophy Shift
 
-**Before**: 
+**Before**:
+
 - Mixed data sources with unclear priority
 - Ambiguous "simulated" vs "real" labels
 - Read-only notifications
 - Multiple scheduler services
 
 **After**:
+
 - Explicit backend-first priority rule
 - Clear data source labels
 - Full notification persistence
@@ -219,17 +249,20 @@ Alerts → Email + MongoDB storage, private+public routing
 ## Breaking Changes
 
 ### For Frontend Developers
+
 - Forecast AQI is now `null` instead of `0` (handle null in rendering)
 - News load handler expects `boolean` return from `loadLiveNewsFromBackend()`
 - Notification type now includes "alert" (update UI filters if needed)
 
 ### For Backend Developers
+
 - Remove usage of `alertScheduler` and `notificationScheduler`
 - Use event-driven notification creation instead
 - Don't reference `DisasterRisk` or `UserAlert` models
 - Use notification type "alert" and severity "high" for new alerts
 
 ### For Database
+
 - OTP, UserAlert, DisasterRisk collections no longer used (can archive)
 - Notification model extended (add indexes if upgrading existing DB)
 - AirQuality.data_source changed from "simulated" to "internal-db"
@@ -239,19 +272,25 @@ Alerts → Email + MongoDB storage, private+public routing
 ## Backward Compatibility
 
 ### Existing Frontend Code
+
 ✅ **Compatible** - Frontend can use old code with new backend
+
 - Old news loading will now try backend first (automatic improvement)
 - AQI changes (null instead of 0) may show UI differently but still functional
 - Public notifications now available (optional reading)
 
 ### Existing API Calls
+
 ✅ **Compatible** - All existing endpoints still work
+
 - New Notification endpoints are additions (don't break old code)
 - Alert endpoint now creates notifications (internal behavior change, same API)
 - Weather/AQI endpoints unchanged
 
 ### Existing Database Data
+
 ✅ **Compatible** - Old data can be migrated
+
 - Old AQI records with "simulated" still work (can re-label if desired)
 - Old collections (OTP, UserAlert) can be archived separately
 - Existing notifications will still query/display correctly
@@ -261,12 +300,14 @@ Alerts → Email + MongoDB storage, private+public routing
 ## System Timeline
 
 ### Phase 1: Admin Features (Earlier)
+
 - Admin-only login
 - Public alert emails
 - Basic notification read system
 - Email service setup
 
 ### Phase 2: Architecture Clarity (April 2026)
+
 - Implement hybrid architecture
 - Add notification persistence
 - Backend-first news loading
@@ -274,6 +315,7 @@ Alerts → Email + MongoDB storage, private+public routing
 - Clean up legacy code
 
 ### Phase 3: Production Deployment (Next)
+
 - Staging environment testing
 - Integration testing
 - Monitor alert creation

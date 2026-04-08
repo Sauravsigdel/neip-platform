@@ -15,6 +15,7 @@
 ### 1. Start MongoDB
 
 **Option A: Docker** (Recommended)
+
 ```bash
 cd docker
 docker-compose up -d
@@ -22,6 +23,7 @@ docker-compose up -d
 ```
 
 **Option B: Local MongoDB**
+
 ```bash
 # Ensure MongoDB service is running on port 27017
 mongod
@@ -53,6 +55,7 @@ node scripts/seed-admin.js
 ```
 
 **Credentials created**:
+
 - Email: `sauravsigdel00000@gmail.com`
 - Password: `Admin@123456`
 - ⚠️ **Change password after first login!**
@@ -87,6 +90,7 @@ WAQI_ONLY_AQI_MODE=false
 ```
 
 **Gmail App Password Setup**:
+
 1. Enable 2-factor authentication on Gmail
 2. Go to https://myaccount.google.com/apppasswords
 3. Generate app-specific password
@@ -107,6 +111,7 @@ VITE_API_BASE_URL=http://localhost:5000/api
 **Symptom**: `Error: listen EADDRINUSE :::5000`
 
 **Solution**:
+
 ```bash
 # Windows: Find and kill process on port 5000
 netstat -ano | findstr :5000
@@ -121,6 +126,7 @@ lsof -ti:5000 | xargs kill -9
 **Symptom**: `Cannot find module '@vite/...'`
 
 **Solution**:
+
 ```bash
 cd frontend
 rm -rf node_modules package-lock.json
@@ -135,6 +141,7 @@ npm run dev
 **Solution**:
 
 **Check if MongoDB is running**:
+
 ```bash
 # Docker
 docker ps | grep mongo
@@ -145,6 +152,7 @@ mongosh  # This connects to local MongoDB
 ```
 
 **Start MongoDB if needed**:
+
 ```bash
 # Via Docker
 cd docker
@@ -161,6 +169,7 @@ docker-compose up -d mongo
 **Symptom**: Alert endpoint returns 500 or emails not arriving
 
 **Solution**:
+
 1. Verify Gmail credentials in `.env`
 2. Check if 2FA is enabled and app password is correct
 3. Check if Gmail account has "Less secure apps" access enabled
@@ -184,9 +193,10 @@ curl -X POST http://localhost:5000/api/auth/send-alert-email \
 **Symptom**: Map loads but no city pins or layers visible
 
 **Solution**:
+
 1. Check browser console (F12) for errors
 2. Verify backend is running: `curl http://localhost:5000/api/health`
-3. Check MongoDB has data: 
+3. Check MongoDB has data:
    ```bash
    mongosh
    > use neip_db
@@ -199,9 +209,10 @@ curl -X POST http://localhost:5000/api/auth/send-alert-email \
 **Symptom**: News ticker appears but has no headlines
 
 **Solution**:
+
 1. Frontend should load from backend `/api/map/live-news` (primary)
 2. If backend fails, falls back to local computation
-3. Verify endpoint exists: 
+3. Verify endpoint exists:
    ```bash
    curl http://localhost:5000/api/map/live-news
    # Should return: { "headlines": [...] }
@@ -214,6 +225,7 @@ curl -X POST http://localhost:5000/api/auth/send-alert-email \
 **Symptom**: Non-admin user tries to login, gets: `"Admin login only"`
 
 **Solution**:
+
 - This is expected! Only admin users (role="admin") can login
 - Use public alert endpoint instead: `POST /api/auth/send-alert-email`
 - Or create a new admin user via `node scripts/seed-admin.js`
@@ -223,8 +235,9 @@ curl -X POST http://localhost:5000/api/auth/send-alert-email \
 **Symptom**: Send alert via `/api/alerts/send-direct` but no notification appears
 
 **Solution**:
+
 1. Verify alert was sent successfully (check logs)
-2. Fetch notifications: 
+2. Fetch notifications:
    ```bash
    curl http://localhost:5000/api/notifications/public
    # Should return array with alert
@@ -240,37 +253,44 @@ curl -X POST http://localhost:5000/api/auth/send-alert-email \
 ## Testing Endpoints
 
 ### Health Check
+
 ```bash
 curl http://localhost:5000/api/health
 # Expected: { "status": "ok" }
 ```
 
 ### Get All Cities
+
 ```bash
 curl http://localhost:5000/api/map/all-cities?limit=10
 ```
 
 ### Get AQI Data
+
 ```bash
 curl "http://localhost:5000/api/aqi/latest"
 ```
 
 ### Get Weather
+
 ```bash
 curl "http://localhost:5000/api/weather/current?city=Kathmandu"
 ```
 
 ### Get News
+
 ```bash
 curl http://localhost:5000/api/map/live-news
 ```
 
 ### Get Public Notifications
+
 ```bash
 curl http://localhost:5000/api/notifications/public
 ```
 
 ### Send Public Alert Email
+
 ```bash
 curl -X POST http://localhost:5000/api/auth/send-alert-email \
   -H "Content-Type: application/json" \
@@ -284,6 +304,7 @@ curl -X POST http://localhost:5000/api/auth/send-alert-email \
 ```
 
 ### Admin Login
+
 ```bash
 curl -X POST http://localhost:5000/api/auth/login \
   -H "Content-Type: application/json" \
@@ -295,6 +316,7 @@ curl -X POST http://localhost:5000/api/auth/login \
 ```
 
 ### Send Direct Alert (Admin Only)
+
 ```bash
 # First get the token from login, then:
 curl -X POST http://localhost:5000/api/alerts/send-direct \
@@ -314,6 +336,7 @@ curl -X POST http://localhost:5000/api/alerts/send-direct \
 ## Database Management
 
 ### View Database State
+
 ```bash
 mongosh
 > use neip_db
@@ -325,6 +348,7 @@ mongosh
 ```
 
 ### Clean Up Test Data
+
 ```bash
 # In backend folder:
 node scripts/cleanup-db.js
@@ -332,6 +356,7 @@ node scripts/cleanup-db.js
 ```
 
 ### Reset Database Completely
+
 ```bash
 mongosh
 > db.dropDatabase()
@@ -345,6 +370,7 @@ mongosh
 ### Enable Verbose Logging
 
 **Backend**:
+
 ```bash
 # Edit backend/.env
 DEBUG=*
@@ -352,6 +378,7 @@ npm run dev
 ```
 
 ### Check Backend Logs
+
 ```bash
 # Terminal where backend is running - logs appear here
 [Backend] Express server listening on port 5000
@@ -362,18 +389,21 @@ npm run dev
 ### Browser Developer Console (F12)
 
 **Check Network Tab**:
+
 - Click Network tab
 - Refresh page
 - Look for failed requests (red X)
 - Click on request to see response/error
 
 **Check Console Tab**:
+
 - Errors appear in red
 - Warnings in yellow
 - info messages in white
 - Click to expand error stack
 
 ### Monitor Database Changes
+
 ```bash
 # Watch MongoDB changes in real-time
 mongosh
@@ -387,16 +417,19 @@ mongosh
 ## Performance Tips
 
 ### Optimize Frontend
+
 1. Hard refresh (Ctrl+Shift+R) to clear cache
 2. Close other browser tabs to free memory
 3. Use Chrome DevTools Performance tab to profile
 
 ### Optimize Backend
+
 1. Monitor database indexes: `db.collection.getIndexes()`
 2. Check query performance: Use MongoDB Compass GUI
 3. Monitor memory: Check `npm` process in Task Manager
 
 ### Optimize Database
+
 1. Create indexes on frequently queried fields
 2. Archive old notifications (older than 3 days auto-delete via TTL)
 3. Monitor collection sizes
@@ -424,6 +457,7 @@ npm run build
 ```
 
 **Deploy Checklist**:
+
 - [ ] MongoDB running and accessible
 - [ ] All environment variables set
 - [ ] Backend smoke test passing

@@ -3,6 +3,7 @@
 **This file is obsolete** and documents UI fixes from earlier development phases that have been integrated into the current codebase.
 
 The map improvements described here:
+
 - City pins visibility improvements
 - District boundary styling
 - Temperature pin interactivity

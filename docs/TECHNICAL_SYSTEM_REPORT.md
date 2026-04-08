@@ -3,8 +3,9 @@
 **This file is obsolete** and describes the pre-refactoring system architecture with outdated components.
 
 This document referenced:
+
 - ❌ ML service (Flask + scikit-learn) - Not implemented
-- ❌ Disaster risk scoring - Not implemented  
+- ❌ Disaster risk scoring - Not implemented
 - ❌ Legacy alert scheduler - Replaced by event-driven
 - ❌ Legacy notification scheduler - Replaced by event-driven
 - ❌ OWM integration - Removed from active code
@@ -16,6 +17,7 @@ This document referenced:
 For complete, up-to-date system specification, see:
 
 **[FINAL_ARCHITECTURE.md](FINAL_ARCHITECTURE.md)** (Primary Reference)
+
 - Complete system overview
 - Data flow architecture with diagrams
 - Backend services
@@ -27,6 +29,7 @@ For complete, up-to-date system specification, see:
 - Deployment checklist
 
 **Additional Resources:**
+
 - [README.md](../README.md) - Quick start and API reference
 - [TROUBLESHOOTING_SETUP.md](TROUBLESHOOTING_SETUP.md) - Setup and debugging
 - [ADMIN_ONLY_CHANGES.md](../ADMIN_ONLY_CHANGES.md) - Admin features
@@ -38,6 +41,7 @@ For complete, up-to-date system specification, see:
 ### Quick Architecture Summary (Current)
 
 **Hybrid Model:**
+
 - Weather: Always live from Open-Meteo
 - AQI: Database-backed (internal-db source)
 - News: Backend-first with local fallback
@@ -45,6 +49,7 @@ For complete, up-to-date system specification, see:
 - Alerts: Email + database storage with private/public routing
 
 **No longer includes:**
+
 - Disaster risk system
 - ML predictions
 - Legacy schedulers
