@@ -26,19 +26,18 @@ The workspace includes three runtime services:
 Key capabilities:
 
 - Live AQI and weather data for Nepal districts and cities
-- Nepal map layers (AQI, weather, fire hotspots, OWM overlays)
+- Real-time fire hotspot tracking from NASA FIRMS
+- Nepal map layers (AQI, weather, fire hotspots)
 - Animated wind particles on Leaflet map using Open-Meteo + leaflet-velocity
-- Auth, OTP verification, user alerts, and notifications
-- Advisory generation endpoints
-- ML inference endpoints for AQI and disaster risk
+- Admin authentication and direct alert emailing
+- Weather and AQI advisory generation
 
 ## Project Structure
 
 ```text
 WeatherNepal/
-	backend/              # Express API + schedulers + Mongo models
-	frontend/             # React app (Vite)
-	ml-service/           # Flask ML microservice
+	backend/              # Express API + data sync + Mongo models
+	frontend/             # React app (Vite) + vanilla JS map
 	docker/               # docker-compose for MongoDB
 	nepal_cities.js       # city metadata source
 	README.md             # this file
@@ -46,17 +45,14 @@ WeatherNepal/
 
 ## Tech Stack
 
-- Frontend: React 19, Vite 7, Leaflet, Axios
+- Frontend: React 19, Vite 7, Leaflet, Axios (React SPA) + Vanilla JS (public map)
 - Backend: Node.js, Express 5, Mongoose, Axios, JWT, Nodemailer, node-cron
-- ML Service: Flask 3, pandas, numpy, scikit-learn, statsmodels
 - Data/Infra: MongoDB (local or Docker)
 
 ## Prerequisites
 
 - Node.js 20+
 - npm 10+
-- Python 3.10+
-- pip
 - MongoDB on localhost:27017 (or Docker)
 
 ## Quick Start
@@ -72,15 +68,7 @@ docker-compose up -d
 
 Option B: Local MongoDB service on port 27017
 
-### 2) Start ML Service (port 5001)
-
-```bash
-cd ml-service
-pip install -r requirements.txt
-python app.py
-```
-
-### 3) Start Backend (port 5000)
+### 2) Start Backend (port 5000)
 
 ```bash
 cd backend
@@ -88,7 +76,7 @@ npm install
 npm run dev
 ```
 
-### 4) Start Frontend (port 5173)
+### 3) Start Frontend (port 5173)
 
 ```bash
 cd frontend
@@ -115,17 +103,15 @@ Backend .env values:
 ```env
 PORT=5000
 MONGO_URI=mongodb://localhost:27017/neip_db
-ML_SERVICE_URL=http://localhost:5001
 
 # Security/Auth
 JWT_SECRET=change_me_for_production
 
-# Email/OTP
+# Email for alerts
 GMAIL_USER=your-email@gmail.com
 GMAIL_APP_PASSWORD=your-app-password
 
-# External data
-OWM_KEY=your_openweathermap_key
+# External data sources
 NASA_FIRMS_KEY=your_nasa_firms_key
 ```
 
@@ -145,22 +131,16 @@ Backend:
 
 ```bash
 cd backend
-npm run dev
-npm test
+npm run dev      # development with hot reload
+npm test         # run smoke tests
 ```
 
 Frontend:
 
 ```bash
 cd frontend
-npm run dev
-```
-
-ML service:
-
-```bash
-cd ml-service
-python app.py
+npm run dev      # development with hot reload
+npm run build    # production build
 ```
 
 Mongo via Docker:
@@ -182,7 +162,6 @@ AQI:
 
 - GET /api/aqi/latest
 - GET /api/aqi/history/:district
-- GET /api/aqi/predictions/:district
 
 Weather:
 
@@ -191,16 +170,12 @@ Weather:
 - GET /api/weather/latest
 - GET /api/weather/all-districts
 
-Risk:
-
-- GET /api/risk/latest
-- GET /api/risk/history/:district
-
 Map:
 
 - GET /api/map/all-cities
 - GET /api/map/city/:cityName
 - GET /api/map/summary
+- GET /api/map/waqi-live-cities (internal AQI data)
 
 Fire:
 
@@ -210,42 +185,21 @@ Fire:
 
 Advisory:
 
-- POST /api/advisory/generate
-- POST /api/advisory/quick
+- POST /api/advisory/generate (admin only)
+- POST /api/advisory/quick (admin only)
 
 Alerts:
 
-- POST /api/alerts/subscribe
-- GET /api/alerts/subscriptions
-- DELETE /api/alerts/unsubscribe
-- GET /api/alerts/all
-- POST /api/alerts/send-direct
+- POST /api/alerts/send-direct (admin only)
+- POST /api/auth/send-alert-email (public, rate-limited)
 
 Auth:
 
-- POST /api/auth/signup
-- POST /api/auth/verify-otp
 - POST /api/auth/login
-- GET /api/auth/me
-- PUT /api/auth/alerts
-- POST /api/auth/resend-otp
+- POST /api/auth/send-alert-email
+- PUT /api/auth/change-password
+- PUT /api/auth/avatar
 - PUT /api/auth/update-location
-
-Notifications:
-
-- GET /api/notifications/
-- PUT /api/notifications/:id/read
-- PUT /api/notifications/read-all
-- DELETE /api/notifications/:id
-- DELETE /api/notifications/clear-all
-
-ML service (http://localhost:5001):
-
-- GET /health
-- POST /predict/aqi
-- POST /predict/disaster-risk
-- POST /cluster/districts
-- POST /detect/anomaly
 
 ## Wind Animation Notes
 
@@ -263,7 +217,7 @@ If npm run dev exits with code 1:
 
 - Verify dependencies are installed in that folder (npm install)
 - Check Node.js version (node -v)
-- Check port conflicts (5000, 5001, 5173)
+- Check port conflicts (5000, 5173)
 - Confirm backend .env values are set and valid
 
 If map layers do not load:

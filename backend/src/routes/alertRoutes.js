@@ -1,81 +1,120 @@
 const express = require("express");
-const router = express.Router();
-const UserAlert = require("../models/UserAlert");
 const axios = require("axios");
-const authMiddleware = require("./authMiddleware");
-const adminMiddleware = require("./adminMiddleware");
-const User = require("../models/User");
-const {
-  sendAlertEmail,
-  sendConfirmationEmail,
-} = require("../services/emailService");
 
+const authMiddleware = require("./authMiddleware");
+const User = require("../models/User");
+const Notification = require("../models/Notification");
+const { sendAlertEmail } = require("../services/emailService");
+
+const router = express.Router();
 const OPEN_METEO = "https://api.open-meteo.com/v1/forecast";
 
-// ── POST /api/alerts/subscribe ───────────────────────────────────
-// Subscribe to weather alerts for a location
-router.post("/subscribe", async (req, res) => {
-  return res.status(503).json({
-    success: false,
-    paused: true,
-    error: "Subscription-based email alerts are temporarily paused.",
-    message:
-      "Please use direct alerts for now. AQI may be unavailable in some locations; alerts will rely on temperature, wind, rain, and snow conditions with advisory guidance.",
+function getAlertSeverity({ safeAqi, currentWeather }) {
+  const rain = parseFloat(currentWeather.rain || 0);
+  const snow = parseFloat(currentWeather.snow || 0);
+  const wind = Number(currentWeather.wind || 0);
+  const temp = Number(currentWeather.temp || 0);
+
+  if (
+    (safeAqi != null && safeAqi > 200) ||
+    rain > 20 ||
+    snow > 5 ||
+    wind > 50 ||
+    temp < 0 ||
+    temp > 38
+  ) {
+    return "high";
+  }
+
+  if (
+    (safeAqi != null && safeAqi > 150) ||
+    rain > 5 ||
+    snow > 0 ||
+    wind > 30 ||
+    temp < 5 ||
+    temp > 35
+  ) {
+    return "warning";
+  }
+
+  return "info";
+}
+
+function buildAlertSummary({ safeAqi, currentWeather }) {
+  const pieces = [];
+  if (safeAqi == null) pieces.push("AQI unavailable");
+  else pieces.push(`AQI ${safeAqi}`);
+
+  const rain = parseFloat(currentWeather.rain || 0);
+  const snow = parseFloat(currentWeather.snow || 0);
+  const wind = Number(currentWeather.wind || 0);
+  const temp = Number(currentWeather.temp || 0);
+
+  if (rain > 0) pieces.push(`rain ${rain.toFixed(1)} mm`);
+  if (snow > 0) pieces.push(`snow ${snow.toFixed(1)} cm`);
+  if (wind > 0) pieces.push(`wind ${Math.round(wind)} km/h`);
+  if (temp !== 0) pieces.push(`temp ${Math.round(temp)}°C`);
+
+  return pieces.join(" • ");
+}
+
+async function storeAlertNotification({
+  userId,
+  location,
+  district,
+  safeAqi,
+  currentWeather,
+  tips,
+  advisory,
+}) {
+  const severity = getAlertSeverity({ safeAqi, currentWeather });
+  const summary = buildAlertSummary({ safeAqi, currentWeather });
+  const message = tips.length ? tips.join(" ") : advisory;
+  const place = district || location;
+
+  await Notification.create({
+    userId,
+    isPublic: false,
+    title: "Weather Alert",
+    message,
+    details: summary,
+    advisory,
+    source: "alert-route",
+    type: "alert",
+    severity,
+    location,
+    aqi: safeAqi,
   });
-});
 
-// ── GET /api/alerts/subscriptions?email= ────────────────────────
-// Get all subscriptions for an email
-router.get("/subscriptions", async (req, res) => {
-  const { email } = req.query;
-  if (!email) return res.status(400).json({ error: "email is required" });
-
-  try {
-    const subs = await UserAlert.find({
-      email: email.toLowerCase(),
-      active: true,
+  if (severity === "high" || (safeAqi != null && safeAqi > 150)) {
+    await Notification.create({
+      isPublic: true,
+      title: `Public Weather Alert: ${place}`,
+      message: summary,
+      details: message,
+      advisory,
+      source: "alert-route",
+      type: "alert",
+      severity,
+      location,
+      aqi: safeAqi,
     });
-    res.json(subs);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
   }
-});
+}
 
-// ── DELETE /api/alerts/unsubscribe ───────────────────────────────
-// Unsubscribe from alerts
-router.delete("/unsubscribe", async (req, res) => {
-  const { email, location } = req.body;
-  if (!email) return res.status(400).json({ error: "email is required" });
-
-  try {
-    const query = { email: email.toLowerCase() };
-    if (location) query.location = location;
-    await UserAlert.updateMany(query, { active: false });
-    res.json({ success: true, message: "Unsubscribed successfully" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ── GET /api/alerts/all ──────────────────────────────────────────
-// Admin: get all active subscriptions
-router.get("/all", adminMiddleware, async (req, res) => {
-  try {
-    const all = await UserAlert.find({ active: true }).sort({ createdAt: -1 });
-    res.json({ count: all.length, subscriptions: all });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ── POST /api/alerts/send-direct ────────────────────────────────
-// Logged-in user sends themselves an alert for any city
+// POST /api/alerts/send-direct
+// Admin sends a direct alert email to their own inbox for selected map location.
 router.post("/send-direct", authMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.userId);
+    const user = await User.findById(req.userId).select(
+      "name email role location district lat lon",
+    );
     if (!user) return res.status(404).json({ error: "User not found" });
+    if (user.role !== "admin") {
+      return res.status(403).json({ error: "Admin access required" });
+    }
 
-    const { city, district, lat, lon, aqi, weather } = req.body;
+    const { city, district, lat, lon, aqi, weather } = req.body || {};
 
     const targetLat = lat ?? user.lat;
     const targetLon = lon ?? user.lon;
@@ -120,28 +159,28 @@ router.post("/send-direct", authMiddleware, async (req, res) => {
 
     const safeAqi = Number.isFinite(Number(aqi)) ? Number(aqi) : null;
 
-    // Transparent local advisory when AQI is unavailable.
     const tips = [];
     if (safeAqi == null) {
       tips.push(
         "AQI data is currently unavailable for this location. Advisory is based on weather conditions.",
       );
     } else if (safeAqi > 150) {
-      tips.push(`AQI ${safeAqi} is unhealthy — wear N95 mask outdoors.`);
+      tips.push(`AQI ${safeAqi} is unhealthy - wear N95 mask outdoors.`);
     } else {
       tips.push(`Air quality (AQI ${safeAqi}) is acceptable today.`);
     }
-    if (parseFloat(currentWeather.rain || 0) > 5)
+
+    if (parseFloat(currentWeather.rain || 0) > 5) {
+      tips.push(`Heavy rain ${currentWeather.rain}mm - risk of flooding.`);
+    }
+    if (parseFloat(currentWeather.snow || 0) > 0) {
+      tips.push("Snowfall detected - check road conditions before travel.");
+    }
+    if ((currentWeather.wind || 0) > 30) {
       tips.push(
-        `Heavy rain ${currentWeather.rain}mm — risk of flooding, stay safe.`,
+        `Strong winds ${currentWeather.wind}km/h - secure loose items.`,
       );
-    if (parseFloat(currentWeather.snow || 0) > 0)
-      tips.push(`Snowfall detected — check road conditions before travel.`);
-    if ((currentWeather.wind || 0) > 30)
-      tips.push(
-        `Strong winds ${currentWeather.wind}km/h — secure loose items.`,
-      );
-    const advisory = tips.join(" ");
+    }
 
     await sendAlertEmail({
       to: user.email,
@@ -164,13 +203,29 @@ router.post("/send-direct", authMiddleware, async (req, res) => {
         wind: (currentWeather.wind || 0) > 30,
         snow: parseFloat(currentWeather.snow || 0) > 0,
       },
-      advisory,
+      advisory: tips.join(" "),
     });
 
-    res.json({ success: true, message: `Alert sent to ${user.email}` });
+    try {
+      await storeAlertNotification({
+        userId: user._id,
+        location: targetCity,
+        district: targetDistrict,
+        safeAqi,
+        currentWeather,
+        tips,
+        advisory: tips.join(" "),
+      });
+    } catch (notificationErr) {
+      console.error(
+        "[Alerts] Notification write error:",
+        notificationErr.message,
+      );
+    }
+
+    return res.json({ success: true, message: `Alert sent to ${user.email}` });
   } catch (err) {
-    console.error("[Alerts] Send direct error:", err.message);
-    res
+    return res
       .status(500)
       .json({ error: "Failed to send alert", details: err.message });
   }

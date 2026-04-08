@@ -8,7 +8,6 @@ const adminMiddleware = require("./routes/adminMiddleware");
 // Route imports
 const aqiRoutes = require("./routes/aqiRoutes");
 const weatherRoutes = require("./routes/weatherRoutes");
-const riskRoutes = require("./routes/riskRoutes");
 const mapRoutes = require("./routes/mapRoutes");
 const advisoryRoutes = require("./routes/advisoryRoutes");
 const alertRoutes = require("./routes/alertRoutes");
@@ -52,7 +51,6 @@ initDataSync();
 // Routes
 app.use("/api/aqi", aqiRoutes);
 app.use("/api/weather", weatherRoutes);
-app.use("/api/risk", riskRoutes);
 app.use("/api/map", mapRoutes);
 app.use("/api/advisory", advisoryRoutes);
 app.use("/api/alerts", alertRoutes);

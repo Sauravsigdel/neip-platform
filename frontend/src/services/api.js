@@ -13,7 +13,6 @@ export const fetchAQIHistory = (district) =>
   api.get(`/aqi/history/${district}`);
 export const fetchAQIPredictions = (district) =>
   api.get(`/aqi/predictions/${district}`);
-export const fetchLatestRisk = () => api.get("/risk/latest");
 export const fetchMapData = () => api.get("/map/all-cities");
 export const fetchLatestWeather = () => api.get("/weather/latest");
 export const generateAdvisory = (payload) =>

@@ -1,6 +1,5 @@
 const express = require("express");
 const router = express.Router();
-const axios = require("axios");
 const AirQuality = require("../models/AirQuality");
 const AQIPrediction = require("../models/AQIPrediction");
 const WeatherData = require("../models/WeatherData");
@@ -8,15 +7,8 @@ const FireHotspot = require("../models/FireHotspot");
 const adminMiddleware = require("./adminMiddleware");
 const NEPAL_CITIES = require("../../../nepal_cities");
 
-const WAQI_TOKEN = process.env.WAQI_API_TOKEN || "";
-const WAQI_CACHE_TTL_MS = 15 * 60 * 1000;
-let waqiCache = { ts: 0, data: [] };
 const NEWS_CACHE_TTL_MS = 5 * 60 * 1000;
 let newsCache = { ts: 0, data: [] };
-
-function getNumericOrNull(value) {
-  return Number.isFinite(value) ? value : null;
-}
 
 function coerceOptionalNumber(value) {
   if (value === null || value === undefined) return null;
@@ -148,106 +140,31 @@ async function getLatestOfficialManualRecords() {
   return Array.from(byCity.values());
 }
 
-function mergeByPriority(primaryRecords, fallbackRecords) {
-  const map = new Map();
-  primaryRecords.forEach((r) => {
-    const key = String(r.city || "").toLowerCase();
-    if (key) map.set(key, r);
-  });
+async function getLatestInternalAqiRecords() {
+  const docs = await AirQuality.aggregate([
+    { $match: { aqi: { $ne: null } } },
+    { $sort: { timestamp: -1 } },
+    { $group: { _id: "$city", doc: { $first: "$$ROOT" } } },
+    { $replaceRoot: { newRoot: "$doc" } },
+  ]);
 
-  fallbackRecords.forEach((r) => {
-    const key = String(r.city || "").toLowerCase();
-    if (!key || map.has(key)) return;
-    map.set(key, r);
-  });
-
-  return Array.from(map.values());
-}
-
-async function fetchWAQIForCity(city) {
-  if (!WAQI_TOKEN) {
-    return {
-      city: city.city,
-      district: city.district,
-      lat: city.lat,
-      lon: city.lon,
-      aqi: null,
-      hasAqi: false,
-      source: "waqi-unconfigured",
-    };
-  }
-  try {
-    const url = `https://api.waqi.info/feed/geo:${city.lat};${city.lon}/?token=${WAQI_TOKEN}`;
-    const response = await axios.get(url, { timeout: 9000 });
-    const payload = response.data;
-    if (payload?.status !== "ok" || !payload?.data) {
-      return {
-        ...city,
-        aqi: null,
-        hasAqi: false,
-        source: "waqi",
-      };
-    }
-
-    const data = payload.data;
-    const aqiRaw = Number(data.aqi);
-    const iaqi = data.iaqi || {};
-
-    return {
-      city: city.city,
-      district: city.district,
-      lat: city.lat,
-      lon: city.lon,
-      aqi: Number.isFinite(aqiRaw) ? Math.round(aqiRaw) : null,
-      pm25: getNumericOrNull(iaqi.pm25?.v),
-      pm10: getNumericOrNull(iaqi.pm10?.v),
-      no2: getNumericOrNull(iaqi.no2?.v),
-      co: getNumericOrNull(iaqi.co?.v),
-      o3: getNumericOrNull(iaqi.o3?.v),
-      hasAqi: Number.isFinite(aqiRaw),
-      source: "waqi",
-      stationName: data.city?.name || city.city,
-      time: data.time?.s || null,
-      dominentpol: data.dominentpol || null,
-    };
-  } catch (error) {
-    return {
-      city: city.city,
-      district: city.district,
-      lat: city.lat,
-      lon: city.lon,
-      aqi: null,
-      pm25: null,
-      pm10: null,
-      no2: null,
-      hasAqi: false,
-      source: "waqi",
-      error: "fetch_failed",
-    };
-  }
-}
-
-async function getCachedWAQI(forceRefresh = false) {
-  const now = Date.now();
-  const cacheAge = now - waqiCache.ts;
-  if (!forceRefresh && waqiCache.data.length && cacheAge < WAQI_CACHE_TTL_MS) {
-    return waqiCache.data;
-  }
-
-  const batchSize = 10;
-  const aggregated = [];
-
-  for (let i = 0; i < NEPAL_CITIES.length; i += batchSize) {
-    const batch = NEPAL_CITIES.slice(i, i + batchSize);
-    const batchResults = await Promise.all(batch.map(fetchWAQIForCity));
-    aggregated.push(...batchResults);
-    if (i + batchSize < NEPAL_CITIES.length) {
-      await new Promise((resolve) => setTimeout(resolve, 120));
-    }
-  }
-
-  waqiCache = { ts: now, data: aggregated };
-  return aggregated;
+  return docs.map((d) => ({
+    city: d.city,
+    district: d.district,
+    lat: d.lat,
+    lon: d.lon,
+    aqi: Number.isFinite(d.aqi) ? d.aqi : null,
+    pm1: Number.isFinite(d.pm1) ? d.pm1 : null,
+    pm25: Number.isFinite(d.pm25) ? d.pm25 : null,
+    pm10: Number.isFinite(d.pm10) ? d.pm10 : null,
+    no2: Number.isFinite(d.no2) ? d.no2 : null,
+    co: Number.isFinite(d.co) ? d.co : null,
+    o3: Number.isFinite(d.o3) ? d.o3 : null,
+    hasAqi: Number.isFinite(d.aqi),
+    source: d.data_source || "internal-db",
+    stationName: d.station_name || d.city,
+    time: d.timestamp,
+  }));
 }
 
 function pushUnique(feed, text) {
@@ -264,18 +181,18 @@ async function buildLiveNewsFeed() {
 
   const feed = [];
 
-  // WAQI AQI headline(s)
+  // Internal AQI headline(s)
   try {
-    const waqi = await getCachedWAQI(false);
-    const highAqi = waqi
+    const latestAqi = await getLatestInternalAqiRecords();
+    const highAqi = latestAqi
       .filter((r) => Number.isFinite(r?.aqi) && r.aqi >= 150)
       .sort((a, b) => b.aqi - a.aqi)
       .slice(0, 2);
     highAqi.forEach((r) =>
-      pushUnique(feed, `High AQI in ${r.city}: ${r.aqi} (WAQI live)`),
+      pushUnique(feed, `High AQI in ${r.city}: ${r.aqi} (internal readings)`),
     );
   } catch (_) {
-    // Keep news generation resilient even if WAQI is temporarily unavailable.
+    // Keep news generation resilient even if AQI records are temporarily unavailable.
   }
 
   // Weather headlines from stored WeatherData (latest per district)
@@ -335,49 +252,37 @@ async function buildLiveNewsFeed() {
   return { cached: false, ageMs: 0, items };
 }
 
-// GET /api/map/waqi-live-cities - Live WAQI AQI values for Nepal cities
+// GET /api/map/waqi-live-cities
+// Legacy path kept for frontend compatibility; now served from internal AQI records.
 router.get("/waqi-live-cities", async (req, res) => {
   try {
     const official = await getLatestOfficialManualRecords();
-    if (!WAQI_TOKEN) {
-      return res.json({
-        success: true,
-        cached: false,
-        count: official.length,
-        prioritySource: "nepal-gov-manual",
-        data: official,
-        warning:
-          "WAQI_API_TOKEN is not configured; returning official manual AQI only.",
-      });
-    }
-    const now = Date.now();
-    const cacheAge = now - waqiCache.ts;
-    if (waqiCache.data.length && cacheAge < WAQI_CACHE_TTL_MS) {
-      const mergedCached = mergeByPriority(official, waqiCache.data);
-      return res.json({
-        success: true,
-        cached: true,
-        ageMs: cacheAge,
-        count: mergedCached.length,
-        prioritySource: "nepal-gov-manual",
-        data: mergedCached,
-      });
-    }
+    const internal = await getLatestInternalAqiRecords();
 
-    const aggregated = await getCachedWAQI(true);
-    const merged = mergeByPriority(official, aggregated);
-    res.json({
+    const mergedByCity = new Map();
+    official.forEach((row) => {
+      const key = String(row.city || "").toLowerCase();
+      if (key) mergedByCity.set(key, row);
+    });
+
+    internal.forEach((row) => {
+      const key = String(row.city || "").toLowerCase();
+      if (!key || mergedByCity.has(key)) return;
+      mergedByCity.set(key, row);
+    });
+
+    const data = Array.from(mergedByCity.values());
+    return res.json({
       success: true,
       cached: false,
-      count: merged.length,
-      data: merged,
-      source: "nepal-gov-manual>waqi",
+      count: data.length,
       prioritySource: "nepal-gov-manual",
-      fetchedAt: new Date(now).toISOString(),
+      source: "internal-db",
+      data,
+      fetchedAt: new Date().toISOString(),
     });
   } catch (err) {
-    console.error("[mapRoutes] WAQI fetch error:", err);
-    res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -495,7 +400,6 @@ router.post("/admin/official-aqi-manual", adminMiddleware, async (req, res) => {
       data_source: "nepal-gov-manual",
       station_name: { $nin: OFFICIAL_AQI_STATIONS.map((s) => s.stationName) },
     });
-    waqiCache = { ts: 0, data: [] };
     newsCache = { ts: 0, data: [] };
 
     res.json({

@@ -223,7 +223,7 @@ const CITIES = RAW.filter((c) => {
   seen.add(k);
   return true;
 }).map((c, i) => {
-  // Start with AQI unavailable and fill from WAQI live endpoint.
+  // Start with AQI unavailable and fill from internal AQI endpoint.
   const aqSeed = simAQI(c.zone, i);
   const wx = simWX(c.zone, c.lat, i);
   const prov = PROVINCE_OF[c.d] || 0;
@@ -240,7 +240,7 @@ const CITIES = RAW.filter((c) => {
     fc7: gen7(aqSeed.aqi, wx.temp, i),
     realData: false,
     hasAqi: false,
-    aqiSource: "waqi-pending",
+    aqiSource: "internal-pending",
     province: prov,
   };
 });
@@ -368,7 +368,7 @@ async function fetchRealWeather(city) {
               icon: wmo7.icon,
               hi: Math.round(d.daily.temperature_2m_max[i]),
               lo: Math.round(d.daily.temperature_2m_min[i]),
-              aqi: 0, // will use simulated AQI for forecast
+              aqi: null,
             };
           })
         : [],
@@ -386,9 +386,7 @@ function applyRealData(idx, wx) {
   const c = CITIES[idx];
   c.wx = { ...c.wx, ...wx };
   c.h24 = wx.h24.length ? wx.h24 : c.h24;
-  c.fc7 = wx.fc7.length
-    ? wx.fc7.map((f, i) => ({ ...f, aqi: c.fc7[i]?.aqi || c.aqi }))
-    : c.fc7;
+  c.fc7 = wx.fc7.length ? wx.fc7.map((f) => ({ ...f, aqi: null })) : c.fc7;
   c.realData = true;
 }
 
@@ -499,7 +497,7 @@ function updateStats() {
     "en-US",
     { hour: "2-digit", minute: "2-digit" },
   );
-  updateNewsFeed(scoped);
+  requestNewsFeed(scoped);
 }
 
 var fireHotspotCount = 0;
@@ -519,8 +517,33 @@ function updateSyncDebug(scopedCities, rainingCount) {
   // Sync debug panel removed from UI.
 }
 
+function requestNewsFeed(sourceCities) {
+  if (newsFromBackendLoaded) {
+    if (tickerItems.length) rotateTicker(tickerItems);
+    return;
+  }
+
+  if (newsLoadPromise) return newsLoadPromise;
+
+  newsLoadPromise = loadLiveNewsFromBackend()
+    .then((loaded) => {
+      if (!loaded) updateNewsFeed(sourceCities);
+      return loaded;
+    })
+    .catch(() => {
+      updateNewsFeed(sourceCities);
+      return false;
+    })
+    .finally(() => {
+      newsLoadPromise = null;
+    });
+
+  return newsLoadPromise;
+}
+
 // Run initial stats only after syncDebugState is initialized.
 updateStats();
+requestNewsFeed(CITIES);
 
 async function refreshFireHotspotCount(force = false) {
   if (!force && Date.now() - fireHotspotLastFetch < 120000) return;
@@ -638,10 +661,10 @@ function updateNewsFeed(sourceCities) {
 async function loadLiveNewsFromBackend() {
   try {
     const res = await fetch(`${CFG.API}/map/live-news`);
-    if (!res.ok) return;
+    if (!res.ok) return false;
     const data = await res.json();
     if (!data?.success || !Array.isArray(data.data) || !data.data.length) {
-      return;
+      return false;
     }
     const decorated = data.data.map((line) => {
       if (/AQI/i.test(line)) return `😷 ${line}`;
@@ -653,8 +676,10 @@ async function loadLiveNewsFromBackend() {
     });
     newsFromBackendLoaded = true;
     rotateTicker(decorated);
+    return true;
   } catch (_) {
     // Fallback remains local computation if backend news is unavailable.
+    return false;
   }
 }
 
@@ -1909,20 +1934,12 @@ function openDetail(c) {
           c: "#94a3b8",
           bg: "rgba(148,163,184,0.16)",
           lbl: "AQI Unavailable",
-          adv: "WAQI has no AQI reading for this city right now.",
+          adv: "No internal AQI reading is available for this city right now.",
         }
       : gl(aqi);
   // Don't pollute search bar — only update if user explicitly searched
   document.getElementById("dpHBg").style.background =
     HERO_GRADS[lv.lbl] || HERO_GRADS["Good"];
-  const aqiSrc =
-    c.aqiSource === "nepal-gov-manual"
-      ? "🏛️ Nepal Gov"
-      : c.aqiSource === "owm-copernicus"
-        ? "🛰️ Copernicus"
-        : c.aqiSource === "simulated"
-          ? "⚠️ Estimated"
-          : "📡 Sensor";
   document.getElementById("dpZone").textContent =
     c.zone.charAt(0).toUpperCase() +
     c.zone.slice(1) +
@@ -2005,12 +2022,17 @@ function openDetail(c) {
   });
 
   // 7-day forecast
-  const mx = Math.max(...c.fc7.map((f) => f.aqi));
+  const forecastAqiValues = c.fc7.map((f) =>
+    Number.isFinite(f.aqi) ? f.aqi : 0,
+  );
+  const mx = Math.max(...forecastAqiValues, 1);
   document.getElementById("dpFc").innerHTML = c.fc7
     .map((f) => {
-      const fl = gl(f.aqi);
-      const p = Math.round((f.aqi / mx) * 100);
-      return `<div class="fc-row"><div class="fc-day">${f.day.slice(0, 3)}</div><div class="fc-ico">${f.icon}</div><div class="fc-lo">${f.lo}°</div><div class="fc-bw"><div class="fc-bf" style="width:${p}%;background:${fl.c}"></div></div><div class="fc-hi">${f.hi}°</div><div class="fc-adot" style="background:${fl.c}" title="AQI ${f.aqi}"></div></div>`;
+      const aqiValue = Number.isFinite(f.aqi) ? f.aqi : null;
+      const fl =
+        aqiValue === null ? { c: "#64748b", lbl: "Unavailable" } : gl(aqiValue);
+      const p = aqiValue === null ? 0 : Math.round((aqiValue / mx) * 100);
+      return `<div class="fc-row"><div class="fc-day">${f.day.slice(0, 3)}</div><div class="fc-ico">${f.icon}</div><div class="fc-lo">${f.lo}°</div><div class="fc-bw"><div class="fc-bf" style="width:${p}%;background:${fl.c}"></div></div><div class="fc-hi">${f.hi}°</div><div class="fc-adot" style="background:${fl.c}" title="${aqiValue === null ? "AQI unavailable" : `AQI ${aqiValue}`}"></div></div>`;
     })
     .join("");
 
@@ -2051,7 +2073,7 @@ function localAdvisory(c) {
   // AQI advisory
   if (!hasValidAqiValue(c.aqi))
     t.push(
-      `ℹ️ Live AQI is currently unavailable for ${c.city}. Weather alerts remain active and AQI will appear automatically when WAQI provides a value.`,
+      `ℹ️ Live AQI is currently unavailable for ${c.city}. Weather alerts remain active and AQI will appear automatically when internal records are updated.`,
     );
   else if (c.aqi > 300)
     t.push(

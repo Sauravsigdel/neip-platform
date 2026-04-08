@@ -40,34 +40,6 @@ function selectAvatar(index, el) {
   el.style.boxShadow = "0 0 0 3px rgba(59,130,246,0.3)";
 }
 
-// Build OTP inputs
-function buildOTPInputs() {
-  const row = document.getElementById("otpRow");
-  row.innerHTML = Array.from(
-    { length: 6 },
-    (_, i) =>
-      `<input class="otp-input" id="otp${i}" maxlength="1" type="text" inputmode="numeric" oninput="otpNext(${i})" onkeydown="otpBack(event,${i})">`,
-  ).join("");
-}
-function otpNext(i) {
-  const val = document.getElementById("otp" + i).value;
-  if (val && i < 5) document.getElementById("otp" + (i + 1)).focus();
-}
-function otpBack(e, i) {
-  if (
-    e.key === "Backspace" &&
-    !document.getElementById("otp" + i).value &&
-    i > 0
-  )
-    document.getElementById("otp" + (i - 1)).focus();
-}
-function getOTPValue() {
-  return Array.from(
-    { length: 6 },
-    (_, i) => document.getElementById("otp" + i)?.value || "",
-  ).join("");
-}
-
 // Show/hide error and success
 function showAuthError(msg) {
   const e = document.getElementById("authError");
@@ -752,6 +724,7 @@ const NOTIF_ICONS = {
   daily: "🌅",
   system: "🔔",
   news: "📰",
+  alert: "⚠️",
 };
 let cachedNotifications = [];
 
@@ -822,18 +795,19 @@ async function loadNotifications() {
     }
 
     list.innerHTML = merged
-      .map(
-        (n, i) => `
+      .map((n, i) => {
+        const severityClass = n.severity === "high" ? "danger" : n.severity;
+        return `
           <div class="nd-item${n.read ? "" : " unread"}" onclick="openNotificationDetail(${i})">
-            <div class="nd-ico ${n.severity}">${NOTIF_ICONS[n.type] || "🔔"}</div>
+            <div class="nd-ico ${severityClass}">${NOTIF_ICONS[n.type] || "🔔"}</div>
             <div class="nd-body">
               <div class="nd-ntitle">${escapeHtml(n.title)}</div>
               <div class="nd-msg">${escapeHtml(n.message)}</div>
               <div class="nd-time">${timeAgo(n.createdAt)}</div>
             </div>
             ${n.isPublic ? '<div style="font-size:9px;color:var(--sub);font-weight:700;align-self:flex-start;">PUBLIC</div>' : n.read ? "" : '<div class="nd-dot"></div>'}
-          </div>`,
-      )
+          </div>`;
+      })
       .join("");
   } catch (e) {
     console.error("Notifications error:", e);

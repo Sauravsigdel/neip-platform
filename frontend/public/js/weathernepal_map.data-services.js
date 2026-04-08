@@ -223,7 +223,7 @@ if (
 async function loadRealAQI() {
   const applyAqiRecords = (
     records,
-    sourceLabel = "waqi",
+    sourceLabel = "internal-db",
     opts = { skipIfManual: false },
   ) => {
     let updatedCount = 0;
@@ -281,11 +281,11 @@ async function loadRealAQI() {
       window.__useOfficialStationPins = false;
     }
 
-    const waqiRes = await fetch(`${CFG.API}/map/waqi-live-cities`);
-    if (waqiRes.ok) {
-      const waqiData = await waqiRes.json();
-      if (waqiData?.success && Array.isArray(waqiData.data)) {
-        updated += applyAqiRecords(waqiData.data, "waqi", {
+    const internalAqiRes = await fetch(`${CFG.API}/map/waqi-live-cities`);
+    if (internalAqiRes.ok) {
+      const internalAqiData = await internalAqiRes.json();
+      if (internalAqiData?.success && Array.isArray(internalAqiData.data)) {
+        updated += applyAqiRecords(internalAqiData.data, "internal-db", {
           skipIfManual: true,
         });
       }
