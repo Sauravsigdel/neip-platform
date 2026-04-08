@@ -506,6 +506,7 @@ var tickerItems = [];
 var tickerIndex = 0;
 var tickerTimer = null;
 var newsFromBackendLoaded = false;
+var newsLoadPromise = null;
 var syncDebugState = {
   rainyCities: 0,
   snowyCities: 0,
