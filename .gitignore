@@ -4,3 +4,35 @@ dist
 build
 __pycache__
 *.pyc
+
+# Virtual environments
+.venv
+venv
+env
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
+
+# Sensitive files
+*.pem
+*.key
+*.jks
+.aws
+.google
+.gcloud
+secrets.json
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+*.pid
+*.seed
+*.pid.lock
