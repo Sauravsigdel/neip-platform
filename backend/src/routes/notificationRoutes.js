@@ -9,7 +9,7 @@ router.get("/public", async (req, res) => {
   try {
     const notifications = await Notification.find({ isPublic: true })
       .sort({ createdAt: -1 })
-      .limit(50)
+      .limit(100)
       .select(
         "title message details advisory type severity location source createdAt",
       );

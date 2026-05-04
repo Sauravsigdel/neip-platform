@@ -9,6 +9,7 @@ const WeatherData = require("../models/WeatherData");
 const Notification = require("../models/Notification");
 const NEPAL_CITIES = require("../../../nepal_cities");
 const { syncFireHotspots } = require("./nasaFirms");
+const { syncEonetNews } = require("./eonetSync");
 
 const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast";
 const WEATHER_NOTIFICATION_WINDOW_MS = 60 * 60 * 1000;
@@ -151,6 +152,21 @@ function initDataSync() {
   // Run immediately on startup.
   fetchWeatherData();
   syncFireHotspots();
+  syncEonetNews().then((result) => {
+    if (result?.updated) {
+      console.log(
+        `[DataSync] NASA EONET sync complete: ${result.count || 0} news rows in DB`,
+      );
+      return;
+    }
+    if (result?.reason === "fresh") {
+      console.log(
+        "[DataSync] NASA EONET news already fresh (no refresh needed)",
+      );
+      return;
+    }
+    console.warn("[DataSync] NASA EONET sync skipped or failed", result);
+  });
 
   // Weather every 5 minutes.
   cron.schedule("*/5 * * * *", async () => {
@@ -162,6 +178,23 @@ function initDataSync() {
     console.log("[DataSync] NASA FIRMS fire sync...");
     await syncFireHotspots();
   });
+
+  // NASA EONET events daily (forced refresh).
+  cron.schedule(
+    "5 0 * * *",
+    async () => {
+      console.log("[DataSync] NASA EONET news sync...");
+      const result = await syncEonetNews({ force: true });
+      if (result?.updated) {
+        console.log(
+          `[DataSync] NASA EONET daily refresh complete: ${result.count || 0} news rows in DB`,
+        );
+      } else {
+        console.warn("[DataSync] NASA EONET daily refresh not updated", result);
+      }
+    },
+    { timezone: "Asia/Kathmandu" },
+  );
 }
 
 module.exports = initDataSync;

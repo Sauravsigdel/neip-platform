@@ -4,6 +4,7 @@ const AirQuality = require("../models/AirQuality");
 const AQIPrediction = require("../models/AQIPrediction");
 const WeatherData = require("../models/WeatherData");
 const FireHotspot = require("../models/FireHotspot");
+const Notification = require("../models/Notification");
 const adminMiddleware = require("./adminMiddleware");
 const NEPAL_CITIES = require("../../../nepal_cities");
 
@@ -181,6 +182,25 @@ async function buildLiveNewsFeed() {
 
   const feed = [];
 
+  // NASA EONET sync visibility — explicit status line for frontend ticker.
+  const nasaNews = await Notification.find({
+    isPublic: true,
+    type: "news",
+    source: "nasa-eonet",
+  })
+    .sort({ createdAt: -1 })
+    .limit(8)
+    .select("title createdAt")
+    .lean();
+
+  if (nasaNews.length > 0) {
+    nasaNews.slice(0, 5).forEach((event) => {
+      pushUnique(feed, `🌍 | ${event.title}`);
+    });
+  } else {
+    pushUnique(feed, "🌍 | NASA EONET sync pending");
+  }
+
   // Internal AQI headline(s)
   try {
     const latestAqi = await getLatestInternalAqiRecords();
@@ -189,7 +209,7 @@ async function buildLiveNewsFeed() {
       .sort((a, b) => b.aqi - a.aqi)
       .slice(0, 2);
     highAqi.forEach((r) =>
-      pushUnique(feed, `High AQI in ${r.city}: ${r.aqi} (internal readings)`),
+      pushUnique(feed, `🏠 | High AQI in ${r.city}: ${r.aqi}`),
     );
   } catch (_) {
     // Keep news generation resilient even if AQI records are temporarily unavailable.
@@ -214,7 +234,7 @@ async function buildLiveNewsFeed() {
     const topRain = rainy.slice().sort((a, b) => b.rainfall - a.rainfall)[0];
     pushUnique(
       feed,
-      `Rainfall active in ${rainy.length} districts. Highest near ${topRain._id} (${topRain.rainfall.toFixed(1)} mm)`,
+      `🏠 | Rainfall active in ${rainy.length} districts. Highest near ${topRain._id} (${topRain.rainfall.toFixed(1)} mm)`,
     );
   }
 
@@ -225,7 +245,7 @@ async function buildLiveNewsFeed() {
     .slice(0, 2)
     .forEach((w) => {
       const kmh = Math.round((w.wind_speed || 0) * 3.6);
-      pushUnique(feed, `High wind in ${w._id}: ${kmh} km/h`);
+      pushUnique(feed, `🏠 | High wind in ${w._id}: ${kmh} km/h`);
     });
 
   const snowy = latestWeather.filter((w) => (w.snowfall || 0) > 0);
@@ -233,18 +253,21 @@ async function buildLiveNewsFeed() {
     const topSnow = snowy.slice().sort((a, b) => b.snowfall - a.snowfall)[0];
     pushUnique(
       feed,
-      `Snowfall active in ${snowy.length} districts. Highest near ${topSnow._id} (${Number(topSnow.snowfall).toFixed(1)} cm)`,
+      `🏠 | Snowfall active in ${snowy.length} districts. Highest near ${topSnow._id} (${Number(topSnow.snowfall).toFixed(1)} cm)`,
     );
   }
 
   // Fire headlines from stored hotspot data
   const fireCount = await FireHotspot.countDocuments({});
   if (fireCount > 0) {
-    pushUnique(feed, `${fireCount} fire hotspots detected by satellite feed`);
+    pushUnique(
+      feed,
+      `🏠 | ${fireCount} fire hotspots detected by satellite feed`,
+    );
   }
 
   if (!feed.length) {
-    feed.push("No critical alerts right now across Nepal.");
+    feed.push("🏠 | No critical alerts right now across Nepal.");
   }
 
   const items = feed.slice(0, 8);

@@ -436,5 +436,7 @@ function filterProvince(p) {
       localStorage.removeItem("wn_token");
       authToken = null;
     }
-  } catch {}
+  } catch (err) {
+    console.error("[AutoLogin] Error:", err);
+  }
 })();

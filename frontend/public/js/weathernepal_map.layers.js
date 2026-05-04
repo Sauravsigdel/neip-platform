@@ -433,6 +433,32 @@ function rebuildHeatLayers() {
   updateStats();
 }
 
+function buildOfficialAqiSummary(records) {
+  const aqis = (Array.isArray(records) ? records : [])
+    .map((r) => Number(r?.aqi))
+    .filter((a) => Number.isFinite(a) && a > 0);
+
+  const bands = {
+    good: 0,
+    moderate: 0,
+    sensitive: 0,
+    unhealthy: 0,
+    veryUnhealthy: 0,
+    hazardous: 0,
+  };
+
+  for (const a of aqis) {
+    if (a <= 50) bands.good += 1;
+    else if (a <= 100) bands.moderate += 1;
+    else if (a <= 150) bands.sensitive += 1;
+    else if (a <= 200) bands.unhealthy += 1;
+    else if (a <= 300) bands.veryUnhealthy += 1;
+    else bands.hazardous += 1;
+  }
+
+  return { aqis, bands };
+}
+
 // Fetch real data in batches of 10 to avoid rate limiting
 async function loadRealData() {
   const BATCH = 3;
@@ -449,6 +475,24 @@ async function loadRealData() {
     if (i + BATCH < CITIES.length) await new Promise((r) => setTimeout(r, 900));
   }
   rebuildHeatLayers();
+
+  try {
+    const officialRes = await fetch(
+      `${CFG.API}/map/official-aqi-stations-latest`,
+    );
+    if (officialRes.ok) {
+      const officialData = await officialRes.json();
+      if (officialData?.success && Array.isArray(officialData.data)) {
+        window.__officialAqiSummary = buildOfficialAqiSummary(
+          officialData.data,
+        );
+      }
+    }
+  } catch {
+    // Keep previous summary if the official AQI endpoint is temporarily unavailable.
+  }
+
+  updateStats();
 }
 
 // Shared layer state used by news feed and fire overlay logic.
@@ -462,7 +506,8 @@ function updateStats() {
     activeProvince === 0
       ? CITIES
       : CITIES.filter((c) => c.province === activeProvince);
-  const aqis = scoped.map((c) => getCityAqiOrNull(c)).filter((a) => a !== null);
+  const officialSummary = window.__officialAqiSummary || null;
+  const aqis = officialSummary?.aqis || [];
   const avg = aqis.length
     ? Math.round(aqis.reduce((a, b) => a + b, 0) / aqis.length)
     : null;
@@ -474,23 +519,19 @@ function updateStats() {
       c.realData === true && parseFloat(c.wx.rain || 0) >= RAIN_DETECTION_MM,
   ).length;
   const snowing = scoped.filter((c) => parseFloat(c.wx.snow) > 0).length;
+  const goodCount = officialSummary?.bands?.good ?? 0;
+  const moderateCount = officialSummary?.bands?.moderate ?? 0;
+  const sensitiveCount = officialSummary?.bands?.sensitive ?? 0;
+  const unhealthyCount = officialSummary?.bands?.unhealthy ?? 0;
   document.getElementById("sbAvgAqi").textContent = avg === null ? "—" : avg;
   document.getElementById("sbAvgAqi").style.color =
     avg === null ? "#94a3b8" : gl(avg).c;
   document.getElementById("sbAvgTemp").textContent = avgT + "°C";
   document.getElementById("sbRaining").textContent = String(raining);
-  document.getElementById("sbGood").textContent = aqis.filter(
-    (a) => a <= 50,
-  ).length;
-  document.getElementById("sbMod").textContent = aqis.filter(
-    (a) => a > 50 && a <= 100,
-  ).length;
-  document.getElementById("sbSens").textContent = aqis.filter(
-    (a) => a > 100 && a <= 150,
-  ).length;
-  document.getElementById("sbUnh").textContent = aqis.filter(
-    (a) => a > 150 && a <= 200,
-  ).length;
+  document.getElementById("sbGood").textContent = String(goodCount);
+  document.getElementById("sbMod").textContent = String(moderateCount);
+  document.getElementById("sbSens").textContent = String(sensitiveCount);
+  document.getElementById("sbUnh").textContent = String(unhealthyCount);
   document.getElementById("sbSnow").textContent = snowing;
   const now = new Date();
   document.getElementById("sbUpd").textContent = now.toLocaleTimeString(
@@ -668,6 +709,10 @@ async function loadLiveNewsFromBackend() {
       return false;
     }
     const decorated = data.data.map((line) => {
+      // Keep explicit source markers from backend unchanged.
+      if (/^\s*[🌍🏠]/.test(line) || /\b(Global|Local)\s*\|/i.test(line)) {
+        return line;
+      }
       if (/AQI/i.test(line)) return `😷 ${line}`;
       if (/rain/i.test(line)) return `🌧️ ${line}`;
       if (/snow/i.test(line)) return `❄️ ${line}`;
@@ -857,19 +902,14 @@ const prH = mkHeat(
 );
 
 // ── WIND PARTICLES (leaflet-velocity + Open-Meteo) ──────────────
-const VELOCITY_ASIA_BOUNDS = {
-  LA1: 55.0,
-  LA2: 5.0,
-  LO1: 60.0,
-  LO2: 150.0,
-};
 const VELOCITY_MODES = {
-  low: { NY: 6, NX: 9, batchSize: 6 },
-  high: { NY: 8, NX: 12, batchSize: 8 },
+  low: { NY: 14, NX: 20, batchSize: 6 },
+  high: { NY: 20, NX: 30, batchSize: 8 },
 };
 const VELOCITY_CACHE_TTL_MS = 10 * 60 * 1000;
 const VELOCITY_FETCH_DELAY_MS = 220;
 const VELOCITY_BACKOFF_MS = 3 * 60 * 1000;
+const VELOCITY_USE_REMOTE_SAMPLING = false;
 const velocityDatasetCache = new Map();
 let velocityQualityMode = null;
 let velocityQualityRefreshTimer = null;
@@ -887,22 +927,19 @@ function scheduleVelocityQualityRefresh() {
     clearTimeout(velocityQualityRefreshTimer);
   }
   velocityQualityRefreshTimer = setTimeout(() => {
-    const nextMode = getVelocityModeForZoom();
-    if (nextMode !== velocityQualityMode) {
-      loadVelocityLayer();
-    }
+    loadVelocityLayer();
   }, 180);
 }
 
-function buildVelocityDatasetFromCities({ LA1, LA2, LO1, LO2, NY, NX }) {
-  const DY = (LA1 - LA2) / (NY - 1);
-  const DX = (LO2 - LO1) / (NX - 1);
+function buildVelocityDatasetFromCities({ north, south, west, east, NY, NX }) {
+  const DY = (north - south) / (NY - 1);
+  const DX = (east - west) / (NX - 1);
   const header = {
     parameterCategory: 2,
-    la1: LA1,
-    la2: LA2,
-    lo1: LO1,
-    lo2: LO2,
+    la1: north,
+    la2: south,
+    lo1: west,
+    lo2: east,
     nx: NX,
     ny: NY,
     dx: DX,
@@ -929,40 +966,59 @@ function buildVelocityDatasetFromCities({ LA1, LA2, LO1, LO2, NY, NX }) {
     NNW: 337.5,
   };
 
+  const vectors = CITIES.filter(
+    (city) => Number.isFinite(city?.wx?.wind) && city?.wx?.windDir,
+  ).map((city) => {
+    const deg = dirDeg[city.wx.windDir] ?? 0;
+    const rad = (deg * Math.PI) / 180;
+    const speed = city.wx.wind / 3.6;
+    return {
+      lat: city.lat,
+      lon: city.lon,
+      u: -speed * Math.sin(rad),
+      v: -speed * Math.cos(rad),
+    };
+  });
+
+  const meanU =
+    vectors.reduce((sum, item) => sum + item.u, 0) /
+      Math.max(1, vectors.length) || -1.2;
+  const meanV =
+    vectors.reduce((sum, item) => sum + item.v, 0) /
+      Math.max(1, vectors.length) || 0.4;
+  const minVisibleSpeed = 0.75;
   const uData = [];
   const vData = [];
 
   for (let r = 0; r < NY; r++) {
-    const lat = LA1 - r * DY;
+    const lat = north - r * DY;
     for (let c = 0; c < NX; c++) {
-      const lon = LO1 + c * DX;
-
+      const lon = west + c * DX;
       let sumU = 0;
       let sumV = 0;
       let sumW = 0;
 
-      for (const city of CITIES) {
-        const speedKmh = city?.wx?.wind;
-        const wd = city?.wx?.windDir;
-        if (!Number.isFinite(speedKmh) || !wd) continue;
-
-        const deg = dirDeg[wd] ?? 0;
-        const rad = (deg * Math.PI) / 180;
-        const speed = speedKmh / 3.6;
-        const u = -speed * Math.sin(rad);
-        const v = -speed * Math.cos(rad);
-
-        const dLat = lat - city.lat;
-        const dLon = lon - city.lon;
-        const w = 1 / (dLat * dLat + dLon * dLon + 0.2);
-
-        sumU += u * w;
-        sumV += v * w;
+      for (const vec of vectors) {
+        const dLat = lat - vec.lat;
+        const dLon = lon - vec.lon;
+        const w = 1 / (dLat * dLat + dLon * dLon + 6);
+        sumU += vec.u * w;
+        sumV += vec.v * w;
         sumW += w;
       }
 
-      uData.push(sumW ? sumU / sumW : 0);
-      vData.push(sumW ? sumV / sumW : 0);
+      const locality = Math.min(1, sumW / 1.5);
+      let u = locality * (sumW ? sumU / sumW : meanU) + (1 - locality) * meanU;
+      let v = locality * (sumW ? sumV / sumW : meanV) + (1 - locality) * meanV;
+      const speed = Math.hypot(u, v);
+      if (speed < minVisibleSpeed) {
+        const scale = minVisibleSpeed / Math.max(speed, 0.05);
+        u *= scale;
+        v *= scale;
+      }
+
+      uData.push(u);
+      vData.push(v);
     }
   }
 
@@ -977,33 +1033,47 @@ async function loadVelocityLayer() {
   if (!def) return;
   const loadSeq = ++velocityLoadSeq;
   const previousLayer = def.lyr || null;
+
   try {
-    // Full Asia coverage in both modes; only density changes with zoom.
     const mode = getVelocityModeForZoom();
     velocityQualityMode = mode;
-    const modeCfg = VELOCITY_MODES[mode];
-    const { LA1, LA2, LO1, LO2 } = VELOCITY_ASIA_BOUNDS;
-    const { NY, NX, batchSize } = modeCfg;
-    const DY = (LA1 - LA2) / (NY - 1);
-    const DX = (LO2 - LO1) / (NX - 1);
-    const lats = Array.from({ length: NY }, (_, r) => LA1 - r * DY);
-    const lons = Array.from({ length: NX }, (_, c) => LO1 + c * DX);
-
-    // Reuse recent data to avoid heavy API traffic when users toggle layers.
-    const cached = velocityDatasetCache.get(mode);
-    let dataset = cached?.dataset || null;
+    const { NY, NX, batchSize } = VELOCITY_MODES[mode];
+    const bounds = map.getBounds();
+    const north = bounds.getNorth();
+    const south = bounds.getSouth();
+    const west = bounds.getWest();
+    const east = bounds.getEast();
+    const spanLat = Math.max(north - south, 0.25);
+    const spanLon = Math.max(east - west, 0.25);
+    const paddedNorth = north + spanLat * 0.05;
+    const paddedSouth = south - spanLat * 0.05;
+    const paddedWest = west - spanLon * 0.05;
+    const paddedEast = east + spanLon * 0.05;
+    const boundsKey = [paddedNorth, paddedSouth, paddedWest, paddedEast]
+      .map((v) => Number(v).toFixed(2))
+      .join(":");
+    const cacheKey = `${mode}:${boundsKey}`;
+    const cached = velocityDatasetCache.get(cacheKey);
     const cacheAge = cached ? Date.now() - cached.ts : Infinity;
+    let dataset = cached?.dataset || null;
 
-    const canFetchRemote = Date.now() >= velocityBackoffUntil;
-    if ((!dataset || cacheAge > VELOCITY_CACHE_TTL_MS) && canFetchRemote) {
+    if (
+      VELOCITY_USE_REMOTE_SAMPLING &&
+      (!dataset || cacheAge > VELOCITY_CACHE_TTL_MS) &&
+      Date.now() >= velocityBackoffUntil
+    ) {
+      const lats = Array.from(
+        { length: NY },
+        (_, r) => paddedNorth - (r * (paddedNorth - paddedSouth)) / (NY - 1),
+      );
+      const lons = Array.from(
+        { length: NX },
+        (_, c) => paddedWest + (c * (paddedEast - paddedWest)) / (NX - 1),
+      );
       const points = lats.flatMap((lat) => lons.map((lon) => ({ lat, lon })));
-
-      // Batch requests so browser/API isn't flooded at Asia scale.
       const results = [];
+
       for (let i = 0; i < points.length; i += batchSize) {
-        if (Date.now() < velocityBackoffUntil) {
-          break;
-        }
         const batch = points.slice(i, i + batchSize);
         const batchResults = await Promise.all(
           batch.map(({ lat, lon }) =>
@@ -1024,82 +1094,82 @@ async function loadVelocityLayer() {
           ),
         );
         results.push(...batchResults);
-        // Light pacing prevents temporary API throttling on browser clients.
         if (i + batchSize < points.length) {
           await new Promise((r) => setTimeout(r, VELOCITY_FETCH_DELAY_MS));
         }
       }
 
-      // Build U/V arrays (m/s). Met convention: direction is "from", so negate.
-      const uData = [],
-        vData = [];
+      const uData = [];
+      const vData = [];
       let validSamples = 0;
       for (const res of results) {
         const speedRaw = res?.current?.wind_speed_10m;
         const dirRaw = res?.current?.wind_direction_10m;
         const hasValidSample =
           Number.isFinite(speedRaw) && Number.isFinite(dirRaw);
-        const speed = hasValidSample ? speedRaw / 3.6 : 0; // km/h → m/s
+        const speed = hasValidSample ? speedRaw / 3.6 : 0;
         const dir = hasValidSample ? (dirRaw * Math.PI) / 180 : 0;
         if (hasValidSample) validSamples++;
-        uData.push(-speed * Math.sin(dir)); // eastward component
-        vData.push(-speed * Math.cos(dir)); // northward component
+        uData.push(-speed * Math.sin(dir));
+        vData.push(-speed * Math.cos(dir));
       }
 
       const minValid = Math.max(20, Math.floor(points.length * 0.25));
-      if (validSamples < minValid) {
-        console.warn(
-          `Wind samples too sparse (${validSamples}/${points.length}), using fallback cache`,
-        );
-        dataset = null;
-      } else {
-        const header = {
-          parameterCategory: 2,
-          la1: LA1,
-          la2: LA2,
-          lo1: LO1,
-          lo2: LO2,
-          nx: NX,
-          ny: NY,
-          dx: DX,
-          dy: DY,
-          refTime: new Date().toISOString(),
-        };
-
+      if (validSamples >= minValid) {
         dataset = [
-          { header: { ...header, parameterNumber: 2 }, data: uData },
-          { header: { ...header, parameterNumber: 3 }, data: vData },
+          {
+            header: {
+              parameterCategory: 2,
+              la1: paddedNorth,
+              la2: paddedSouth,
+              lo1: paddedWest,
+              lo2: paddedEast,
+              nx: NX,
+              ny: NY,
+              dx: (paddedEast - paddedWest) / (NX - 1),
+              dy: (paddedNorth - paddedSouth) / (NY - 1),
+              refTime: new Date().toISOString(),
+              parameterNumber: 2,
+            },
+            data: uData,
+          },
+          {
+            header: {
+              parameterCategory: 2,
+              la1: paddedNorth,
+              la2: paddedSouth,
+              lo1: paddedWest,
+              lo2: paddedEast,
+              nx: NX,
+              ny: NY,
+              dx: (paddedEast - paddedWest) / (NX - 1),
+              dy: (paddedNorth - paddedSouth) / (NY - 1),
+              refTime: new Date().toISOString(),
+              parameterNumber: 3,
+            },
+            data: vData,
+          },
         ];
-        velocityDatasetCache.set(mode, { dataset, ts: Date.now() });
+        velocityDatasetCache.set(cacheKey, { dataset, ts: Date.now() });
       }
     }
 
-    // If active mode cache is missing, fallback to last good dataset from other mode.
     if (!dataset) {
-      const altMode = mode === "high" ? "low" : "high";
-      dataset = velocityDatasetCache.get(altMode)?.dataset || null;
-    }
-
-    if (!dataset) {
-      // Final fallback when API is throttled: derive vector field from city weather data.
       dataset = buildVelocityDatasetFromCities({
-        LA1,
-        LA2,
-        LO1,
-        LO2,
+        north: paddedNorth,
+        south: paddedSouth,
+        west: paddedWest,
+        east: paddedEast,
         NY,
         NX,
       });
     }
 
-    if (!dataset) {
-      console.warn("Wind particle layer unavailable: no valid dataset yet");
-      return;
-    }
+    if (!dataset) return;
 
     const isLightTheme = document.body.classList.contains("light");
     const nextLayer = L.velocityLayer({
-      displayValues: true,
+      displayValues: false,
       displayOptions: {
         velocityType: "Wind",
         position: "bottomleft",
@@ -1115,30 +1185,17 @@ async function loadVelocityLayer() {
         : ["#ffffcc", "#a1dab4", "#41b6c4", "#2c7fb8", "#253494"],
     });
 
+    if (loadSeq !== velocityLoadSeq || !def.on) return;
+
+    nextLayer.addTo(map);
     const getVelocityEl = (layer) =>
       layer?._canvas || layer?._container || null;
-
-    // If another reload started after this one, discard this layer.
-    if (loadSeq !== velocityLoadSeq) {
-      return;
-    }
-
-    // If user toggled layer off while loading, keep it detached.
-    if (!def.on) {
-      return;
-    }
-
-    // Smooth swap: fade-in new layer, then fade-out/remove old layer.
-    nextLayer.addTo(map);
     const nextEl = getVelocityEl(nextLayer);
     if (nextEl) {
-      if (isLightTheme) {
-        nextEl.style.mixBlendMode = "multiply";
-        nextEl.style.filter = "contrast(1.45) saturate(1.35) brightness(0.88)";
-      } else {
-        nextEl.style.mixBlendMode = "screen";
-        nextEl.style.filter = "contrast(1.05) saturate(1.05)";
-      }
+      nextEl.style.mixBlendMode = isLightTheme ? "multiply" : "screen";
+      nextEl.style.filter = isLightTheme
+        ? "contrast(1.45) saturate(1.35) brightness(0.88)"
+        : "contrast(1.05) saturate(1.05)";
       nextEl.style.opacity = "0";
       nextEl.style.transition = "opacity 260ms ease";
       requestAnimationFrame(() => {
@@ -1158,7 +1215,18 @@ async function loadVelocityLayer() {
         map.removeLayer(previousLayer);
       }
     }
+
     def.lyr = nextLayer;
+    setTimeout(() => {
+      document
+        .querySelectorAll(
+          ".leaflet-control-velocity, .leaflet-velocity-control, .velocity-overlay-control",
+        )
+        .forEach((el) => {
+          el.style.display = "none";
+          el.remove();
+        });
+    }, 0);
   } catch (e) {
     console.warn("Wind particle layer error:", e);
   }
@@ -1834,6 +1902,7 @@ function toggleLayer(id) {
 // Auto-start wind particle layer on page load
 loadVelocityLayer();
 map.on("zoomend", scheduleVelocityQualityRefresh);
+map.on("moveend", scheduleVelocityQualityRefresh);
 
 // ══════════════════════════════════════════
 // PIN ICONS

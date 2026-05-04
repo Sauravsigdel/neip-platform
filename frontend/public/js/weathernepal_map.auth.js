@@ -5,6 +5,7 @@ const API = CFG.API;
 let currentUser = null;
 let authToken = localStorage.getItem("wn_token");
 let pendingEmail = "";
+
 const AVATAR_IMAGES = [
   "/avatars/avatar1.png",
   "/avatars/avatar2.png",
@@ -536,6 +537,85 @@ async function submitAdminAqiUpload() {
   }
 }
 
+async function syncAdminNasaNews() {
+  if (!authToken || !currentUser || currentUser.role !== "admin") return;
+
+  const status = document.getElementById("adminAqiStatus");
+  const modalBtn = document.getElementById("adminNewsSyncBtn");
+  const menuBtn = document.getElementById("adminNewsSyncMenuItem");
+  const originalModalLabel = modalBtn ? modalBtn.textContent : "";
+  const originalMenuLabel = menuBtn ? menuBtn.textContent : "";
+
+  try {
+    if (status) {
+      status.textContent = "Syncing NASA EONET news...";
+      status.style.color = "var(--sub)";
+    }
+    if (modalBtn) {
+      modalBtn.disabled = true;
+      modalBtn.textContent = "Syncing...";
+      modalBtn.style.opacity = "0.8";
+    }
+    if (menuBtn) {
+      menuBtn.textContent = "⏳ Syncing NASA News...";
+      menuBtn.style.pointerEvents = "none";
+      menuBtn.style.opacity = "0.7";
+    }
+
+    console.log(
+      "[NASA Sync] Calling endpoint: ",
+      `${API}/admin/news/eonet/sync`,
+    );
+    const res = await fetch(`${API}/admin/news/eonet/sync`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+    });
+    const data = await res.json().catch(() => ({}));
+    console.log("[NASA Sync] Response:", res.status, data);
+
+    if (!res.ok || !data?.success) {
+      throw new Error(data?.error || data?.details || "NASA sync failed");
+    }
+
+    await loadNotifications();
+    if (status) {
+      status.textContent = `NASA news refreshed (${data.syncedCount || 0} items).`;
+      status.style.color = "#22c55e";
+    }
+    if (menuBtn) {
+      menuBtn.textContent = "✅ NASA News Synced";
+      setTimeout(() => {
+        menuBtn.textContent = originalMenuLabel || "📰 Sync NASA News";
+      }, 1200);
+    }
+  } catch (err) {
+    console.error("[NASA Sync] Error:", err);
+    if (status) {
+      status.textContent = err.message || "NASA sync failed.";
+      status.style.color = "#ef4444";
+    }
+    if (menuBtn) {
+      menuBtn.textContent = "❌ NASA Sync Failed";
+      setTimeout(() => {
+        menuBtn.textContent = originalMenuLabel || "📰 Sync NASA News";
+      }, 1500);
+    }
+  } finally {
+    if (modalBtn) {
+      modalBtn.disabled = false;
+      modalBtn.textContent = originalModalLabel || "Sync NASA News ↻";
+      modalBtn.style.opacity = "1";
+    }
+    if (menuBtn) {
+      menuBtn.style.pointerEvents = "";
+      menuBtn.style.opacity = "";
+    }
+  }
+}
+
 // SET LOGGED IN STATE
 // Helper: returns HTML for user avatar (img or initials fallback)
 function avatarHTML(user, size = 32, border = "") {
@@ -604,11 +684,15 @@ function setLoggedIn(user) {
   document.getElementById("umName").textContent = user.name;
   document.getElementById("umEmail").textContent = user.email;
   const adminItem = document.getElementById("adminAqiMenuItem");
+  const adminNewsSyncItem = document.getElementById("adminNewsSyncMenuItem");
   const adminPasswordItem = document.getElementById("adminPasswordMenuItem");
   const alertSettingsItem = document.getElementById("alertSettingsMenuItem");
   const avatarItem = document.getElementById("avatarMenuItem");
   if (adminItem) {
     adminItem.style.display = user.role === "admin" ? "block" : "none";
+  }
+  if (adminNewsSyncItem) {
+    adminNewsSyncItem.style.display = user.role === "admin" ? "block" : "none";
   }
   if (adminPasswordItem) {
     adminPasswordItem.style.display = user.role === "admin" ? "block" : "none";
@@ -682,10 +766,12 @@ function logout() {
   document.getElementById("notifWrap").style.display = "flex";
   document.getElementById("notifBadge").classList.remove("show");
   const adminItem = document.getElementById("adminAqiMenuItem");
+  const adminNewsSyncItem = document.getElementById("adminNewsSyncMenuItem");
   const adminPasswordItem = document.getElementById("adminPasswordMenuItem");
   const alertSettingsItem = document.getElementById("alertSettingsMenuItem");
   const avatarItem = document.getElementById("avatarMenuItem");
   if (adminItem) adminItem.style.display = "none";
+  if (adminNewsSyncItem) adminNewsSyncItem.style.display = "none";
   if (adminPasswordItem) adminPasswordItem.style.display = "none";
   if (alertSettingsItem) alertSettingsItem.style.display = "block";
   if (avatarItem) avatarItem.style.display = "none";
@@ -727,6 +813,12 @@ const NOTIF_ICONS = {
   alert: "⚠️",
 };
 let cachedNotifications = [];
+
+function getNotificationSourceIcon(notification) {
+  if (!notification?.isPublic) return notification.read ? "🔔" : "⚠️";
+  if (notification.source === "nasa-eonet") return "🌍";
+  return "🏠";
+}
 
 function escapeHtml(text) {
   return String(text || "")
@@ -799,7 +891,7 @@ async function loadNotifications() {
         const severityClass = n.severity === "high" ? "danger" : n.severity;
         return `
           <div class="nd-item${n.read ? "" : " unread"}" onclick="openNotificationDetail(${i})">
-            <div class="nd-ico ${severityClass}">${NOTIF_ICONS[n.type] || "🔔"}</div>
+            <div class="nd-ico ${severityClass}">${getNotificationSourceIcon(n)} ${NOTIF_ICONS[n.type] || "🔔"}</div>
             <div class="nd-body">
               <div class="nd-ntitle">${escapeHtml(n.title)}</div>
               <div class="nd-msg">${escapeHtml(n.message)}</div>

@@ -651,6 +651,14 @@
       </div>
       <div
         class="um-item"
+        id="adminNewsSyncMenuItem"
+        style="display: none"
+        onclick="syncAdminNasaNews()"
+      >
+        📰 Sync NASA News
+      </div>
+      <div
+        class="um-item"
         id="adminPasswordMenuItem"
         style="display: none"
         onclick="openAdminPasswordReset()"
@@ -947,12 +955,33 @@
           >
             Review and publish the latest AQI values.
           </div>
-          <div style="display: flex; justify-content: center; margin-top: 6px">
+          <div
+            style="
+              display: flex;
+              justify-content: center;
+              margin-top: 6px;
+              gap: 8px;
+              flex-wrap: wrap;
+            "
+          >
+            <button
+              class="wn-submit"
+              id="adminNewsSyncBtn"
+              style="
+                width: min(280px, 92%);
+                text-align: center;
+                font-size: 14px;
+                background: linear-gradient(135deg, #2563eb, #0ea5e9);
+              "
+              onclick="syncAdminNasaNews()"
+            >
+              Sync NASA News ↻
+            </button>
             <button
               class="wn-submit"
               id="adminAqiUpdateBtn"
               style="
-                width: min(360px, 92%);
+                width: min(300px, 92%);
                 text-align: center;
                 font-size: 14px;
               "
