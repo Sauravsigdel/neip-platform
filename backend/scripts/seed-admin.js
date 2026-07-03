@@ -11,8 +11,8 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const User = require("../src/models/User");
 
-const ADMIN_EMAIL = "sauravsigdel00000@gmail.com";
-const ADMIN_PASSWORD = "Admin@123456"; // Change this to a strong password after first login
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "sauravsigdel00000@gmail.com";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Admin@123456";
 const ADMIN_NAME = "Admin User";
 
 async function seedAdmin() {
@@ -23,16 +23,38 @@ async function seedAdmin() {
     await mongoose.connect(mongoUri);
     console.log("[Seed] Connected to MongoDB");
 
-    // Check if admin already exists
+    const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, 12);
+
+    // Create or reset the admin user
     const existing = await User.findOne({ email: ADMIN_EMAIL.toLowerCase() });
     if (existing) {
-      console.log(`[Seed] Admin user ${ADMIN_EMAIL} already exists`);
+      existing.name = ADMIN_NAME;
+      existing.password = hashedPassword;
+      existing.location = "Kathmandu";
+      existing.district = "Kathmandu";
+      existing.lat = 27.7172;
+      existing.lon = 85.324;
+      existing.avatarIndex = 1;
+      existing.avatarColor = "#2563eb";
+      existing.isVerified = true;
+      existing.role = "admin";
+      existing.alerts = {
+        aqi: true,
+        rain: true,
+        wind: false,
+        snow: false,
+        temp: false,
+        daily: true,
+      };
+
+      await existing.save();
+      console.log(`[Seed] ✓ Admin user ${ADMIN_EMAIL} updated successfully!`);
+      console.log(`[Seed] Password reset to: ${ADMIN_PASSWORD}`);
       await mongoose.connection.close();
       return;
     }
 
     // Create admin user
-    const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, 12);
     const admin = new User({
       name: ADMIN_NAME,
       email: ADMIN_EMAIL.toLowerCase(),
